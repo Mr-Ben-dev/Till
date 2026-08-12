@@ -1,0 +1,18 @@
+{
+  "name": "@till/demo-402",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@till/config": "0.1.0",
+    "dotenv": "^16.4.7",
+    "ethers": "6.13.1",
+    "fastify": "^5.2.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  }
+}
