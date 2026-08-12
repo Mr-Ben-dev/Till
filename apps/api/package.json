@@ -1,0 +1,23 @@
+{
+  "name": "@till/api",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "e2e:local": "tsx src/e2e-local.ts",
+    "e2e:mainnet": "tsx src/e2e-mainnet.ts",
+    "e2e:compute": "tsx src/e2e-compute.ts",
+    "e2e:settle": "tsx src/e2e-settle.ts"
+  },
+  "dependencies": {
+    "@till/config": "0.1.0",
+    "@till/sdk": "0.1.0",
+    "@x402/core": "^2.23.0",
+    "@x402/evm": "^2.23.0",
+    "@x402/fetch": "^2.23.0",
+    "ethers": "6.13.1",
+    "fastify": "^5.2.1",
+    "tsx": "^4.19.3",
+    "viem": "^2.33.0"
+  }
+}
