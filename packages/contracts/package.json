@@ -1,0 +1,11 @@
+{
+  "name": "@till/contracts",
+  "private": true,
+  "scripts": {
+    "test": "forge test",
+    "test:fuzz": "forge test --match-contract TillFuzz",
+    "test:invariant": "forge test --match-contract TillInvariant",
+    "build": "forge build",
+    "deploy:mainnet": "forge script script/DeployTill.s.sol:DeployTill --rpc-url https://evmrpc.0g.ai --broadcast --verify --verifier blockscout --verifier-url https://chainscan.0g.ai/api -vvvv"
+  }
+}
