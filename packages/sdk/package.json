@@ -1,0 +1,13 @@
+{
+  "name": "@till/sdk",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@0gfoundation/0g-compute-ts-sdk": "0.9.0",
+    "@0gfoundation/0g-storage-ts-sdk": "1.2.11",
+    "@till/config": "0.1.0",
+    "dotenv": "^16.4.7",
+    "ethers": "6.13.1"
+  }
+}
