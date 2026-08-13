@@ -1,0 +1,20 @@
+{
+  "name": "till",
+  "private": true,
+  "type": "module",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "test:contracts": "npm run test -w @till/contracts",
+    "api": "npm run start -w @till/api",
+    "demo-402": "npm run start -w @till/demo-402",
+    "e2e:local": "npm run e2e:local -w @till/api",
+    "e2e:mainnet": "npm run e2e:mainnet -w @till/api",
+    "e2e:compute": "npm run e2e:compute -w @till/api",
+    "e2e:settle": "npm run e2e:settle -w @till/api",
+    "web": "npm run dev -w @till/web",
+    "web:build": "npm run build -w @till/web"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
