@@ -101,3 +101,4 @@ app.get('/health', async () => ({ ok: true, resource: RESOURCE, priceWei: PRICE_
 
 const port = Number(process.env.X402_PORT ?? 3002)
 await app.listen({ port, host: '0.0.0.0' })
+// todo
