@@ -28,3 +28,21 @@ ERC-7857 `supportsInterface`: `0x80ac58cd` `0x2afbede9` `0xdf597d99` `0x74f8628b
 
 Verify a payment: open `/verify` and paste a tx hash. No wallet required.
 
+## Layout
+
+```text
+apps/web            React + Vite + Privy
+apps/api            Fastify (Compute, x402, Storage, verify)
+apps/demo-402       Local x402 rehearsal only
+packages/contracts  Foundry
+packages/sdk
+packages/config
+```
+
+## Networks
+
+| | Chain ID | RPC | Explorer |
+|---|---|---|---|
+| Production | 16661 | https://evmrpc.0g.ai | https://chainscan.0g.ai |
+| Rehearsal only | 16602 | https://evmrpc-testnet.0g.ai | https://chainscan-galileo.0g.ai |
+
