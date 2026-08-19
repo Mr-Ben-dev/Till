@@ -46,3 +46,20 @@ packages/config
 | Production | 16661 | https://evmrpc.0g.ai | https://chainscan.0g.ai |
 | Rehearsal only | 16602 | https://evmrpc-testnet.0g.ai | https://chainscan-galileo.0g.ai |
 
+## Run locally
+
+```bash
+cp .env.example .env
+# fill keys — never commit .env
+
+npm install
+npm run test:contracts   # needs Foundry
+npm run api
+npm run web
+```
+
+Frontend public env is `VITE_PRIVY_APP_ID` and `VITE_API_URL`. Never put `sk-`, `mk-`, or private keys in `VITE_*`.
+
+## License
+
+MIT
