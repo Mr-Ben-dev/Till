@@ -286,3 +286,4 @@ export async function planProcurement(token: string): Promise<{
     }))
   return { registry, buys, skipped, facts: NEEDED, bazaar }
 }
+// ok
