@@ -29,8 +29,8 @@ Autonomous mode is a device-local session key on this Till. It cannot withdraw o
 
 - App: https://till-0g.vercel.app/developers
 - MCP HTTP: `https://till-api.onrender.com/mcp`
-- SDK: `npm install @till-0g/sdk`
-- Local MCP: `npx -y @till-0g/mcp` with `TILL_ACCESS_TOKEN`
+- SDK: `npm install till-0g-sdk`
+- Local MCP: `npx -y till-0g-mcp` with `TILL_ACCESS_TOKEN`
 
 MCP never accepts a private key. Default scopes are read/quote. `till.mission.execute` requires an on-chain autonomous session. Storage proofs stay on the device session — MCP does not upload session keys.
 

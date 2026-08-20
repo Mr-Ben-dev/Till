@@ -201,6 +201,11 @@ app.post('/oauth/token', async (req, reply) => {
   }
 })
 
+app.post('/oauth/revoke', async () => ({
+  ok: true,
+  note: 'Delete the bearer token in the client. On-chain session revoke is an owner-wallet action in the Till app.',
+}))
+
 app.post('/v1/mcp/issue', async (req, reply) => {
   const body = req.body as {
     owner?: string
@@ -269,8 +274,12 @@ app.post('/mcp', async (req, reply) => {
       }
     }
     try {
+      const proto = String(req.headers['mcp-protocol-version'] || '')
+      if (proto && proto !== '2025-03-26' && proto !== '2025-11-25') {
+        return reply.code(400).send({ error: 'unsupported MCP-Protocol-Version' })
+      }
       const out = await handleMcpRpc(auth, body as { jsonrpc: '2.0'; method?: string; params?: unknown; id?: string | number | null })
-      if (out == null) return reply.code(204).send()
+      if (out == null) return reply.code(202).send()
       return out
     } catch (e) {
       const err = e as Error & { status?: number }

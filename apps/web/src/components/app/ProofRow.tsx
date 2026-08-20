@@ -5,11 +5,21 @@ export function ProofRow({
   label,
   hash,
   detail,
+  amount,
+  asset,
+  network = 'Aristotle',
+  provider,
+  status,
 }: {
   ok: boolean
   label: string
   hash?: string
   detail?: string
+  amount?: string
+  asset?: string
+  network?: string
+  provider?: string
+  status?: string
 }) {
   const short = hash ? `${hash.slice(0, 8)}…${hash.slice(-4)}` : ''
   return (
@@ -18,6 +28,14 @@ export function ProofRow({
         <p className="text-[14px] text-white">
           <span className={ok ? 'text-cyan' : 'text-white/35'}>{ok ? '✓' : '○'}</span> {label}
         </p>
+        {amount ? (
+          <p className="mt-1 font-mono text-[12px] text-white/70">
+            {amount}
+            {asset ? ` ${asset}` : ''}
+            {provider ? ` · ${provider}` : ''} · {network}
+            {status ? ` · ${status}` : ''}
+          </p>
+        ) : null}
         {detail ? <p className="mt-1 text-[12px] text-white/50">{detail}</p> : null}
       </div>
       {hash ? (
@@ -27,7 +45,7 @@ export function ProofRow({
           target="_blank"
           rel="noreferrer"
         >
-          {short} ↗
+          View on ChainScan ↗ {short}
         </a>
       ) : (
         <span className="font-mono text-[11px] text-white/30">waiting</span>

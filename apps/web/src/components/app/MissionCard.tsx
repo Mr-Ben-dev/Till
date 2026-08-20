@@ -1,5 +1,5 @@
-import { txUrl } from '../../lib/chain'
 import { humanCheck } from '../../lib/serviceLabels'
+import { ProofRow } from './ProofRow'
 import type { MissionDiscover, PurchaseRecord } from '../../lib/api'
 
 export function MissionCard({
@@ -27,19 +27,15 @@ export function MissionCard({
             <li key={row.url} className="rounded-[4.27px] border border-white/10 p-4">
               <p className="font-semibold text-white">{h.title}</p>
               <p className="mt-1 text-[13px] text-white/60">{h.body}</p>
-              <p className="mt-2 font-mono text-[12px] text-white/45">
-                Provider {h.provider} · ${usd.toFixed(3)} {paid ? 'paid' : 'quoted'}
-              </p>
-              {ogTx ? (
-                <a
-                  className="mt-2 inline-block font-mono text-[11px] text-cyan underline"
-                  href={txUrl(ogTx)}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  View transaction ↗
-                </a>
-              ) : null}
+              <ProofRow
+                ok={paid}
+                label={`${h.title} purchase`}
+                amount={`$${usd.toFixed(3)}`}
+                asset="USDC.e"
+                provider={h.provider}
+                status={paid ? 'settled' : 'quoted'}
+                hash={ogTx}
+              />
             </li>
           )
         })}

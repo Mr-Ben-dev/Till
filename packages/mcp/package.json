@@ -1,5 +1,5 @@
 {
-  "name": "@till-0g/mcp",
+  "name": "till-0g-mcp",
   "version": "0.1.0",
   "description": "Till MCP stdio bridge. Uses TILL_ACCESS_TOKEN. Never accepts a private key.",
   "type": "module",
@@ -8,9 +8,15 @@
   },
   "files": ["src/stdio.js", "README.md"],
   "license": "MIT",
+  "homepage": "https://till-0g.vercel.app/developers",
+  "keywords": ["till", "0g", "mcp"],
+  "publishConfig": { "access": "public" },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Mr-Ben-dev/Till.git"
+  },
+  "scripts": {
+    "test": "node test-stdio.mjs"
   },
   "engines": {
     "node": ">=20"

@@ -148,8 +148,9 @@ export function PolicyPanel({
           </div>
         )}
         <p className="mt-3 text-[12px] text-white/40">
-          Allowed service categories are selected by the agent from live x402 quotes. Mission USDC.e cap is
-          ${till.missionCapUsd.toFixed(2)} on the API. Vault caps are native 0G. Owner signs every policy write.
+          Mission budget ${till.missionCapUsd.toFixed(2)} USDC.e · allowed services Safety · Market · Contract ·
+          payment assets USDC.e and 0G. Categories are agent-selected from live quotes, not an on-chain enum.
+          Owner signs every policy write.
         </p>
         <a className="mt-3 inline-block text-[13px] text-cyan" href={HUB_SWAP} target="_blank" rel="noreferrer">
           Get USDC.e on 0G Hub ↗

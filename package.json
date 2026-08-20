@@ -13,7 +13,7 @@
     "e2e:settle": "npm run e2e:settle -w @till/api",
     "web": "npm run dev -w @till/web",
     "web:build": "npm run build -w @till/web",
-    "sdk:build": "npm run build -w @till-0g/sdk",
+    "sdk:build": "npm run build -w till-0g-sdk",
     "test:mcp": "npm run test:mcp -w @till/api"
   },
   "engines": {

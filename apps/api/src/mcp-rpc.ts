@@ -80,15 +80,16 @@ async function callTool(auth: Auth, name: string, params: unknown) {
     case 'till_run_mission': {
       requireScope(auth, 'till.mission.execute')
       const session = await getSession(auth.sub, tokenId)
-      if (session.status === 'REVOKED' || session.status === 'OWNER_MODE') {
+      if (session.status !== 'READY') {
         return {
           ok: false,
-          error: 'Autonomous execution is not enabled for this Till.',
+          error:
+            session.status === 'EXPIRED'
+              ? 'Autonomous session expired. Authorize a new session in the Till app.'
+              : 'Autonomous execution is not enabled for this Till.',
+          status: session.status,
           enableUrl: `${WEB_PUBLIC}/agents`,
         }
-      }
-      if (session.status === 'EXPIRED') {
-        return { ok: false, error: 'Autonomous session expired. Authorize a new session in the Till app.', enableUrl: `${WEB_PUBLIC}/agents` }
       }
       const subject = String(a.subject || '')
       if (!subject) throw new Error('subject required')
@@ -141,11 +142,14 @@ export async function handleMcpRpc(auth: Auth | null, body: Rpc) {
   const method = body.method || ''
   try {
     if (method === 'initialize') {
+      const params = (body.params || {}) as { protocolVersion?: string }
+      const requested = params.protocolVersion || ''
+      const protocolVersion = requested === '2025-11-25' || requested === '2025-03-26' ? requested : '2025-11-25'
       return {
         jsonrpc: '2.0',
         id,
         result: {
-          protocolVersion: '2025-03-26',
+          protocolVersion,
           capabilities: { tools: {} },
           serverInfo: { name: 'till', version: '0.1.0' },
           instructions:

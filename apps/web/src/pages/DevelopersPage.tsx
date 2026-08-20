@@ -174,36 +174,68 @@ export function DevelopersPage({ till }: { till: TillState }) {
       <section className="mt-10 grid gap-8">
         <article>
           <h2 className="text-[1.2rem] font-bold">1. Install</h2>
-          <pre className="mt-3 overflow-x-auto rounded-[4.27px] bg-black/40 p-4 text-[12px]">{`npm install @till-0g/sdk
-npx -y @till-0g/mcp`}</pre>
+          <pre className="mt-3 overflow-x-auto rounded-[4.27px] bg-black/40 p-4 text-[12px]">{`npm install till-0g-sdk
+npx -y till-0g-mcp`}</pre>
         </article>
         <article>
-          <h2 className="text-[1.2rem] font-bold">2–7. Connect · Till · policy · agent · mission · proof</h2>
-          <p className="mt-2 max-w-[60ch] text-[14px] text-white/60">
-            Open {WEB}/till. Create, set protection policy, fund, authorize a device-local session, then Analyze before I pay. Proofs open on ChainScan.
-          </p>
+          <h2 className="text-[1.2rem] font-bold">2. Connect</h2>
+          <p className="mt-2 max-w-[60ch] text-[14px] text-white/60">Open {WEB} and connect the owner wallet. MCP and the SDK receive a scoped token, never that key.</p>
+        </article>
+        <article>
+          <h2 className="text-[1.2rem] font-bold">3. Create Till</h2>
+          <p className="mt-2 max-w-[60ch] text-[14px] text-white/60">Mint on {WEB}/till. This is an owner-wallet transaction on Aristotle 16661.</p>
+        </article>
+        <article>
+          <h2 className="text-[1.2rem] font-bold">4. Configure policy</h2>
+          <p className="mt-2 max-w-[60ch] text-[14px] text-white/60">Write Conservative, Balanced, or Custom. The UI updates only after the on-chain receipt.</p>
+        </article>
+        <article>
+          <h2 className="text-[1.2rem] font-bold">5. Authorize agent</h2>
+          <p className="mt-2 max-w-[60ch] text-[14px] text-white/60">Create a device-local session, authorize it on that Till, and fund agent gas. The session key never leaves the browser.</p>
+        </article>
+        <article>
+          <h2 className="text-[1.2rem] font-bold">6. Run a mission</h2>
+          <p className="mt-2 max-w-[60ch] text-[14px] text-white/60">Paste a contract. The agent selects Safety, Market, and Contract checks under the cap. Quote first if you only want a price.</p>
+        </article>
+        <article>
+          <h2 className="text-[1.2rem] font-bold">7. Read proof</h2>
+          <p className="mt-2 max-w-[60ch] text-[14px] text-white/60">Every real tx has a human label and View on ChainScan. Technical hashes stay collapsed.</p>
         </article>
         <article>
           <h2 className="text-[1.2rem] font-bold">8. MCP</h2>
           <p className="mt-2 text-[14px] text-white/60">Remote Streamable HTTP: {MCP_URL}</p>
-          <p className="mt-2 text-[13px] text-white/50">OAuth 2.1 resource metadata is at /.well-known/oauth-protected-resource. Tokens use header Bearer only.</p>
-          <h3 className="mt-4 text-[15px] font-semibold">Cursor</h3>
+          <p className="mt-2 text-[13px] text-white/50">OAuth 2.1: GET /.well-known/oauth-protected-resource and /.well-known/oauth-authorization-server. Bearer header only — never a query string.</p>
+          <h3 className="mt-4 text-[15px] font-semibold">Cursor · remote</h3>
+          <p className="mt-2 text-[12px] text-white/40">Project file .cursor/mcp.json · user file ~/.cursor/mcp.json</p>
           <pre className="mt-2 overflow-x-auto rounded-[4.27px] bg-black/40 p-4 text-[12px]">{cursorJson}</pre>
-          <p className="mt-2 text-[12px] text-white/40">Project file: .cursor/mcp.json · user file: ~/.cursor/mcp.json</p>
+          <h3 className="mt-4 text-[15px] font-semibold">Cursor · local stdio</h3>
+          <pre className="mt-2 overflow-x-auto rounded-[4.27px] bg-black/40 p-4 text-[12px]">{`{
+  "mcpServers": {
+    "till": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "till-0g-mcp"],
+      "env": {
+        "TILL_ACCESS_TOKEN": "\${env:TILL_ACCESS_TOKEN}",
+        "TILL_API_URL": "https://till-api.onrender.com"
+      }
+    }
+  }
+}`}</pre>
           <h3 className="mt-4 text-[15px] font-semibold">Claude Code</h3>
           <pre className="mt-2 overflow-x-auto rounded-[4.27px] bg-black/40 p-4 text-[12px]">{`claude mcp add --transport http till ${MCP_URL}
-claude mcp add --transport http till ${MCP_URL} --header "Authorization: Bearer YOUR_TOKEN"`}</pre>
-          <pre className="mt-2 overflow-x-auto rounded-[4.27px] bg-black/40 p-4 text-[12px]">{`claude mcp add till -- npx -y @till-0g/mcp`}</pre>
-          <p className="mt-2 text-[12px] text-white/40">Stdio uses TILL_ACCESS_TOKEN in the environment. Never put keys in VITE_*.</p>
+claude mcp add --transport http till ${MCP_URL} --header "Authorization: Bearer YOUR_TOKEN"
+claude mcp add --transport stdio till --env TILL_ACCESS_TOKEN=YOUR_TOKEN -- npx -y till-0g-mcp`}</pre>
         </article>
         <article>
           <h2 className="text-[1.2rem] font-bold">9. SDK</h2>
-          <pre className="mt-3 overflow-x-auto rounded-[4.27px] bg-black/40 p-4 text-[12px]">{`import { createClient } from '@till-0g/sdk'
-const till = createClient({ apiUrl: '${API || 'https://till-api.onrender.com'}', token: process.env.TILL_ACCESS_TOKEN })
+          <pre className="mt-3 overflow-x-auto rounded-[4.27px] bg-black/40 p-4 text-[12px]">{`import { createClient } from 'till-0g-sdk'
+const till = createClient({ apiUrl: 'https://till-api.onrender.com', token: process.env.TILL_ACCESS_TOKEN })
 const quote = await till.quoteMission('Should I deposit into this protocol? 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913')`}</pre>
         </article>
         <article>
           <h2 className="text-[1.2rem] font-bold">10. Examples</h2>
+          <p className="mt-2 text-[13px] text-white/50">Paste into Cursor or Claude. READ does not spend. SAFE quotes. MUTATING can execute or open revoke in the app.</p>
           <ul className="mt-3 grid gap-3">
             {PROMPTS.map((p) => (
               <li key={p.text} className="rounded-[4.27px] border border-white/10 p-4">

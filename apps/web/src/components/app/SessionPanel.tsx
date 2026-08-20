@@ -42,7 +42,7 @@ export function SessionPanel({ till, gasAmt, setGasAmt }: { till: TillState; gas
             Authorize session
           </CyanButton>
         ) : null}
-        {till.agentOf && till.agentGas === 0n ? (
+        {till.agentOf ? (
           <>
             <input
               className="w-28 rounded-[4.27px] border border-white/15 bg-navy px-3 py-2 text-sm"
@@ -81,8 +81,9 @@ export function SessionPanel({ till, gasAmt, setGasAmt }: { till: TillState; gas
 }
 
 export function PaymentsPanel({ till }: { till: TillState }) {
-  const required = till.mission?.totalUsd ?? 0.016
-  const rail = till.usdceUsd >= required
+  const required = till.mission?.totalUsd
+  const needsUsdce = (required ?? 0) > 0
+  const rail = required != null ? till.usdceUsd >= required : till.usdceUsd > 0
   return (
     <section className="rounded-[4.27px] border border-white/10 p-6">
       <p className="font-mono text-[11px] tracking-[0.16em] text-muted">Payments</p>
@@ -97,17 +98,28 @@ export function PaymentsPanel({ till }: { till: TillState }) {
         </div>
         <div>
           <dt className="text-white/45">Required for current mission</dt>
-          <dd className="font-mono">${required.toFixed(3)} USDC.e</dd>
+          <dd className="font-mono">
+            {required == null ? 'Quote a mission first' : needsUsdce ? `$${required.toFixed(3)} USDC.e` : 'No USDC.e required'}
+          </dd>
         </div>
       </dl>
       <p className="mt-4 max-w-[54ch] text-[13px] text-white/55">
-        Live Before You Pay checks settle in USDC.e. Swap a small amount of 0G for USDC.e on 0G Hub if this wallet
-        is the spend rail. 0G Compute billing is separate.
+        {needsUsdce
+          ? 'This mission settles in USDC.e. Swap a small amount of 0G for USDC.e on 0G Hub.'
+          : required == null
+            ? 'Before You Pay checks usually settle in USDC.e. Quote a mission to see the exact amount.'
+            : 'The current mission does not require USDC.e.'}
       </p>
       <a className="mt-3 inline-block text-[14px] text-cyan underline-offset-4 hover:underline" href={HUB_SWAP} target="_blank" rel="noreferrer">
         Get USDC.e ↗
       </a>
-      <p className="mt-2 text-[12px] text-white/40">{rail ? 'This wallet holds enough USDC.e for one mission.' : 'If settlement uses this wallet, fund USDC.e before you pay.'}</p>
+      <p className="mt-2 text-[12px] text-white/40">
+        {required == null
+          ? 'Balances above are live on Aristotle after refresh — never a placeholder.'
+          : rail
+            ? 'This wallet holds enough USDC.e for the quoted mission.'
+            : 'If settlement uses this wallet, fund USDC.e before you pay.'}
+      </p>
     </section>
   )
 }
@@ -130,8 +142,10 @@ export function MyTills({ till }: { till: TillState }) {
                 }`}
               >
                 <span className="font-semibold">Till {id.toString()}</span>
-                <span className="font-mono text-[12px] text-white/60">
-                  {active ? 'ACTIVE' : ''} {active ? fmt0g(till.available) : ''} {active ? (till.paused ? 'PAUSED' : till.executionMode.toUpperCase()) : ''}
+                <span className="font-mono text-[11px] text-white/60">
+                  {active
+                    ? `ACTIVE · ${fmt0g(till.available)} · POLICY ${till.hasPolicy ? 'on' : 'off'} · AGENT ${till.executionMode.toUpperCase()} · ${till.paused ? 'PAUSED' : 'LIVE'}`
+                    : 'Select to inspect'}
                 </span>
               </button>
             </li>

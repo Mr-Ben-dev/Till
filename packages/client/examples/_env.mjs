@@ -1,0 +1,13 @@
+import { createClient } from '../dist/index.js'
+
+export function tillClient() {
+  const token = process.env.TILL_ACCESS_TOKEN
+  if (!token) {
+    console.error('Set TILL_ACCESS_TOKEN from https://till-0g.vercel.app/developers')
+    process.exit(1)
+  }
+  return createClient({
+    apiUrl: process.env.TILL_API_URL || 'https://till-api.onrender.com',
+    token,
+  })
+}
