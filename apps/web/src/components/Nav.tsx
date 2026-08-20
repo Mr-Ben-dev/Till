@@ -8,7 +8,7 @@ const links = [
   { to: '/agents', label: 'Agents' },
   { to: '/jobs', label: 'Jobs' },
   { to: '/activity', label: 'Activity' },
-  { to: '/verify', label: 'Verify' },
+  { to: '/developers', label: 'Developers' },
 ]
 
 export function Nav({

@@ -15,7 +15,9 @@ import { Stepper } from '../components/app/Stepper'
 import { fmt0g, shortAddr } from '../lib/errors'
 import { HUB_SWAP, txUrl, DEFAULT_BRIEF_SUBJECT } from '../lib/chain'
 import { POLICY_TEMPLATES } from '../lib/human'
-import { CHECKS, EXAMPLES } from '../lib/serviceLabels'
+import { CHECKS, EXAMPLES, USES } from '../lib/serviceLabels'
+import { PolicyPanel } from '../components/app/PolicyPanel'
+import { MyTills, PaymentsPanel, SessionPanel } from '../components/app/SessionPanel'
 
 function stepOf(till: TillState) {
   if (!till.authenticated) return 0
@@ -39,10 +41,8 @@ export function TillPage({ till }: { till: TillState }) {
   const [customWindow, setCustomWindow] = useState('0.20')
   const [withdrawAmt, setWithdrawAmt] = useState('0.001')
   const [gasAmt, setGasAmt] = useState('0.002')
+  const [sessionDays, setSessionDays] = useState('30')
   const [subject, setSubject] = useState(DEFAULT_BRIEF_SUBJECT)
-  const chosen = POLICY_TEMPLATES.find((t) => t.id === template)!
-  const policyMax = template === 'custom' ? customMax : chosen.max
-  const policyWindow = template === 'custom' ? customWindow : chosen.window
   const live = step === 6
   const autonomous = till.executionMode === 'autonomous'
   const expiry =
@@ -194,48 +194,17 @@ export function TillPage({ till }: { till: TillState }) {
           )}
 
           {step === 2 && (
-            <ActionCard
-              what="Protection policy"
-              why="Your agent can spend within this boundary. It cannot withdraw your Till balance or change this policy."
-              next="Three owner signatures write the template on-chain. Limits never increase by themselves."
-            >
-              <ul className="grid gap-3 md:grid-cols-3">
-                {POLICY_TEMPLATES.map((t) => (
-                  <li key={t.id}>
-                    <button
-                      type="button"
-                      className={`h-full w-full rounded-[4.27px] border p-4 text-left ${
-                        template === t.id ? 'border-cyan bg-cyan/10' : 'border-white/15 bg-white/[0.03]'
-                      }`}
-                      onClick={() => setTemplate(t.id)}
-                    >
-                      <p className="font-semibold text-white">{t.name}</p>
-                      <p className="mt-2 font-mono text-[12px] text-cyan">
-                        {t.max} 0G / tx · {t.window} 0G rolling
-                      </p>
-                      <p className="mt-2 text-[13px] text-white/60">{t.why}</p>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              {template === 'custom' && (
-                <div className="mt-4 grid max-w-lg gap-3 sm:grid-cols-2">
-                  <label className="flex flex-col gap-2">
-                    <span className="text-[12px] text-white/70">Max per purchase (0G)</span>
-                    <input className={inputCls} value={customMax} onChange={(e) => setCustomMax(e.target.value)} />
-                  </label>
-                  <label className="flex flex-col gap-2">
-                    <span className="text-[12px] text-white/70">Rolling spend (0G)</span>
-                    <input className={inputCls} value={customWindow} onChange={(e) => setCustomWindow(e.target.value)} />
-                  </label>
-                </div>
-              )}
-              <div className="mt-6">
-                <CyanButton disabled={!!till.busy} onClick={() => till.setPolicy(policyMax, policyWindow)}>
-                  Write {chosen.name} on-chain
-                </CyanButton>
-              </div>
-            </ActionCard>
+            <PolicyPanel
+              till={till}
+              template={template}
+              setTemplate={setTemplate}
+              customMax={customMax}
+              setCustomMax={setCustomMax}
+              customWindow={customWindow}
+              setCustomWindow={setCustomWindow}
+              sessionDays={sessionDays}
+              setSessionDays={setSessionDays}
+            />
           )}
 
           {step === 3 && (
@@ -278,61 +247,7 @@ export function TillPage({ till }: { till: TillState }) {
             </ActionCard>
           )}
 
-          {step === 4 && (
-            <ActionCard
-              what="Autonomous agent"
-              why="Let this Till execute approved work without asking you to sign every transaction."
-              next="The key stays in this browser, scoped to this Till. It cannot withdraw, change policy, or spend another Till. You can revoke it immediately."
-            >
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="rounded-[4.27px] border border-cyan/30 p-4">
-                  <p className="font-semibold">Enable autonomous mode</p>
-                  <p className="mt-2 text-[13px] text-white/60">
-                    Create a device-local session key. Autonomous execution needs a small amount of 0G for transaction gas.
-                  </p>
-                  <div className="mt-4">
-                    <CyanButton disabled={!!till.busy} onClick={till.attachAgent}>
-                      Authorize session
-                    </CyanButton>
-                  </div>
-                </div>
-                <div className="rounded-[4.27px] border border-white/15 p-4">
-                  <p className="font-semibold">Continue in owner mode</p>
-                  <p className="mt-2 text-[13px] text-white/60">
-                    Use your wallet to approve each on-chain proof. x402 purchases still settle without your key.
-                  </p>
-                  <button
-                    type="button"
-                    className="mt-4 text-[14px] text-white/55 underline-offset-4 hover:underline"
-                    onClick={till.skipAgent}
-                  >
-                    Owner mode
-                  </button>
-                </div>
-              </div>
-              {till.agentOf && (
-                <div className="mt-6 grid gap-3">
-                  <p className="font-mono text-[12px] text-white/60">
-                    Session {shortAddr(till.agentOf.address)} · gas {fmt0g(till.agentGas)} · expires {expiry}
-                  </p>
-                  {till.agentGas === 0n && (
-                    <div className="flex max-w-md flex-col gap-3 sm:flex-row sm:items-end">
-                      <label className="flex flex-1 flex-col gap-2">
-                        <span className="text-[12px] text-white/70">Fund agent gas (0G)</span>
-                        <input className={inputCls} value={gasAmt} onChange={(e) => setGasAmt(e.target.value)} />
-                      </label>
-                      <CyanButton disabled={!!till.busy} onClick={() => till.fundAgentGas(gasAmt)}>
-                        Fund agent gas
-                      </CyanButton>
-                    </div>
-                  )}
-                  {till.authorized.length > 0 && till.agentGas > 0n && (
-                    <p className="text-[14px] text-cyan">Autonomous mode on. Before You Pay will not ask MetaMask to sign the storage proof.</p>
-                  )}
-                </div>
-              )}
-            </ActionCard>
-          )}
+          {step === 4 && <SessionPanel till={till} gasAmt={gasAmt} setGasAmt={setGasAmt} />}
 
           {step === 5 && (
             <ActionCard
@@ -367,25 +282,23 @@ export function TillPage({ till }: { till: TillState }) {
             />
           )}
 
-          {till.tokenIds.length > 1 && (
-            <label className="flex max-w-xs flex-col gap-2">
-              <span className="text-[12px] text-white/70">Active Till</span>
-              <select
-                className={inputCls}
-                value={till.tokenId?.toString() ?? ''}
-                onChange={(e) => till.setTokenId(BigInt(e.target.value))}
-              >
-                {till.tokenIds.map((id) => (
-                  <option key={id.toString()} value={id.toString()}>
-                    Till #{id.toString()}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
+          {till.tokenId != null && <MyTills till={till} />}
 
           {live && (
             <>
+              <PolicyPanel
+                till={till}
+                template={template}
+                setTemplate={setTemplate}
+                customMax={customMax}
+                setCustomMax={setCustomMax}
+                customWindow={customWindow}
+                setCustomWindow={setCustomWindow}
+                sessionDays={sessionDays}
+                setSessionDays={setSessionDays}
+              />
+              <SessionPanel till={till} gasAmt={gasAmt} setGasAmt={setGasAmt} />
+              <PaymentsPanel till={till} />
               <CanCannot
                 can={[
                   `Buy quoted x402 checks in USDC.e (cap $${till.missionCapUsd.toFixed(2)})`,
@@ -405,7 +318,7 @@ export function TillPage({ till }: { till: TillState }) {
               <section>
                 <p className="font-mono text-[11px] tracking-[0.16em] text-muted">What can I use Till for?</p>
                 <ul className="mt-4 grid gap-3 md:grid-cols-2">
-                  {EXAMPLES.map((ex) => (
+                  {USES.map((ex) => (
                     <li key={ex.label}>
                       <button
                         type="button"
@@ -413,10 +326,25 @@ export function TillPage({ till }: { till: TillState }) {
                         onClick={() => setSubject(ex.value)}
                       >
                         <p className="font-semibold">{ex.label}</p>
+                        <p className="mt-1 text-[13px] text-white/55">{ex.body}</p>
                         <p className="mt-1 text-[12px] text-cyan">Try example</p>
                       </button>
                     </li>
                   ))}
+                  <li>
+                    <a className="block rounded-[4.27px] border border-white/10 p-4 hover:border-cyan" href="/agents">
+                      <p className="font-semibold">For an autonomous agent</p>
+                      <p className="mt-1 text-[13px] text-white/55">Give it a bounded budget without giving it your wallet.</p>
+                      <p className="mt-1 text-[12px] text-cyan">Try example</p>
+                    </a>
+                  </li>
+                  <li>
+                    <a className="block rounded-[4.27px] border border-white/10 p-4 hover:border-cyan" href="/jobs">
+                      <p className="font-semibold">For paid work</p>
+                      <p className="mt-1 text-[13px] text-white/55">Fund a bounded job and settle or refund it.</p>
+                      <p className="mt-1 text-[12px] text-cyan">Try example</p>
+                    </a>
+                  </li>
                 </ul>
               </section>
 

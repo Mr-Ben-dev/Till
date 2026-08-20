@@ -1,7 +1,7 @@
 import type { TillState } from '../hooks/useTill'
 import { CyanButton } from '../components/CyanButton'
 import { Notice } from '../components/app/Notice'
-import { fmt0g, shortAddr } from '../lib/errors'
+import { fmt0g } from '../lib/errors'
 import { txUrl } from '../lib/chain'
 
 export function AgentsPage({ till }: { till: TillState }) {
@@ -28,9 +28,10 @@ export function AgentsPage({ till }: { till: TillState }) {
           <p className="font-mono text-[11px] tracking-[0.16em] text-muted">
             {ready ? 'Agent ready' : 'No grant yet'}
           </p>
-          <h2 className="mt-3 text-[1.4rem] font-bold">
-            {till.agentOf ? shortAddr(till.agentOf.address) : 'Owner-run'}
-          </h2>
+          <h2 className="mt-3 text-[1.4rem] font-bold">Enable autonomous execution</h2>
+          <p className="mt-2 max-w-[52ch] text-[14px] text-white/55">
+            Let this agent execute approved work without asking you to sign every transaction. Status: {ready ? 'READY' : till.agentOf && till.agentGas === 0n ? 'NOT FUNDED' : 'OWNER MODE'}
+          </p>
           <dl className="mt-6 grid gap-3 text-[14px] text-white/75 md:grid-cols-2">
             <div>
               <dt className="text-muted">Till</dt>
@@ -60,7 +61,7 @@ export function AgentsPage({ till }: { till: TillState }) {
           <div className="mt-8 flex flex-wrap gap-3">
             {!ready && (
               <CyanButton disabled={!!till.busy} onClick={till.attachAgent}>
-                Create agent
+                Authorize session
               </CyanButton>
             )}
             <CyanButton to="/till">Run</CyanButton>

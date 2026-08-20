@@ -1,0 +1,18 @@
+{
+  "name": "@till-0g/mcp",
+  "version": "0.1.0",
+  "description": "Till MCP stdio bridge. Uses TILL_ACCESS_TOKEN. Never accepts a private key.",
+  "type": "module",
+  "bin": {
+    "till-mcp": "src/stdio.js"
+  },
+  "files": ["src/stdio.js", "README.md"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mr-Ben-dev/Till.git"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

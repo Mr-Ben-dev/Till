@@ -273,12 +273,13 @@ export function useTill() {
       })
     )
 
-  const setPolicy = (maxTx: string, windowBudget: string) =>
+  const setPolicy = (maxTx: string, windowBudget: string, sessionDays = 30) =>
     run('Writing policy', () =>
       withSigner(async (s) => {
         if (tokenId == null) throw new Error('Create a Till first')
         const { policy } = contractsOf(s)
-        const session = BigInt(Math.floor(Date.now() / 1000) + 86400 * 30)
+        const days = Math.min(Math.max(sessionDays, 1), 90)
+        const session = BigInt(Math.floor(Date.now() / 1000) + 86400 * days)
         let tx = await policy.setPolicy(tokenId, parseEther(maxTx), parseEther(windowBudget), 86400n, session, true, true)
         await tx.wait()
         tx = await policy.setAllowlistMode(tokenId, true, true, false)

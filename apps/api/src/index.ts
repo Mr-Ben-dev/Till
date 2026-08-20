@@ -14,6 +14,25 @@ import {
 import { blockOverBudget, discoverMission, runMission } from './mission.js'
 import { verifyRegistry } from './registry.js'
 import { USDCE_16661, HERALD_ROUTER, OG_CAIP } from './x402Herald.js'
+import {
+  API_PUBLIC,
+  MCP_RESOURCE,
+  WEB_PUBLIC,
+  authorizationServerMetadata,
+  bearerFrom,
+  exchangeCode,
+  issueFromSignature,
+  issueMessage,
+  mcpConfigured,
+  parseScopes,
+  protectedResourceMetadata,
+  registerClient,
+  storeAuthCode,
+  verifyAccessToken,
+  wwwAuthenticate,
+} from './mcp-auth.js'
+import { handleMcpRpc } from './mcp-rpc.js'
+import { getPolicy, getSession, getTill, listTills } from './till-read.js'
 import Fastify from 'fastify'
 import { ethers } from 'ethers'
 import { OG_EXPLORER_URL, OG_RPC_URL, VAULT_ABI } from '@till/config'
@@ -36,8 +55,9 @@ const app = Fastify({ logger: true, requestTimeout: 300_000, connectionTimeout: 
 
 app.addHook('onRequest', async (req, reply) => {
   reply.header('Access-Control-Allow-Origin', '*')
-  reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Payment, X-Payment-Tx')
+  reply.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Payment, X-Payment-Tx, MCP-Protocol-Version')
   reply.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+  reply.header('Access-Control-Expose-Headers', 'WWW-Authenticate, MCP-Session-Id')
   if (req.method === 'OPTIONS') return reply.code(204).send()
 })
 
@@ -115,32 +135,186 @@ app.post('/v1/grants/:id/revoke', async (req) => {
 
 app.get('/v1/grants', async () => listGrants())
 
-app.post('/mcp', async (req, reply) => {
+app.get('/.well-known/oauth-protected-resource', async () => protectedResourceMetadata())
+app.get('/.well-known/oauth-protected-resource/mcp', async () => protectedResourceMetadata())
+app.get('/.well-known/oauth-authorization-server', async () => authorizationServerMetadata())
+
+app.post('/oauth/register', async (req, reply) => {
+  try {
+    return registerClient((req.body || {}) as { redirect_uris?: string[]; client_name?: string })
+  } catch (e) {
+    return reply.code(400).send({ error: (e as Error).message })
+  }
+})
+
+app.post('/oauth/consent', async (req, reply) => {
   const body = req.body as {
-    grantId?: string
+    owner?: string
     tokenId?: string
-    executor?: string
-    resourceHash?: string
-    amountWei?: string
-    method?: string
+    scopes?: string[]
+    nonce?: string
+    exp?: number
+    signature?: string
+    allowHighRisk?: boolean
+    codeChallenge?: string
+    redirectUri?: string
+    clientId?: string
+    resource?: string
   }
-  if (!body.grantId || !body.tokenId || !body.executor) {
-    return reply.code(400).send({ error: 'grant required; keys are never accepted' })
+  try {
+    const issued = issueFromSignature({
+      owner: String(body.owner),
+      tokenId: String(body.tokenId),
+      scopes: body.scopes ?? [],
+      nonce: String(body.nonce),
+      exp: Number(body.exp),
+      signature: String(body.signature),
+      allowHighRisk: Boolean(body.allowHighRisk),
+    })
+    const code = storeAuthCode({
+      owner: String(body.owner),
+      tokenId: String(body.tokenId),
+      scopes: issued.scopes,
+      codeChallenge: String(body.codeChallenge),
+      redirectUri: String(body.redirectUri),
+      clientId: String(body.clientId),
+      resource: String(body.resource || MCP_RESOURCE),
+    })
+    return { code, scopes: issued.scopes, resource: MCP_RESOURCE }
+  } catch (e) {
+    return reply.code(400).send({ error: (e as Error).message })
   }
-  if ('privateKey' in body) {
+})
+
+app.post('/oauth/token', async (req, reply) => {
+  const body = (req.body || {}) as Record<string, string>
+  try {
+    if (body.grant_type !== 'authorization_code') return reply.code(400).send({ error: 'unsupported_grant_type' })
+    return exchangeCode({
+      code: body.code,
+      codeVerifier: body.code_verifier,
+      redirectUri: body.redirect_uri,
+      clientId: body.client_id,
+    })
+  } catch (e) {
+    return reply.code(400).send({ error: 'invalid_grant', error_description: (e as Error).message })
+  }
+})
+
+app.post('/v1/mcp/issue', async (req, reply) => {
+  const body = req.body as {
+    owner?: string
+    tokenId?: string
+    scopes?: string[]
+    nonce?: string
+    exp?: number
+    signature?: string
+    allowHighRisk?: boolean
+  }
+  try {
+    if (!mcpConfigured()) return reply.code(503).send({ error: 'MCP signing is not configured' })
+    return issueFromSignature({
+      owner: String(body.owner),
+      tokenId: String(body.tokenId),
+      scopes: body.scopes ?? [],
+      nonce: String(body.nonce),
+      exp: Number(body.exp),
+      signature: String(body.signature),
+      allowHighRisk: Boolean(body.allowHighRisk),
+    })
+  } catch (e) {
+    return reply.code(400).send({ error: (e as Error).message })
+  }
+})
+
+app.get('/v1/mcp/message', async (req) => {
+  const q = req.query as { owner?: string; tokenId?: string; scopes?: string; nonce?: string; exp?: string; high?: string }
+  const scopes = parseScopes(q.scopes, q.high === '1')
+  const nonce = q.nonce || 'preview'
+  const exp = Number(q.exp || Math.floor(Date.now() / 1000) + 86400)
+  return {
+    message: issueMessage({ owner: String(q.owner || '0x0000000000000000000000000000000000000001'), tokenId: String(q.tokenId || '0'), scopes, nonce, exp }),
+    scopes,
+    resource: MCP_RESOURCE,
+    api: API_PUBLIC,
+    web: WEB_PUBLIC,
+  }
+})
+
+function unauthorized(reply: { header: (k: string, v: string) => unknown; code: (n: number) => { send: (b: unknown) => unknown } }) {
+  reply.header('WWW-Authenticate', wwwAuthenticate())
+  return reply.code(401).send({ error: 'unauthorized' })
+}
+
+app.get('/mcp', async (req, reply) => {
+  if (!bearerFrom(req.headers.authorization)) return unauthorized(reply)
+  return reply.code(405).header('Allow', 'POST').send({ error: 'Use POST JSON-RPC for Till MCP' })
+})
+
+app.post('/mcp', async (req, reply) => {
+  const body = req.body as { jsonrpc?: string; method?: string; grantId?: string; privateKey?: string }
+  if (body && 'privateKey' in body) {
     return reply.code(400).send({ error: 'private keys are forbidden on MCP' })
+  }
+  if (body?.jsonrpc === '2.0' || body?.method) {
+    const raw = bearerFrom(req.headers.authorization)
+    let auth = null
+    const needsAuth = body.method !== 'initialize' && body.method !== 'notifications/initialized'
+    if (needsAuth) {
+      if (!raw) return unauthorized(reply)
+      try {
+        auth = verifyAccessToken(raw)
+      } catch {
+        return unauthorized(reply)
+      }
+    }
+    try {
+      const out = await handleMcpRpc(auth, body as { jsonrpc: '2.0'; method?: string; params?: unknown; id?: string | number | null })
+      if (out == null) return reply.code(204).send()
+      return out
+    } catch (e) {
+      const err = e as Error & { status?: number }
+      if (err.status === 401) return unauthorized(reply)
+      return reply.code(err.status || 400).send({ error: err.message })
+    }
+  }
+  if (!body?.grantId) {
+    return reply.code(400).send({ error: 'MCP JSON-RPC required; keys are never accepted. See /developers.' })
   }
   try {
     const grant = assertGrant(
-      body.grantId,
-      body.tokenId,
-      body.executor,
-      body.resourceHash ?? ethers.ZeroHash,
-      BigInt(body.amountWei ?? '0')
+      String((body as { grantId: string }).grantId),
+      String((body as { tokenId?: string }).tokenId),
+      String((body as { executor?: string }).executor),
+      (body as { resourceHash?: string }).resourceHash ?? ethers.ZeroHash,
+      BigInt((body as { amountWei?: string }).amountWei ?? '0'),
     )
-    return { ok: true, grant, note: 'MCP proves grants, not a live Claude/Cursor session' }
+    return { ok: true, grant, note: 'Legacy grant probe. Cursor/Claude use JSON-RPC on this same path.' }
   } catch (e) {
     return reply.code(403).send({ ok: false, error: (e as Error).message })
+  }
+})
+
+app.get('/v1/tills', async (req, reply) => {
+  const raw = bearerFrom(req.headers.authorization)
+  if (!raw) return unauthorized(reply)
+  try {
+    const auth = verifyAccessToken(raw)
+    return { tills: await listTills(auth.sub) }
+  } catch {
+    return unauthorized(reply)
+  }
+})
+
+app.get('/v1/tills/:id', async (req, reply) => {
+  const raw = bearerFrom(req.headers.authorization)
+  if (!raw) return unauthorized(reply)
+  try {
+    const auth = verifyAccessToken(raw)
+    const { id } = req.params as { id: string }
+    return { till: await getTill(auth.sub, id), policy: await getPolicy(auth.sub, id), session: await getSession(auth.sub, id) }
+  } catch (e) {
+    return reply.code(403).send({ error: (e as Error).message })
   }
 })
 

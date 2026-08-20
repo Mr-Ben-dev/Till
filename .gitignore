@@ -40,3 +40,9 @@ apps/api/src/x402-dump-402.ts
 apps/api/src/x402-list-slugs.ts
 apps/api/src/x402-probe-catalog.ts
 _build_history.mjs
+_deploy_hosts.mjs
+_deploy_vercel.mjs
+_probe_render.mjs
+_probe_vercel.mjs
+.deploy-render-state.json
+.deploy-vercel-state.json

@@ -48,7 +48,26 @@ export const ONBOARD = [
   { id: 'create', label: 'Create' },
   { id: 'policy', label: 'Budget' },
   { id: 'fund', label: 'Fund' },
-  { id: 'agent', label: 'Permit' },
+  { id: 'agent', label: 'Session' },
   { id: 'test', label: 'Test' },
   { id: 'live', label: 'Live' },
 ] as const
+
+export function sessionStatus(opts: {
+  paused: boolean
+  authorized: string[]
+  agentOf: { address: string } | null
+  agentGas: bigint
+  sessionExpiresAt: bigint
+  skipped?: boolean
+}) {
+  const now = Math.floor(Date.now() / 1000)
+  if (opts.paused) return 'PAUSED'
+  if (opts.skipped && !opts.authorized.length) return 'OWNER_MODE'
+  if (opts.agentOf && !opts.authorized.some((a) => a.toLowerCase() === opts.agentOf!.address.toLowerCase())) return 'REVOKED'
+  if (!opts.authorized.length) return 'OWNER_MODE'
+  if (opts.sessionExpiresAt > 0n && Number(opts.sessionExpiresAt) < now) return 'EXPIRED'
+  if (!opts.agentOf) return 'NOT_ON_THIS_DEVICE'
+  if (opts.agentGas === 0n) return 'NOT_FUNDED'
+  return 'READY'
+}

@@ -25,12 +25,25 @@ export const CHECKS = [
   },
 ] as const
 
-export const EXAMPLES = [
-  { label: 'Should I deposit into this protocol?', value: 'Should I deposit into this protocol? 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' },
-  { label: 'Is this token safe to buy?', value: 'Is this token safe to buy? 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' },
-  { label: 'Is this contract too risky to interact with?', value: 'Is this contract too risky to interact with? 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' },
-  { label: 'Check this protocol before I fund it.', value: 'Check this protocol before I fund it. 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' },
+export const USES = [
+  {
+    label: 'Before I deposit',
+    body: 'Analyze a token or protocol before sending funds.',
+    value: 'Should I deposit into this protocol? 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+  },
+  {
+    label: 'Before I buy',
+    body: 'Buy independent safety, market, and contract intelligence.',
+    value: 'Is this token safe to buy? 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+  },
+  {
+    label: 'Before I interact',
+    body: 'Check privileged functions and upgradeability.',
+    value: 'Is this contract too risky to interact with? 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+  },
 ] as const
+
+export const EXAMPLES = USES.map((u) => ({ label: u.label, value: u.value }))
 
 export function humanCheck(seller: string, sku: string) {
   const hit = CHECKS.find(

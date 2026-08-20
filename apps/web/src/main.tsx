@@ -9,6 +9,7 @@ import { AgentsPage } from './pages/AgentsPage'
 import { JobsPage } from './pages/JobsPage'
 import { ActivityPage } from './pages/ActivityPage'
 import { VerifyPage } from './pages/VerifyPage'
+import { DevelopersPage } from './pages/DevelopersPage'
 import { ogAristotle } from './lib/chain'
 import type { TillState } from './hooks/useTill'
 import './index.css'
@@ -31,6 +32,10 @@ function ActivityRoute() {
   const till = useOutletContext<TillState>()
   return <ActivityPage till={till} />
 }
+function DevelopersRoute() {
+  const till = useOutletContext<TillState>()
+  return <DevelopersPage till={till} />
+}
 
 function RoutesTree() {
   return (
@@ -42,6 +47,8 @@ function RoutesTree() {
         <Route path="/jobs" element={<JobsRoute />} />
         <Route path="/activity" element={<ActivityRoute />} />
         <Route path="/verify" element={<VerifyPage />} />
+        <Route path="/developers" element={<DevelopersRoute />} />
+        <Route path="/developers/oauth" element={<DevelopersRoute />} />
       </Route>
     </Routes>
   )

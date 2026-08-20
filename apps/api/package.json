@@ -7,7 +7,8 @@
     "e2e:local": "tsx src/e2e-local.ts",
     "e2e:mainnet": "tsx src/e2e-mainnet.ts",
     "e2e:compute": "tsx src/e2e-compute.ts",
-    "e2e:settle": "tsx src/e2e-settle.ts"
+    "e2e:settle": "tsx src/e2e-settle.ts",
+    "test:mcp": "tsx src/mcp-auth.test.ts"
   },
   "dependencies": {
     "@till/config": "0.1.0",
