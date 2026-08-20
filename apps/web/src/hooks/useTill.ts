@@ -356,12 +356,16 @@ export function useTill() {
   }, [authenticated, address, tokenId, refresh])
 
   useEffect(() => {
-    if (!urlTill || tokenId == null) return
-    if (urlTill === tokenId.toString()) return
-    if (!tokenIds.some((i) => i.toString() === urlTill)) return
-    const match = tokenIds.find((i) => i.toString() === urlTill)
-    if (match) selectTill(match)
-  }, [urlTill, tokenId, tokenIds, selectTill])
+    const onPop = () => {
+      const id = new URLSearchParams(window.location.search).get('tillId')
+      urlTillRef.current = id
+      if (!id) return
+      const match = tokenIds.find((x) => x.toString() === id)
+      if (match != null && match !== tokenIdRef.current) selectTill(match)
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [tokenIds, selectTill])
 
   useEffect(() => {
     const ping = () => {
