@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
 import { BrowserProvider, Contract, JsonRpcProvider, Wallet, formatEther, id as keccakId, keccak256, parseEther, toUtf8Bytes, type Signer } from 'ethers'
-import { ADDR, CHAIN_ID, DEFAULT_BRIEF_SUBJECT, MINT_FROM_BLOCK, RESOURCE, RPC_URL } from '../lib/chain'
+import { ADDR, CHAIN_ID, DEFAULT_BRIEF_SUBJECT, MINT_FROM_BLOCK, RESOURCE, RPC_URL, ensureOgChain } from '../lib/chain'
 import { ESCROW_ABI, NFT_ABI, POLICY_ABI, VAULT_ABI, VERIFIER_ABI } from '../lib/abi'
 import { decodeErr } from '../lib/errors'
 import type { Denial } from '../components/app/DenialCard'
@@ -43,7 +43,10 @@ function loadAgent(tokenId: string): AgentStore | null {
 export function useTill() {
   const { ready, authenticated, login, logout } = usePrivy()
   const { wallets } = useWallets()
-  const wallet = wallets[0]
+  const wallet =
+    wallets.find((w) => w.walletClientType === 'metamask') ||
+    wallets.find((w) => w.connectorType === 'injected') ||
+    wallets[0]
   const [address, setAddress] = useState('')
   const [chainId, setChainId] = useState<number | null>(null)
   const [busy, setBusy] = useState('')
@@ -82,52 +85,17 @@ export function useTill() {
   const withSigner = useCallback(async (fn: (s: Signer) => Promise<void>) => {
     if (!wallet) throw new Error('Connect a wallet first')
     const provider = await wallet.getEthereumProvider()
-    const browser = new BrowserProvider(provider)
-    const net = await browser.getNetwork()
-    if (Number(net.chainId) !== CHAIN_ID) {
-      try {
-        await wallet.switchChain(CHAIN_ID)
-      } catch {
-        await provider.request({
-          method: 'wallet_addEthereumChain',
-          params: [
-            {
-              chainId: '0x4115',
-              chainName: '0G Aristotle',
-              nativeCurrency: { name: '0G', symbol: '0G', decimals: 18 },
-              rpcUrls: [RPC_URL],
-              blockExplorerUrls: ['https://chainscan.0g.ai'],
-            },
-          ],
-        })
-        await wallet.switchChain(CHAIN_ID)
-      }
-    }
+    await ensureOgChain(provider)
+    const browser = new BrowserProvider(provider, CHAIN_ID)
     const signer = await browser.getSigner()
     await fn(signer)
   }, [wallet])
 
   const switchNetwork = () =>
-    run('Switching to 0G Aristotle', async () => {
+    run('Switching to 0G Mainnet', async () => {
       if (!wallet) throw new Error('Connect a wallet first')
       const provider = await wallet.getEthereumProvider()
-      try {
-        await wallet.switchChain(CHAIN_ID)
-      } catch {
-        await provider.request({
-          method: 'wallet_addEthereumChain',
-          params: [
-            {
-              chainId: '0x4115',
-              chainName: '0G Aristotle',
-              nativeCurrency: { name: '0G', symbol: '0G', decimals: 18 },
-              rpcUrls: [RPC_URL],
-              blockExplorerUrls: ['https://chainscan.0g.ai'],
-            },
-          ],
-        })
-        await wallet.switchChain(CHAIN_ID)
-      }
+      await ensureOgChain(provider)
     })
 
   const contractsOf = (s: Signer) => ({

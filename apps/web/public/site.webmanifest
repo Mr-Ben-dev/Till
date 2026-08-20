@@ -1,0 +1,22 @@
+{
+  "name": "Till",
+  "short_name": "Till",
+  "description": "Permissioned agent spend on 0G Mainnet.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#002032",
+  "theme_color": "#00BDE9",
+  "icons": [
+    {
+      "src": "/brand/till-logo-mark.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/till-mark.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

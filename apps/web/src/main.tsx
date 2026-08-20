@@ -56,7 +56,8 @@ createRoot(document.getElementById('root')!).render(
         appearance: {
           theme: 'dark',
           accentColor: '#00BDE9',
-          logo: '/till-mark.svg',
+          logo: '/brand/till-logo-mark.png',
+          walletList: ['detected_wallets', 'metamask', 'wallet_connect'],
         },
         defaultChain: ogAristotle,
         supportedChains: [ogAristotle],

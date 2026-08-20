@@ -1,4 +1,7 @@
+import { defineChain } from 'viem'
+
 export const CHAIN_ID = 16661
+export const CHAIN_ID_HEX = '0x4115'
 export const RPC_URL = import.meta.env.VITE_RPC_URL || 'https://evmrpc.0g.ai'
 export const EXPLORER = import.meta.env.VITE_EXPLORER_URL || 'https://chainscan.0g.ai'
 export const API = import.meta.env.VITE_API_URL || ''
@@ -19,11 +22,18 @@ export const DEFAULT_BRIEF_SUBJECT =
   'Should I deposit into this protocol? 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
 export const MINT_FROM_BLOCK = 42_110_000n
 
-import { defineChain } from 'viem'
+/** Official wallet add params from 0G docs. Must match MetaMask's existing "0G Mainnet". */
+export const OG_WALLET_NETWORK = {
+  chainId: CHAIN_ID_HEX,
+  chainName: '0G Mainnet',
+  nativeCurrency: { name: '0G', symbol: '0G', decimals: 18 },
+  rpcUrls: [RPC_URL],
+  blockExplorerUrls: [EXPLORER],
+} as const
 
 export const ogAristotle = defineChain({
   id: CHAIN_ID,
-  name: '0G Aristotle',
+  name: '0G Mainnet',
   nativeCurrency: { name: '0G', symbol: '0G', decimals: 18 },
   rpcUrls: {
     default: { http: [RPC_URL] },
@@ -33,6 +43,33 @@ export const ogAristotle = defineChain({
   },
 })
 
+type RpcProvider = {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
+}
+
+function errorCode(err: unknown): number {
+  if (!err || typeof err !== 'object') return 0
+  const o = err as { code?: number; data?: { originalError?: { code?: number } } }
+  return Number(o.data?.originalError?.code ?? o.code ?? 0)
+}
+
+export async function ensureOgChain(provider: RpcProvider) {
+  const raw = String(await provider.request({ method: 'eth_chainId' })).toLowerCase()
+  if (raw === CHAIN_ID_HEX || Number.parseInt(raw, 16) === CHAIN_ID) return
+  try {
+    await provider.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: CHAIN_ID_HEX }],
+    })
+  } catch (err) {
+    if (errorCode(err) !== 4902) throw err
+    await provider.request({
+      method: 'wallet_addEthereumChain',
+      params: [OG_WALLET_NETWORK],
+    })
+  }
+}
+
 export function txUrl(hash: string) {
   return `${EXPLORER}/tx/${hash}`
 }
@@ -40,3 +77,4 @@ export function txUrl(hash: string) {
 export function addrUrl(addr: string) {
   return `${EXPLORER}/address/${addr}`
 }
+

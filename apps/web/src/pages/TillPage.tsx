@@ -68,8 +68,8 @@ export function TillPage({ till }: { till: TillState }) {
         {till.wrongNetwork && (
           <Notice
             tone="info"
-            title="Switch to 0G Aristotle"
-            body="Your wallet is on another network. Till only spends on 0G Aristotle."
+            title="Switch to 0G Mainnet"
+            body="Your wallet is on another network. Till only spends on 0G Mainnet (Aristotle, 16661)."
             action={
               <CyanButton disabled={!!till.busy} onClick={till.switchNetwork}>
                 Switch network
