@@ -21,7 +21,7 @@ const NAV = [
   {
     label: 'Build',
     items: [
-      { to: '/developers/mcp', label: 'Connect your agent' },
+      { to: '/developers/mcp', label: 'Connect any agent' },
       { to: '/developers/cursor', label: 'Cursor' },
       { to: '/developers/claude', label: 'Claude Code' },
       { to: '/developers/sdk', label: 'SDK' },

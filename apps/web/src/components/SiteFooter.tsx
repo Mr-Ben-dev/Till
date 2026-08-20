@@ -6,8 +6,8 @@ const COLS: { title: string; links: { label: string; to?: string; href?: string 
   {
     title: 'Product',
     links: [
-      { label: 'Open a Till', to: '/till' },
-      { label: 'Agents', to: '/agents' },
+      { label: 'Open a Till', to: '/tills' },
+      { label: 'Agents', to: '/till/agent' },
       { label: 'Jobs', to: '/jobs' },
       { label: 'Activity', to: '/activity' },
       { label: 'Verify', to: '/verify' },

@@ -90,7 +90,7 @@ export function ActivityPage({ till }: { till: TillState }) {
       )}
       {till.authenticated && !till.tokenId && (
         <div className="mt-8">
-          <Notice title="No Till yet" body="Create one, then activity will appear here." action={<CyanButton to="/till">Open Tills</CyanButton>} />
+          <Notice title="No Till yet" body="Create one, then activity will appear here." action={<CyanButton to="/tills">Open Tills</CyanButton>} />
         </div>
       )}
       {(loading || switching) && <TillSkeleton />}

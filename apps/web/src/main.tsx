@@ -1,10 +1,13 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Route, Routes, useOutletContext } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useOutletContext, useSearchParams } from 'react-router-dom'
 import { PrivyProvider } from '@privy-io/react-auth'
 import { AppShell } from './App'
 import { HomePage } from './pages/Home'
+import { TillsPage } from './pages/TillsPage'
+import { CreateTillPage } from './pages/CreateTillPage'
 import { TillPage } from './pages/TillPage'
+import { PolicyPage } from './pages/PolicyPage'
 import { AgentsPage } from './pages/AgentsPage'
 import { JobsPage } from './pages/JobsPage'
 import { ActivityPage } from './pages/ActivityPage'
@@ -30,25 +33,39 @@ import './index.css'
 
 const appId = import.meta.env.VITE_PRIVY_APP_ID
 
+function useTillCtx() {
+  return useOutletContext<TillState>()
+}
+
+function TillsRoute() {
+  return <TillsPage till={useTillCtx()} />
+}
+function CreateTillRoute() {
+  return <CreateTillPage till={useTillCtx()} />
+}
 function TillRoute() {
-  const till = useOutletContext<TillState>()
-  return <TillPage till={till} />
+  return <TillPage till={useTillCtx()} />
+}
+function PolicyRoute() {
+  return <PolicyPage till={useTillCtx()} />
 }
 function AgentsRoute() {
-  const till = useOutletContext<TillState>()
-  return <AgentsPage till={till} />
+  return <AgentsPage till={useTillCtx()} />
 }
 function JobsRoute() {
-  const till = useOutletContext<TillState>()
-  return <JobsPage till={till} />
+  return <JobsPage till={useTillCtx()} />
 }
 function ActivityRoute() {
-  const till = useOutletContext<TillState>()
-  return <ActivityPage till={till} />
+  return <ActivityPage till={useTillCtx()} />
 }
 function DocsRoute() {
-  const till = useOutletContext<TillState>()
-  return <DocsShell till={till} />
+  return <DocsShell till={useTillCtx()} />
+}
+
+function RedirectAgents() {
+  const [params] = useSearchParams()
+  const q = params.toString()
+  return <Navigate to={q ? `/till/agent?${q}` : '/till/agent'} replace />
 }
 
 function RoutesTree() {
@@ -56,8 +73,12 @@ function RoutesTree() {
     <Routes>
       <Route element={<AppShell />}>
         <Route path="/" element={<HomePage />} />
+        <Route path="/tills" element={<TillsRoute />} />
+        <Route path="/tills/new" element={<CreateTillRoute />} />
         <Route path="/till" element={<TillRoute />} />
-        <Route path="/agents" element={<AgentsRoute />} />
+        <Route path="/till/policy" element={<PolicyRoute />} />
+        <Route path="/till/agent" element={<AgentsRoute />} />
+        <Route path="/agents" element={<RedirectAgents />} />
         <Route path="/jobs" element={<JobsRoute />} />
         <Route path="/activity" element={<ActivityRoute />} />
         <Route path="/verify" element={<VerifyPage />} />

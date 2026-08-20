@@ -1387,14 +1387,14 @@ html.lenis body {
 }
 
 .cap-list .is-yes::before {
-  content: "Yes  ";
+  content: "✓  ";
   color: #00bde9;
   font-family: var(--font-mono);
   font-size: 11px;
 }
 
 .cap-list .is-no::before {
-  content: "No  ";
+  content: "✕  ";
   color: #c23b3b;
   font-family: var(--font-mono);
   font-size: 11px;
@@ -1549,6 +1549,117 @@ html.lenis body {
   }
   .surf-interactive:hover {
     transform: none;
+  }
+}
+
+.setup-list,
+.create-steps {
+  display: grid;
+  gap: 0.45rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.setup-list a,
+.create-steps li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: rgba(244, 250, 252, 0.7);
+  font-size: 14px;
+}
+
+.setup-list .is-done a {
+  color: #00bde9;
+}
+
+.setup-list .is-next a {
+  color: #f4fafc;
+}
+
+.setup-list__mark {
+  display: inline-flex;
+  min-width: 2.4rem;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #00bde9;
+}
+
+.create-steps {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.create-steps li {
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4.27px;
+  padding: 0.45rem 0.4rem;
+  font-size: 12px;
+  color: rgba(244, 250, 252, 0.45);
+}
+
+.create-steps .is-on,
+.create-steps .is-done {
+  border-color: #00bde9;
+  color: #f4fafc;
+}
+
+.till-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .till-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.status-pill {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border: 1px solid rgba(0, 189, 233, 0.35);
+  border-radius: 4.27px;
+  padding: 0.2rem 0.45rem;
+  color: #00bde9;
+}
+
+.status-pill.is-setup {
+  color: rgba(244, 250, 252, 0.65);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.status-pill.is-warn {
+  color: #f4c4c4;
+  border-color: rgba(194, 59, 59, 0.45);
+}
+
+.og-pipe.og-pipe--spine {
+  grid-template-columns: 1fr;
+  max-width: 26rem;
+}
+
+.og-pipe--spine .og-pipe__node {
+  min-height: 0;
+}
+
+@media (max-width: 639px) {
+  .till-bar__nav {
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    margin-left: 0;
+  }
+
+  .create-steps {
+    grid-template-columns: 1fr 1fr;
   }
 }
 

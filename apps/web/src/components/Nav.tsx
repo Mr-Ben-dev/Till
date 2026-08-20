@@ -3,12 +3,14 @@ import { CyanButton } from './CyanButton'
 import { TillMark } from './TillMark'
 
 const links = [
-  { to: '/', label: 'Home' },
-  { to: '/till', label: 'Tills' },
-  { to: '/agents', label: 'Agents' },
-  { to: '/jobs', label: 'Jobs' },
-  { to: '/activity', label: 'Activity' },
-  { to: '/developers', label: 'Developers' },
+  { to: '/', label: 'Home', match: (p: string) => p === '/' },
+  {
+    to: '/tills',
+    label: 'Tills',
+    match: (p: string) => p.startsWith('/till') || p.startsWith('/jobs') || p.startsWith('/agents'),
+  },
+  { to: '/activity', label: 'Activity', match: (p: string) => p.startsWith('/activity') },
+  { to: '/developers', label: 'Developers', match: (p: string) => p.startsWith('/developers') },
 ]
 
 export function Nav({
@@ -25,6 +27,7 @@ export function Nav({
   ready: boolean
 }) {
   const landing = useLocation().pathname === '/'
+  const path = useLocation().pathname
   return (
     <header className={landing ? 'nav-landing' : 'nav-app'}>
       <NavLink to="/" className="flex items-center gap-2.5 text-white">
@@ -33,22 +36,14 @@ export function Nav({
       </NavLink>
       <nav className="nav-center" aria-label="Primary">
         {links.map((l) => (
-          <NavLink
-            key={l.to}
-            to={l.to}
-            className={({ isActive }) => `nav-link ${isActive ? 'is-active' : ''}`}
-          >
+          <NavLink key={l.to} to={l.to} className={() => `nav-link ${l.match(path) ? 'is-active' : ''}`}>
             {l.label}
           </NavLink>
         ))}
       </nav>
       <nav className="nav-mobile" aria-label="Mobile">
         {links.map((l) => (
-          <NavLink
-            key={`m-${l.to}`}
-            to={l.to}
-            className={({ isActive }) => `nav-link ${isActive ? 'is-active' : ''}`}
-          >
+          <NavLink key={`m-${l.to}`} to={l.to} className={() => `nav-link ${l.match(path) ? 'is-active' : ''}`}>
             {l.label}
           </NavLink>
         ))}
@@ -69,7 +64,7 @@ export function Nav({
           </button>
         )}
         {landing ? (
-          <CyanButton to="/till">Open a Till</CyanButton>
+          <CyanButton to="/tills">Open a Till</CyanButton>
         ) : authenticated ? null : (
           <CyanButton onClick={onConnect}>Connect</CyanButton>
         )}

@@ -6,8 +6,19 @@ import { CyanButton } from '../CyanButton'
 import type { TillState } from '../../hooks/useTill'
 import { sessionLabel } from './PolicyPanel'
 import { PermissionDiagram } from './PermissionDiagram'
+import { policyPresetName } from '../../lib/setup'
 
-export function SessionPanel({ till, gasAmt, setGasAmt }: { till: TillState; gasAmt: string; setGasAmt: (v: string) => void }) {
+export function SessionPanel({
+  till,
+  gasAmt,
+  setGasAmt,
+  compact = false,
+}: {
+  till: TillState
+  gasAmt: string
+  setGasAmt: (v: string) => void
+  compact?: boolean
+}) {
   const status = sessionLabel(till)
   const sessionAddr = till.authorized.at(0)
   const exp =
@@ -15,7 +26,8 @@ export function SessionPanel({ till, gasAmt, setGasAmt }: { till: TillState; gas
   return (
     <section className="surf" id="agent">
       <p className="mod-kicker">Autonomous agent</p>
-      <h2>This agent can execute approved work without asking you to sign every transaction.</h2>
+      <h2>{compact ? 'Autonomous agent' : 'Runs approved work without asking you to sign every transaction.'}</h2>
+      {compact ? <p className="mod-lede">Runs approved work without asking you to sign every transaction.</p> : null}
       <dl className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="surf-inner">
           <dt>Status</dt>
@@ -85,11 +97,18 @@ export function SessionPanel({ till, gasAmt, setGasAmt }: { till: TillState; gas
         ) : null}
       </div>
       <div className="mt-8">
-        <PermissionDiagram />
+        <details>
+          <summary className="cursor-pointer text-[13px] text-white/60">How permissions work</summary>
+          <div className="mt-4">
+            <PermissionDiagram />
+          </div>
+        </details>
       </div>
-      <a className="mt-4 inline-block text-[13px] text-cyan" href={HUB_SWAP} target="_blank" rel="noreferrer">
-        Get USDC.e
-      </a>
+      {compact ? null : (
+        <a className="mt-4 inline-block text-[13px] text-cyan" href={HUB_SWAP} target="_blank" rel="noreferrer">
+          Get USDC.e
+        </a>
+      )}
     </section>
   )
 }
@@ -139,64 +158,80 @@ export function PaymentsPanel({ till }: { till: TillState }) {
   )
 }
 
-export function MyTills({ till }: { till: TillState }) {
+export function MyTills({ till, onOpen }: { till: TillState; onOpen?: (id: bigint) => void }) {
   if (!till.tokenIds.length) return null
   return (
     <section id="tills">
-      <p className="mod-kicker">My Tills</p>
-      <h2 className="mt-2 text-[1.35rem] font-bold">Each Till is a separate spend account</h2>
-      <p className="mod-lede">Switching loads the new Till. Old numbers never stay on screen as if they belong to the next one.</p>
-      <ul className="mt-5 grid gap-3 md:grid-cols-2">
+      <ul className="till-grid">
         {till.tokenIds.map((id) => {
           const active = till.tokenId != null && till.tokenId.toString() === id.toString()
           const card = till.tillCards.find((c) => c.id === id)
           const ready = active ? till.executionMode === 'autonomous' : (card?.authorized ?? 0) > 0
+          const hasPolicy = active ? till.hasPolicy : (card?.maxTxWei ?? 0n) > 0n
+          const paused = active ? till.paused : Boolean(card?.paused)
           return (
             <li key={id.toString()} className={`surf surf-interactive ${active ? 'is-active' : ''}`}>
-              <p className="text-[18px] font-bold">{loadTillName(id)}</p>
-              <dl className="mt-3 grid grid-cols-2 gap-2 text-[13px]">
-                <div>
-                  <dt className="text-white/45">Balance</dt>
-                  <dd className="font-mono text-cyan">{active && till.tillReady ? fmt0g(till.available) : card ? fmt0g(card.available) : '…'}</dd>
-                </div>
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-[20px] font-bold">{loadTillName(id)}</p>
+                <span className={`status-pill ${paused ? 'is-warn' : hasPolicy ? 'is-live' : 'is-setup'}`}>
+                  {paused ? 'Paused' : hasPolicy ? 'LIVE' : 'Setup'}
+                </span>
+              </div>
+              <p className="mt-2 font-mono text-[1.2rem] text-cyan">
+                {active && till.tillReady ? fmt0g(till.available) : card ? fmt0g(card.available) : '…'}
+              </p>
+              <dl className="mt-4 grid grid-cols-2 gap-2 text-[13px]">
                 <div>
                   <dt className="text-white/45">Policy</dt>
-                    <dd>{(active ? till.hasPolicy : (card?.maxTxWei ?? 0n) > 0n) ? 'On' : 'Not set'}</dd>
+                  <dd>
+                    {active && till.tillReady && till.hasPolicy
+                      ? policyPresetName(till.maxTxWei, till.windowBudgetWei)
+                      : hasPolicy
+                        ? 'On'
+                        : 'Not set'}
+                  </dd>
                 </div>
                 <div>
                   <dt className="text-white/45">Agent</dt>
-                  <dd>{active && till.tillReady ? sessionLabel(till) : ready ? 'Session' : 'Owner'}</dd>
+                  <dd>{active && till.tillReady ? sessionLabel(till) : ready ? 'Autonomous' : 'Owner'}</dd>
+                </div>
+                <div>
+                  <dt className="text-white/45">Mode</dt>
+                  <dd>{active && till.tillReady ? (till.executionMode === 'autonomous' ? 'Autonomous' : 'Owner') : ready ? 'Autonomous' : 'Owner'}</dd>
                 </div>
                 <div>
                   <dt className="text-white/45">Network</dt>
                   <dd>Aristotle</dd>
                 </div>
-                <div>
-                  <dt className="text-white/45">Status</dt>
-                  <dd>
-                    {(active ? till.paused : card?.paused)
-                      ? 'PAUSED'
-                      : (active ? till.hasPolicy : (card?.maxTxWei ?? 0n) > 0n)
-                        ? 'LIVE'
-                        : 'SETUP'}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-white/45">Mode</dt>
-                  <dd>{active && till.tillReady ? till.executionMode : ready ? 'autonomous' : 'owner'}</dd>
-                </div>
               </dl>
               <div className="mt-4 flex flex-wrap gap-2">
-                <CyanButton disabled={active} onClick={() => till.selectTill(id)}>
+                <CyanButton
+                  onClick={() => {
+                    if (onOpen) onOpen(id)
+                    else till.selectTill(id)
+                  }}
+                >
                   Open
                 </CyanButton>
-                <Link className="rounded-[4.27px] border border-white/20 px-3 py-2 text-[13px] text-white/80" to="/till#policy">
+                <Link
+                  className="rounded-[4.27px] border border-white/20 px-3 py-2 text-[13px] text-white/80"
+                  to="/till/policy"
+                  onClick={() => till.selectTill(id)}
+                >
                   Edit policy
                 </Link>
-                <Link className="rounded-[4.27px] border border-white/20 px-3 py-2 text-[13px] text-white/80" to="/agents">
-                  Agents
+                <Link
+                  className="rounded-[4.27px] border border-white/20 px-3 py-2 text-[13px] text-white/80"
+                  to="/till/agent"
+                  onClick={() => till.selectTill(id)}
+                >
+                  Agent
                 </Link>
-                <Link className="rounded-[4.27px] border border-white/20 px-3 py-2 text-[13px] text-white/80" to="/activity">
+                <Link
+                  className="rounded-[4.27px] border border-white/20 px-3 py-2 text-[13px] text-white/80"
+                  to="/activity"
+                  onClick={() => till.selectTill(id)}
+                >
                   Activity
                 </Link>
               </div>

@@ -20,6 +20,25 @@ An agent that can finish work needs money: x402 APIs, 0G Compute, storage. Givin
 
 Till separates **owner authority** from **session authority**. You mint a Till, set a protection policy, fund it, and authorize a device-local session. The session can prove approved work. It cannot withdraw, change policy, or spend another Till.
 
+## App
+
+Top navigation: **Home · Tills · Activity · Developers**. Agents and Jobs live inside the active Till.
+
+| Route | Job |
+|---|---|
+| `/` | Marketing |
+| `/tills` | Your spending accounts |
+| `/tills/new` | Create wizard (name → preset → review → mint) |
+| `/till` | Active Till overview |
+| `/till/policy` | Protection editor |
+| `/till/agent` | Autonomous session (`/agents` redirects here) |
+| `/jobs` | Escrow lock / settle / refund |
+| `/activity` | Timeline |
+| `/verify` | Paste a proof hash |
+| `/developers` | Docs |
+
+A new Till follows: create → protect → fund → enable agent → run a mission.
+
 ## Before You Pay
 
 Flagship mission:
@@ -65,7 +84,7 @@ x402 USDC.e purchases settle on the Herald rail from the API. That is not the se
 | MCP JWT | Read / quote; execute only if session READY | Receive any private key |
 | Backend | Herald USDC.e, Compute billing | Owner or session private keys |
 
-Cross-Till isolation is on-chain. Pause and expiry stop spend. Revoke is an owner signature in the app. MCP `till_revoke_session` does not sign; it returns `/agents`.
+Cross-Till isolation is on-chain. Pause and expiry stop spend. Revoke is an owner signature in the app. MCP `till_revoke_session` does not sign; it returns `/till/agent`.
 
 ## 0G integrations
 

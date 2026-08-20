@@ -2,12 +2,13 @@ import type { PipelineStep } from '../../hooks/useTill'
 import { txUrl } from '../../lib/chain'
 
 const NODES = [
-  { key: 'plan', title: '0G Aristotle', body: 'Mission starts on chain 16661' },
-  { key: 'budget', title: 'Policy', body: 'Spend checked against this Till' },
+  { key: 'plan', title: 'Mission', body: 'What you are about to pay for' },
+  { key: 'budget', title: 'Till Policy', body: 'Spend checked against this Till' },
   { key: 'tee', title: '0G Compute', body: 'Private model selected' },
   { key: 'tee2', title: 'TEE', body: 'Decision verified in hardware', from: 'tee' },
   { key: 'buy1', title: 'x402', body: 'Paid intel on Herald' },
-  { key: 'result', title: 'Private analysis', body: 'BUY / HOLD / AVOID' },
+  { key: 'buy2', title: 'External Services', body: 'Safety · Market · Contract' },
+  { key: 'result', title: 'Private Analysis', body: 'BUY / HOLD / AVOID' },
   { key: 'storage', title: '0G Storage', body: 'Evidence anchored' },
   { key: 'proof', title: 'Proof', body: 'Receipt on Aristotle' },
 ] as const
@@ -20,12 +21,14 @@ function stateOf(steps: PipelineStep[], key: string): PipelineStep['state'] {
 export function OgRail({
   steps,
   tech,
+  spine = false,
 }: {
   steps: PipelineStep[]
   tech?: Record<string, string>
+  spine?: boolean
 }) {
   return (
-    <ol className="og-pipe" aria-label="0G pipeline">
+    <ol className={spine ? 'og-pipe og-pipe--spine' : 'og-pipe'} aria-label="0G pipeline">
       {NODES.map((n) => {
         const st = stateOf(steps, n.key)
         const model = n.key === 'tee' ? tech?.model : ''

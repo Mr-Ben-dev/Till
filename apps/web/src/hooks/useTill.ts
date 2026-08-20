@@ -40,7 +40,7 @@ export type TillCard = {
 
 type AgentStore = { address: string; privateKey: string }
 
-const PRODUCT_PATHS = ['/till', '/agents', '/jobs', '/activity', '/verify']
+const PRODUCT_PATHS = ['/tills', '/till', '/agents', '/jobs', '/activity', '/verify']
 
 function sameId(a: bigint | null, b: bigint | null) {
   return a != null && b != null && a.toString() === b.toString()

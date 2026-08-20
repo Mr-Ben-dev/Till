@@ -168,13 +168,13 @@ export function DocsMcp() {
     { kind: 'SAFE MUTATION', text: 'Run a Before You Pay mission for this contract using the active Till session and stay within the existing policy.' },
     { kind: 'READ ONLY', text: 'Show me the complete proof for the latest mission.' },
     { kind: 'READ ONLY', text: 'Explain exactly why the last transaction was blocked.' },
-    { kind: 'HIGH RISK', text: 'Revoke the active autonomous session. If you cannot sign, open the Till agents page instead.' },
+    { kind: 'HIGH RISK', text: 'Revoke the active autonomous session. If you cannot sign, open the Till agent page instead.' },
   ]
   return (
     <Page
       kicker="MCP"
-      title="Connect your agent"
-      lede="Use Till with any MCP-compatible agent. Verified paths: Cursor, Claude Code, Streamable HTTP, and local stdio. Generic OpenAI-compatible agents are not claimed until tested."
+      title="Connect any agent"
+      lede="Till works with MCP-compatible agents. Verified paths: Cursor, Claude Code, Streamable HTTP, and local stdio. Claude.ai desktop and generic OpenAI-compatible agents are not claimed until tested."
     >
       <McpIssuer till={till} />
       <div className="mt-8 grid gap-3 md:grid-cols-2">
@@ -187,13 +187,17 @@ export function DocsMcp() {
           <p>HTTP and stdio commands below. Verified.</p>
         </Link>
         <div className="docs-card">
-          <strong>Custom MCP agents</strong>
+          <strong>Claude</strong>
+          <p>Claude.ai desktop is listed for MCP clients. Not claimed until tested on this stack.</p>
+        </div>
+        <div className="docs-card">
+          <strong>Custom agents</strong>
           <p>POST {MCP_URL} with Bearer. Protocol 2025-11-25.</p>
         </div>
         <div className="docs-card">
-          <strong>Local agent</strong>
+          <strong>Other MCP clients</strong>
           <p>
-            <code>npx -y {NPM_MCP}</code> with TILL_ACCESS_TOKEN. Stdio NDJSON.
+            Any client that speaks Streamable HTTP or stdio. Use <code>npx -y {NPM_MCP}</code> with TILL_ACCESS_TOKEN.
           </p>
         </div>
       </div>
@@ -247,7 +251,7 @@ claude mcp add --transport stdio till --env TILL_ACCESS_TOKEN=YOUR_TOKEN -- npx 
       <p>
         Default scopes: {SCOPES_READ.join(' ')} plus optional {SCOPES_EXEC[0]}. High-risk, not silent:{' '}
         {SCOPES_RISK.join(' ')}. till_run_mission refuses unless session status is READY. MCP does not hold the session
-        key, so it does not fake Storage anchor. till_revoke_session does not sign. It returns {WEB}/agents.
+        key, so it does not fake Storage anchor. till_revoke_session does not sign. It returns {WEB}/till/agent.
       </p>
     </Page>
   )
@@ -502,7 +506,7 @@ export function DocsCursor() {
   return (
     <Page kicker="Cursor" title="Install Till in Cursor" lede="Verified: Streamable HTTP MCP with a scoped Bearer token from this site.">
       <ol className="docs-steps">
-        <li>Open Connect your agent and create a scoped MCP token.</li>
+        <li>Open Connect any agent and create a scoped MCP token.</li>
         <li>Copy the setup prompt into the agent, or paste mcp.json.</li>
         <li>Confirm tools/list then till_list. Do not spend yet.</li>
       </ol>

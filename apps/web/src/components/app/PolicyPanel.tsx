@@ -26,6 +26,7 @@ export function PolicyPanel({
   setCustomWindow,
   sessionDays,
   setSessionDays,
+  forceEdit = false,
 }: {
   till: TillState
   template: (typeof POLICY_TEMPLATES)[number]['id']
@@ -36,8 +37,9 @@ export function PolicyPanel({
   setCustomWindow: (v: string) => void
   sessionDays: string
   setSessionDays: (v: string) => void
+  forceEdit?: boolean
 }) {
-  const [editing, setEditing] = useState(!till.hasPolicy)
+  const [editing, setEditing] = useState(!till.hasPolicy || forceEdit)
   const [step, setStep] = useState(0)
   const chosen = POLICY_TEMPLATES.find((t) => t.id === template) ?? POLICY_TEMPLATES[1]
   const max = template === 'custom' ? customMax : chosen.max
@@ -87,7 +89,7 @@ export function PolicyPanel({
         <CyanButton variant="ghost" disabled={!!till.busy} onClick={() => till.pause(!till.paused)}>
           {till.paused ? 'Unpause' : 'Pause'}
         </CyanButton>
-        <a className="inline-flex items-center text-[14px] text-cyan" href="#agent">
+        <a className="inline-flex items-center text-[14px] text-cyan" href="/till/agent">
           View permissions
         </a>
       </div>

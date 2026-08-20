@@ -9,7 +9,8 @@ export function AppShell() {
   const path = useLocation().pathname
   const landing = path === '/'
   const docs = path.startsWith('/developers')
-  const product = !landing && !docs
+  const collection = path === '/tills' || path.startsWith('/tills/')
+  const product = !landing && !docs && !collection
   return (
     <div className={`min-h-[100dvh] text-white ${landing ? 'bg-navy' : 'bg-navy-deep'}`}>
       {landing || docs ? null : <div className="grain grain--soft" />}

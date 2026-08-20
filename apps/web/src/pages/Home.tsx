@@ -130,7 +130,7 @@ export function HomePage() {
             AVOID and proof. The agent never receives your wallet.
           </p>
           <div data-hero className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <CyanButton to="/till">Open a Till</CyanButton>
+            <CyanButton to="/tills">Open a Till</CyanButton>
             <CyanButton to="/developers" variant="ghost">
               Developers
             </CyanButton>
@@ -215,14 +215,14 @@ export function HomePage() {
             <ul className="uses-grid">
               {USES.map((u) => (
                 <li key={u.label}>
-                  <a className="block rounded-[4.27px] border border-ink/10 p-5 hover:border-cyan" href="/till">
+                  <a className="block rounded-[4.27px] border border-ink/10 p-5 hover:border-cyan" href="/tills">
                     <p className="font-semibold">{u.label}</p>
                     <p className="mt-1 text-[14px] text-ink/60">{u.body}</p>
                   </a>
                 </li>
               ))}
               <li>
-                <a className="block rounded-[4.27px] border border-ink/10 p-5 hover:border-cyan" href="/agents">
+                <a className="block rounded-[4.27px] border border-ink/10 p-5 hover:border-cyan" href="/till/agent">
                   <p className="font-semibold">For an autonomous agent</p>
                   <p className="mt-1 text-[14px] text-ink/60">Bounded budget. No owner wallet.</p>
                 </a>
@@ -325,7 +325,7 @@ export function HomePage() {
             <h2 className="max-w-3xl text-[clamp(2.2rem,4.2vw,3.8rem)] font-bold leading-[1.05] tracking-tight">
               Open a Till. Keep the vault.
             </h2>
-            <CyanButton to="/till" variant="ink">
+            <CyanButton to="/tills" variant="ink">
               Open a Till
             </CyanButton>
           </div>

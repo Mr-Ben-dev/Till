@@ -47,7 +47,7 @@ export function JobsPage({ till }: { till: TillState }) {
       {loading ? <TillSkeleton /> : null}
       {!till.tokenId && !loading && (
         <div className="mt-8">
-          <Notice title="Create a Till first" action={<CyanButton to="/till">Open Tills</CyanButton>} />
+          <Notice title="Create a Till first" action={<CyanButton to="/tills">Open Tills</CyanButton>} />
         </div>
       )}
 

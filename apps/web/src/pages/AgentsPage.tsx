@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { Navigate } from 'react-router-dom'
 import type { TillState } from '../hooks/useTill'
 import { CyanButton } from '../components/CyanButton'
 import { Notice } from '../components/app/Notice'
+import { ProductNotices } from '../components/app/ProductNotices'
 import { SessionPanel } from '../components/app/SessionPanel'
 import { TillSkeleton } from '../components/app/TillContextBar'
 import { loadTillName } from '../lib/tillMeta'
@@ -12,18 +14,20 @@ export function AgentsPage({ till }: { till: TillState }) {
     till.authenticated &&
     !till.loadError &&
     (!till.hydrated || till.switching || (till.tokenId != null && !till.tillReady))
+
+  if (till.authenticated && till.hydrated && !till.switching && till.tokenId == null) {
+    return <Navigate to="/tills" replace />
+  }
+
   return (
     <main className="app-page overflow-x-hidden w-full max-w-full">
       <h1 className="text-[clamp(1.8rem,3.2vw,2.8rem)] font-bold leading-tight">Autonomous agent</h1>
       <p className="mt-3 max-w-[54ch] text-[16px] leading-relaxed text-white/65">
-        This agent can execute approved work without asking you to sign every transaction.
+        Runs approved work without asking you to sign every transaction.
       </p>
-      {till.error && (
-        <div className="mt-6">
-          <Notice tone="danger" title="Stopped" body={till.error} />
-        </div>
-      )}
-      {till.busy && <p className="mt-6 font-mono text-[12px] text-cyan">{till.busy}</p>}
+      <div className="mt-8">
+        <ProductNotices till={till} />
+      </div>
       {loading ? (
         <TillSkeleton />
       ) : !till.tokenId ? (
@@ -31,7 +35,7 @@ export function AgentsPage({ till }: { till: TillState }) {
           <Notice
             title="No Till yet"
             body="Create a Till first. Then authorize a session."
-            action={<CyanButton to="/till">Open Tills</CyanButton>}
+            action={<CyanButton to="/tills">Open Tills</CyanButton>}
           />
         </div>
       ) : (
