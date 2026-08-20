@@ -857,25 +857,37 @@ export function useTill() {
         if (amt > available) throw new Error(`This Till only has ${formatEther(available)} 0G.`)
         const jobId = keccakId(`${jobLabel}-${Date.now()}`)
         const digest: string = await c.verifier.digest([id, nonce, payee, amt, resourceHash, true])
+        const jobResource = JSON.stringify([
+          {
+            destination: payee,
+            asset: '0G',
+            amount,
+            resource: RESOURCE,
+            reason: `Job escrow lock (${jobLabel}). Seller is paid only after settle; otherwise this Till is refunded.`,
+            grant: `till-job-${id.toString()}`,
+            deadline: new Date(Date.now() + 3600_000).toISOString(),
+          },
+        ])
         const ev = await api.evaluateIntent({
           digest,
           tokenId: id.toString(),
           target: payee,
           amountWei: amt.toString(),
-          resource: RESOURCE,
-          role: 'fastPolicy',
+          resource: jobResource,
+          role: 'jobSemantic',
         })
         if (!sameId(tokenIdRef.current, id)) throw new Error('Till changed. Job cancelled.')
         if (!api.isAllow(ev) || !ev.packed || !ev.teeSignature || !ev.teeSigner) {
+          const why = api.decisionReason(ev, '0G Compute denied this job lock. No funds moved.')
           setJobPhase('failed')
           setLastDenial({
             amount: `${formatEther(amt)} 0G`,
-            why: ev.error || '0G Compute denied this job lock. No funds moved.',
+            why,
             policy: true,
-            tee: false,
+            tee: true,
             funds: true,
           })
-          throw new Error(ev.error || '0G Compute denied this job lock. No funds moved.')
+          return
         }
         const already = await c.verifier.tillTeeSigners(id, ev.teeSigner)
         if (!already) {

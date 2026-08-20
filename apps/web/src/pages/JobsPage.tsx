@@ -140,6 +140,9 @@ export function JobsPage({ till }: { till: TillState }) {
             </CyanButton>
           </div>
         )}
+        {till.jobPhase === 'failed' && !blocked ? (
+          <p className="mt-3 text-[13px] text-white/50">Quote was denied. Fix the reason above, then try again. Nothing left this Till.</p>
+        ) : null}
         <p className="mt-4 text-[13px] text-white/45">
           A successful job needs a Compute quote, then two owner signatures: lock, then settle or refund.
         </p>

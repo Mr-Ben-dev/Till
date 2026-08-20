@@ -295,7 +295,7 @@ export function TillPage({ till }: { till: TillState }) {
                 Last on-chain executor: {till.lastExecutor === 'session' ? 'session key (no MetaMask)' : 'owner wallet'}
               </p>
             ) : null}
-            <JourneyFooter nextTo="/till/policy" nextLabel="Configure policy" />
+            <JourneyFooter backTo="/tills" backLabel="All Tills" nextTo="/till/policy" nextLabel="Configure policy" />
           </div>
         </>
       )}

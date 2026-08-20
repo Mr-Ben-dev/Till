@@ -179,6 +179,24 @@ export function isAllow(ev: EvalResult) {
   return ev.decision === 'ALLOW' || (typeof ev.decision === 'object' && ev.decision?.allow === true)
 }
 
+export function decisionReason(ev: EvalResult, fallback: string) {
+  if (ev.error && !/^HTTP \d+/.test(ev.error)) return ev.error
+  const raw = ev.content
+  if (typeof raw === 'string' && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw) as { reason?: string }
+      if (parsed.reason) return parsed.reason
+    } catch {
+      /* content may be prose */
+    }
+  }
+  if (typeof ev.decision === 'object' && ev.decision && 'reason' in ev.decision) {
+    const why = (ev.decision as { reason?: string }).reason
+    if (why) return why
+  }
+  return ev.error || fallback
+}
+
 export async function evaluateIntent(input: {
   digest: string
   tokenId: string
@@ -196,7 +214,10 @@ export async function evaluateIntent(input: {
     body: JSON.stringify(input),
   })
   const body = (await res.json()) as EvalResult
-  if (!res.ok) return { ...body, decision: 'DENY', error: body.error || `HTTP ${res.status}` }
+  if (!res.ok) {
+    const why = decisionReason({ ...body, decision: 'DENY' }, `HTTP ${res.status}`)
+    return { ...body, decision: 'DENY', error: why }
+  }
   return body
 }
 

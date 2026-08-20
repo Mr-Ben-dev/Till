@@ -38,6 +38,16 @@ export function AgentsPage({ till }: { till: TillState }) {
             <CyanButton to="/till/policy" variant="ghost">
               Edit policy
             </CyanButton>
+            <CyanButton
+              variant="ghost"
+              disabled={!!till.busy || !till.authorized[0]}
+              onClick={() => {
+                const addr = till.authorized[0]
+                if (addr) void till.revokeAgent(addr)
+              }}
+            >
+              Revoke session
+            </CyanButton>
           </div>
         </>
       ) : (
