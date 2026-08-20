@@ -5,7 +5,7 @@ import { NFT_ABI, VAULT_ABI } from '../lib/abi'
 import type { TillState } from '../hooks/useTill'
 import { CyanButton } from '../components/CyanButton'
 import { Notice } from '../components/app/Notice'
-import { TillSkeleton } from '../components/app/TillContextBar'
+import { JourneyFooter, TillSkeleton } from '../components/app/TillContextBar'
 import { loadTillName } from '../lib/tillMeta'
 
 type Row = { title: string; hash: string; extra: string; at: number }
@@ -116,6 +116,7 @@ export function ActivityPage({ till }: { till: TillState }) {
           <li className="py-10 text-white/50">No events yet. Fund or run a payment and they will show here.</li>
         )}
       </ol>
+      <JourneyFooter />
     </main>
   )
 }

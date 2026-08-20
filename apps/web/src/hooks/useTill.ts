@@ -29,6 +29,7 @@ const INITIAL_STEPS: PipelineStep[] = [
 ]
 
 export type JobPhase = 'idle' | 'quote' | 'lock' | 'working' | 'settle' | 'refunded' | 'failed'
+export type WritePhase = 'idle' | 'signing' | 'submitted' | 'waiting' | 'confirmed' | 'failed'
 
 export type TillCard = {
   id: bigint
@@ -130,6 +131,8 @@ export function useTill() {
   const [lastDenial, setLastDenial] = useState<Denial | null>(null)
   const [policyTested, setPolicyTested] = useState(false)
   const [jobPhase, setJobPhase] = useState<JobPhase>('idle')
+  const [writePhase, setWritePhase] = useState<WritePhase>('idle')
+  const [lastWrite, setLastWrite] = useState('')
   const [modelNote, setModelNote] = useState('')
   const [agentSkipped, setAgentSkipped] = useState(false)
   const [lastBrief, setLastBrief] = useState<api.BriefDoc | null>(null)
@@ -155,6 +158,7 @@ export function useTill() {
   setParamsRef.current = setParams
   const switchingRef = useRef(false)
   const loadedForRef = useRef<bigint | null>(null)
+  const busyRef = useRef(false)
 
   const resourceHash = useMemo(() => keccak256(toUtf8Bytes(RESOURCE)), [])
 
@@ -254,6 +258,7 @@ export function useTill() {
       loadedForRef.current = null
       setLoadError('')
       setError('')
+      setWritePhase('idle')
       clearTillScoped()
       tokenIdRef.current = id
       setTokenId(id)
@@ -488,6 +493,8 @@ export function useTill() {
 
   const run = useCallback(
     async (label: string, fn: () => Promise<void>) => {
+      if (busyRef.current) return
+      busyRef.current = true
       setBusy(label)
       setError('')
       try {
@@ -495,7 +502,9 @@ export function useTill() {
         await refresh()
       } catch (e) {
         setError(decodeErr(e))
+        setWritePhase((p) => (p === 'idle' || p === 'confirmed' ? p : 'failed'))
       } finally {
+        busyRef.current = false
         setBusy('')
       }
     },
@@ -539,24 +548,28 @@ export function useTill() {
     )
 
   const setPolicy = (maxTx: string, windowBudget: string, sessionDays = 30) =>
-    run('Writing policy', () =>
-      withSigner(async (s) => {
-        if (tokenId == null) throw new Error('Create a Till first')
+    run('Writing policy', async () => {
+      const id = tokenIdRef.current
+      if (id == null) throw new Error('Create a Till first')
+      setWritePhase('signing')
+      setLastWrite('policy')
+      setLastDenial(null)
+      await withSigner(async (s) => {
+        if (!sameId(tokenIdRef.current, id)) throw new Error('Till changed. Policy write cancelled.')
         const { policy } = contractsOf(s)
         const days = Math.min(Math.max(sessionDays, 1), 90)
         const session = BigInt(Math.floor(Date.now() / 1000) + 86400 * days)
-        let tx = await policy.setPolicy(tokenId, parseEther(maxTx), parseEther(windowBudget), 86400n, session, true, true)
-        await tx.wait()
-        tx = await policy.setAllowlistMode(tokenId, true, true, false)
-        await tx.wait()
-        tx = await policy.setAllowedTarget(tokenId, payee, true)
-        await tx.wait()
-        tx = await policy.setAllowedResource(tokenId, resourceHash, true)
+        const tx = await policy.setPolicy(id, parseEther(maxTx), parseEther(windowBudget), 86400n, session, true, true)
+        setWritePhase('submitted')
+        setLastTx(tx.hash)
+        setWritePhase('waiting')
         const rec = await tx.wait()
         if (!rec) throw new Error('policy: no receipt')
+        if (!sameId(tokenIdRef.current, id)) return
         setLastTx(rec.hash)
+        setWritePhase('confirmed')
       })
-    )
+    })
 
   const markTested = () => {
     setPolicyTested(true)
@@ -830,59 +843,81 @@ export function useTill() {
 
   const lockJob = (jobLabel: string, amount: string, mode: 'settle' | 'refund') =>
     run(mode === 'settle' ? 'Settling job' : 'Refunding job', async () => {
-      if (tokenId == null) throw new Error('Create a Till first')
+      const id = tokenIdRef.current
+      if (id == null) throw new Error('Create a Till first')
+      setLastWrite('job')
+      setLastDenial(null)
       setJobPhase('quote')
+      setBusy('Preparing quote')
       await withSigner(async (s) => {
+        if (!sameId(tokenIdRef.current, id)) throw new Error('Till changed. Job cancelled.')
         const c = contractsOf(s)
-        const nonce = await nextNonce(c.vault, tokenId)
+        const nonce = await nextNonce(c.vault, id)
         const amt = parseEther(amount)
+        if (amt > available) throw new Error(`This Till only has ${formatEther(available)} 0G.`)
         const jobId = keccakId(`${jobLabel}-${Date.now()}`)
-        const digest: string = await c.verifier.digest([tokenId, nonce, payee, amt, resourceHash, true])
+        const digest: string = await c.verifier.digest([id, nonce, payee, amt, resourceHash, true])
         const ev = await api.evaluateIntent({
           digest,
-          tokenId: tokenId.toString(),
+          tokenId: id.toString(),
           target: payee,
           amountWei: amt.toString(),
           resource: RESOURCE,
           role: 'fastPolicy',
         })
+        if (!sameId(tokenIdRef.current, id)) throw new Error('Till changed. Job cancelled.')
         if (!api.isAllow(ev) || !ev.packed || !ev.teeSignature || !ev.teeSigner) {
           setJobPhase('failed')
           setLastDenial({
             amount: `${formatEther(amt)} 0G`,
-            why: ev.error || '0G Compute did not allow this job.',
+            why: ev.error || '0G Compute denied this job lock. No funds moved.',
             policy: true,
             tee: false,
             funds: true,
           })
-          throw new Error(ev.error || '0G Compute did not allow this job.')
+          throw new Error(ev.error || '0G Compute denied this job lock. No funds moved.')
         }
-        await (await c.verifier.setTillTeeSigner(tokenId, ev.teeSigner, true)).wait()
+        const already = await c.verifier.tillTeeSigners(id, ev.teeSigner)
+        if (!already) {
+          setBusy('Registering TEE signer')
+          setWritePhase('signing')
+          const signerTx = await c.verifier.setTillTeeSigner(id, ev.teeSigner, true)
+          setWritePhase('submitted')
+          await signerTx.wait()
+        }
+        if (!sameId(tokenIdRef.current, id)) throw new Error('Till changed. Job cancelled.')
         setJobPhase('lock')
-        const lockRec = await (
-          await c.vault.lockToJob(
-            jobId,
-            tokenId,
-            payee,
-            amt,
-            resourceHash,
-            nonce,
-            BigInt(Math.floor(Date.now() / 1000) + 3600),
-            ev.packed,
-            ev.teeSignature
-          )
-        ).wait()
+        setBusy('Locking funds')
+        setWritePhase('signing')
+        const lockTx = await c.vault.lockToJob(
+          jobId,
+          id,
+          payee,
+          amt,
+          resourceHash,
+          nonce,
+          BigInt(Math.floor(Date.now() / 1000) + 3600),
+          ev.packed,
+          ev.teeSignature
+        )
+        setWritePhase('submitted')
+        setLastTx(lockTx.hash)
+        setWritePhase('waiting')
+        const lockRec = await lockTx.wait()
         if (!lockRec) throw new Error('Job lock did not confirm')
         setJobPhase('working')
-        const fin =
-          mode === 'settle'
-            ? await (await c.escrow.settle(jobId)).wait()
-            : await (await c.escrow.refund(jobId)).wait()
+        setBusy(mode === 'settle' ? 'Settling' : 'Refunding')
+        setWritePhase('signing')
+        const finTx = mode === 'settle' ? await c.escrow.settle(jobId) : await c.escrow.refund(jobId)
+        setWritePhase('submitted')
+        const fin = await finTx.wait()
         if (!fin) {
           setJobPhase('failed')
           throw new Error('Job did not finish on-chain')
         }
+        if (!sameId(tokenIdRef.current, id)) return
         setLastTx(fin.hash)
+        setWritePhase('confirmed')
         setJobPhase(mode === 'settle' ? 'settle' : 'refunded')
         setTech({
           jobId,
@@ -965,6 +1000,8 @@ export function useTill() {
     lastDenial,
     policyTested,
     jobPhase,
+    writePhase,
+    lastWrite,
     modelNote,
     agentSkipped,
     lastBrief,

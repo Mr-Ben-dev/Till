@@ -9,7 +9,7 @@ import { OgRail } from '../components/app/OgRail'
 import { ProductNotices } from '../components/app/ProductNotices'
 import { SetupChecklist } from '../components/app/SetupChecklist'
 import { SessionPanel } from '../components/app/SessionPanel'
-import { TillSkeleton } from '../components/app/TillContextBar'
+import { JourneyFooter, TillSkeleton } from '../components/app/TillContextBar'
 import { fmt0g } from '../lib/errors'
 import { txUrl, DEFAULT_BRIEF_SUBJECT, HUB_SWAP } from '../lib/chain'
 import { CHECKS, EXAMPLES } from '../lib/serviceLabels'
@@ -295,6 +295,7 @@ export function TillPage({ till }: { till: TillState }) {
                 Last on-chain executor: {till.lastExecutor === 'session' ? 'session key (no MetaMask)' : 'owner wallet'}
               </p>
             ) : null}
+            <JourneyFooter nextTo="/till/policy" nextLabel="Configure policy" />
           </div>
         </>
       )}

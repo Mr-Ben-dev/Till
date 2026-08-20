@@ -4,7 +4,7 @@ import type { TillState } from '../hooks/useTill'
 import { CyanButton } from '../components/CyanButton'
 import { ProductNotices } from '../components/app/ProductNotices'
 import { PolicyPanel } from '../components/app/PolicyPanel'
-import { TillSkeleton } from '../components/app/TillContextBar'
+import { JourneyFooter, TillSkeleton } from '../components/app/TillContextBar'
 import { POLICY_TEMPLATES } from '../lib/human'
 
 function readPendingPreset(): (typeof POLICY_TEMPLATES)[number]['id'] {
@@ -33,9 +33,9 @@ export function PolicyPage({ till }: { till: TillState }) {
 
   return (
     <main className="app-page overflow-x-hidden w-full max-w-full">
-      <h1 className="text-[clamp(1.8rem,3.2vw,2.8rem)] font-bold leading-tight">Protection policy</h1>
+      <h1 className="text-[clamp(1.8rem,3.2vw,2.8rem)] font-bold leading-tight">Protect this Till</h1>
       <p className="mt-3 max-w-[54ch] text-[16px] leading-relaxed text-white/65">
-        Your agent can spend within these rules. It cannot withdraw or change them.
+        1. Budget · 2. Allowed work · 3. Agent permissions · 4. Session · 5. Review. One Save sends one transaction.
       </p>
       <div className="mt-8">
         <ProductNotices till={till} />
@@ -60,6 +60,7 @@ export function PolicyPage({ till }: { till: TillState }) {
             setSessionDays={setSessionDays}
             forceEdit
           />
+          <JourneyFooter nextTo="/till/agent" nextLabel="Enable agent" />
         </div>
       )}
     </main>

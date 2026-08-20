@@ -3,7 +3,7 @@ import { DenialCard } from './DenialCard'
 import { Notice } from './Notice'
 import type { TillState } from '../../hooks/useTill'
 
-export function ProductNotices({ till }: { till: TillState }) {
+export function ProductNotices({ till, hideDenial = false }: { till: TillState; hideDenial?: boolean }) {
   const autonomous = till.executionMode === 'autonomous'
   return (
     <div className="grid gap-3">
@@ -39,7 +39,7 @@ export function ProductNotices({ till }: { till: TillState }) {
           }
         />
       )}
-      {till.lastDenial && <DenialCard denial={till.lastDenial} />}
+      {!hideDenial && till.lastDenial && <DenialCard denial={till.lastDenial} />}
     </div>
   )
 }

@@ -39,6 +39,7 @@ export const VERIFIER_ABI = [
   'function digest((uint256,uint256,address,uint256,bytes32,bool)) view returns (bytes32)',
   'function setTillTeeSigner(uint256,address,bool)',
   'function tillTeeSigners(uint256,address) view returns (bool)',
+  'function tillTeeSigners(uint256,address) view returns (bool)',
 ] as const
 
 export const VAULT_ABI = [

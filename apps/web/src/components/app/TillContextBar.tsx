@@ -1,22 +1,26 @@
 import { Link, useLocation } from 'react-router-dom'
 import { fmt0g } from '../../lib/errors'
 import { loadTillName } from '../../lib/tillMeta'
-import { policyPresetName } from '../../lib/setup'
+import { policyPresetName, setupReady } from '../../lib/setup'
 import type { TillState } from '../../hooks/useTill'
 
 export function TillContextBar({ till }: { till: TillState }) {
-  const path = useLocation().pathname
+  const loc = useLocation()
+  const path = loc.pathname
+  const hash = loc.hash
   if (!till.authenticated) return null
   const name = till.tokenId != null ? loadTillName(till.tokenId) : 'No Till'
   const switching = !till.loadError && (till.switching || (till.tokenId != null && !till.tillReady))
+  const sub = path !== '/till' || hash === '#mission'
   const links = [
-    { to: '/till', label: 'Overview', on: path === '/till' },
+    { to: '/till', label: 'Overview', on: path === '/till' && hash !== '#mission' },
     { to: '/till/policy', label: 'Policy', on: path === '/till/policy' },
     { to: '/till/agent', label: 'Agent', on: path === '/till/agent' || path === '/agents' },
-    { to: '/till#mission', label: 'Mission', on: false },
+    { to: '/till#mission', label: 'Mission', on: path === '/till' && hash === '#mission' },
     { to: '/jobs', label: 'Jobs', on: path === '/jobs' },
     { to: '/activity', label: 'Activity', on: path === '/activity' },
   ]
+  const here = links.find((l) => l.on)?.label ?? 'Overview'
   return (
     <div className="till-bar">
       <div className="till-bar__main">
@@ -27,6 +31,7 @@ export function TillContextBar({ till }: { till: TillState }) {
         ) : (
           <>
             <p className="till-bar__name">{name}</p>
+            <p className="till-bar__here">{here}</p>
             <dl className="till-bar__meta">
               <div>
                 <dt>Balance</dt>
@@ -40,6 +45,12 @@ export function TillContextBar({ till }: { till: TillState }) {
                 <dt>Mode</dt>
                 <dd>{till.executionMode === 'autonomous' ? 'Autonomous' : 'Owner'}</dd>
               </div>
+              {setupReady(till) ? (
+                <div>
+                  <dt>Status</dt>
+                  <dd>LIVE</dd>
+                </div>
+              ) : null}
             </dl>
           </>
         )}
@@ -62,9 +73,14 @@ export function TillContextBar({ till }: { till: TillState }) {
           </select>
         </label>
       ) : null}
-      <nav className="till-bar__nav" aria-label="Till">
+      {sub ? (
+        <Link className="till-bar__back" to="/till">
+          ← Back to Till
+        </Link>
+      ) : null}
+      <nav className="till-tabs" aria-label="Till sections">
         {links.map((l) => (
-          <Link key={l.to} to={l.to} className={l.on ? 'is-on' : ''}>
+          <Link key={l.to} to={l.to} className={l.on ? 'is-on' : ''} aria-current={l.on ? 'page' : undefined}>
             {l.label}
           </Link>
         ))}
@@ -83,6 +99,31 @@ export function TillSkeleton({ label }: { label?: string }) {
         <div />
       </div>
       <p>{label ?? 'Loading this Till from Aristotle…'}</p>
+    </div>
+  )
+}
+
+export function JourneyFooter({
+  nextTo,
+  nextLabel,
+  backTo = '/till',
+  backLabel = 'Back to Till',
+}: {
+  nextTo?: string
+  nextLabel?: string
+  backTo?: string
+  backLabel?: string
+}) {
+  return (
+    <div className="journey">
+      <Link className="journey__back" to={backTo}>
+        ← {backLabel}
+      </Link>
+      {nextTo && nextLabel ? (
+        <Link className="journey__next" to={nextTo}>
+          {nextLabel} →
+        </Link>
+      ) : null}
     </div>
   )
 }

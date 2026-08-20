@@ -1246,20 +1246,86 @@ html.lenis body {
 }
 
 .till-bar__nav {
+  display: none;
+}
+
+.till-bar__here {
+  margin: 0.15rem 0 0;
+  font-size: 12px;
+  color: #00bde9;
+}
+
+.till-bar__back {
+  font-size: 13px;
+  color: #00bde9;
+  white-space: nowrap;
+}
+
+.till-tabs {
+  display: flex;
+  gap: 0.4rem;
+  width: 100%;
+  flex-basis: 100%;
+  overflow-x: auto;
+  padding: 0.15rem;
+  border: 1px solid rgba(0, 189, 233, 0.22);
+  border-radius: 4.27px;
+  background: #00141f;
+}
+
+.till-tabs a {
+  flex: 1 0 auto;
+  padding: 0.65rem 0.9rem;
+  border-radius: 4.27px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  color: rgba(244, 250, 252, 0.62);
+  white-space: nowrap;
+}
+
+.till-tabs a.is-on,
+.till-tabs a:hover {
+  color: #00141f;
+  background: #00bde9;
+}
+
+.journey {
   display: flex;
   flex-wrap: wrap;
+  justify-content: space-between;
   gap: 0.75rem;
-  margin-left: auto;
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.till-bar__nav a {
-  font-size: 12px;
-  color: rgba(244, 250, 252, 0.55);
+.journey__back,
+.journey__next {
+  font-size: 14px;
+  font-weight: 600;
 }
 
-.till-bar__nav a.is-on,
-.till-bar__nav a:hover {
+.journey__next {
   color: #00bde9;
+}
+
+.live-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  margin: 0 0 1rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid rgba(0, 189, 233, 0.28);
+  border-radius: 4.27px;
+  font-size: 13px;
+  color: rgba(244, 250, 252, 0.7);
+}
+
+.live-strip strong {
+  color: #00bde9;
+  letter-spacing: 0.12em;
+  font-size: 11px;
 }
 
 .till-skel {
@@ -1651,11 +1717,8 @@ html.lenis body {
 }
 
 @media (max-width: 639px) {
-  .till-bar__nav {
+  .till-tabs {
     width: 100%;
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    margin-left: 0;
   }
 
   .create-steps {

@@ -93,10 +93,17 @@ export function PolicyPanel({
           View permissions
         </a>
       </div>
-      {till.busy.toLowerCase().includes('policy') ? (
-        <p className="mt-4 font-mono text-[13px] text-cyan">{till.busy}. Waiting for the Aristotle receipt.</p>
+      {till.writePhase === 'signing' || till.writePhase === 'submitted' || till.writePhase === 'waiting' || till.busy.toLowerCase().includes('policy') ? (
+        <p className="mt-4 font-mono text-[13px] text-cyan">Waiting for the Aristotle receipt…</p>
       ) : null}
-      {till.lastTx && till.hasPolicy && !till.busy ? (
+      {till.writePhase === 'confirmed' && till.lastWrite === 'policy' && till.lastTx ? (
+        <p className="mt-4 text-[15px] text-white">
+          Policy updated on Aristotle ✓{' '}
+          <a className="text-cyan underline" href={txUrl(till.lastTx)} target="_blank" rel="noreferrer">
+            View transaction
+          </a>
+        </p>
+      ) : till.lastTx && till.hasPolicy && !till.busy && till.lastWrite === 'policy' ? (
         <p className="mt-4 text-[13px] text-white/60">
           Policy updated on Aristotle{' '}
           <a className="text-cyan underline" href={txUrl(till.lastTx)} target="_blank" rel="noreferrer">
@@ -198,8 +205,9 @@ export function PolicyPanel({
               <CyanButton onClick={() => setStep((s) => s + 1)}>Continue</CyanButton>
             ) : (
               <CyanButton
-                disabled={!!till.busy}
+                disabled={!!till.busy || till.writePhase === 'signing' || till.writePhase === 'submitted' || till.writePhase === 'waiting'}
                 onClick={() => {
+                  if (till.busy || till.writePhase === 'signing' || till.writePhase === 'submitted' || till.writePhase === 'waiting') return
                   void till.setPolicy(max, window, Number(sessionDays) || 30)
                 }}
               >
