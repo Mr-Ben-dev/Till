@@ -32,4 +32,3 @@ export function CanCannot({
     </div>
   )
 }
-// todo

@@ -49,4 +49,3 @@ export function ProductAccordion() {
     </ul>
   )
 }
-// note

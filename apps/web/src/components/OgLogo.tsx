@@ -26,4 +26,3 @@ export function OgLogo({
     </svg>
   )
 }
-// leave this

@@ -25,4 +25,3 @@ export function StackGraphic({ variant = 'drawer', className = '' }: { variant?:
     </svg>
   )
 }
-// todo

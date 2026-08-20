@@ -128,4 +128,3 @@ export async function payHerald(destination: string, maxAtomic = process.env.TIL
   }
   return { status: res.status, body, settlement }
 }
-// leave this

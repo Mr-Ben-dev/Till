@@ -11,4 +11,3 @@ export function TillMark({ className = 'h-9 w-9', title = 'Till' }: { className?
     </svg>
   )
 }
-// note

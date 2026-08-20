@@ -16,4 +16,3 @@ export function Stepper({ current }: { current: number }) {
     </ol>
   )
 }
-// note

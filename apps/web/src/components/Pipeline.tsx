@@ -57,4 +57,3 @@ export function Pipeline({ steps, tech }: { steps: PipelineStep[]; tech: Record<
     </div>
   )
 }
-// todo

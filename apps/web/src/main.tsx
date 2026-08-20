@@ -71,4 +71,3 @@ createRoot(document.getElementById('root')!).render(
     </PrivyProvider>
   </StrictMode>
 )
-// leave this

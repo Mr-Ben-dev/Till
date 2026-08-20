@@ -77,4 +77,3 @@ export function BriefCard({
     </article>
   )
 }
-// leave this
