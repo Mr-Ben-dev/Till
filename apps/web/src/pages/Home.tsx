@@ -8,6 +8,8 @@ import { OgMark } from '../components/OgMark'
 import { ProductAccordion } from '../components/ProductAccordion'
 import { SiteFooter } from '../components/SiteFooter'
 import { SmoothScroll } from '../components/SmoothScroll'
+import { USES } from '../lib/serviceLabels'
+import { PROOFS as DOC_PROOFS } from '../lib/docsTruth'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -119,15 +121,21 @@ export function HomePage() {
           <h1 data-hero className="hero-h1 mx-auto max-w-[62rem] font-bold text-white">
             Give an agent a Till.
             <br />
+            It can buy the work it needs.
+            <br />
             It cannot empty you.
           </h1>
           <p data-hero className="hero-sub mx-auto mt-4 max-w-[661px] text-white">
-            An agent service account with a budget you control. It buys the intelligence needed to finish the task. Private 0G reasoning, on-chain policy, durable proof. The agent never receives your wallet.
+            Before You Pay: the agent buys independent intelligence, 0G verifies the reasoning, you get BUY / HOLD /
+            AVOID and proof. The agent never receives your wallet.
           </p>
           <div data-hero className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <CyanButton to="/till">Open a Till</CyanButton>
-            <CyanButton href="#layers" variant="ghost">
-              The five layers
+            <CyanButton to="/developers" variant="ghost">
+              Developers
+            </CyanButton>
+            <CyanButton href="#before" variant="ghost">
+              Before You Pay
             </CyanButton>
           </div>
           <figure data-hero className="hero-visual relative mt-6 flex min-h-0 w-full max-w-[1400px] flex-1 flex-col">
@@ -147,6 +155,87 @@ export function HomePage() {
             ))}
           </div>
         </div>
+
+        <section id="before" className="bg-paper px-5 py-24 text-ink md:px-10 md:py-32">
+          <div className="mx-auto max-w-[1400px]">
+            <p className="font-mono text-[11px] tracking-[0.18em] text-ink/45">Before You Pay</p>
+            <h2 className="mt-3 max-w-3xl text-[clamp(2rem,3.4vw,3.15rem)] font-bold leading-[1.08] tracking-tight">
+              User asks → agent buys intelligence → 0G verifies → result → proof.
+            </h2>
+            <p className="mt-4 max-w-[58ch] text-[16px] text-ink/70">
+              Recorded Aristotle mission, 2026-08-20. Not a simulated dashboard.
+            </p>
+            <dl className="mission-strip">
+              <div>
+                <dt>Spent</dt>
+                <dd>$0.016</dd>
+              </div>
+              <div>
+                <dt>Cap</dt>
+                <dd>$0.50</dd>
+              </div>
+              <div>
+                <dt>Checks</dt>
+                <dd>3 paid x402</dd>
+              </div>
+              <div>
+                <dt>Verdict</dt>
+                <dd>AVOID</dd>
+              </div>
+              <div>
+                <dt>TEE</dt>
+                <dd>glm-5.2</dd>
+              </div>
+              <div>
+                <dt>Storage</dt>
+                <dd>
+                  <a className="text-cyan" href={`https://chainscan.0g.ai/tx/${DOC_PROOFS.storageAnchor}`}>
+                    Anchor ↗
+                  </a>
+                </dd>
+              </div>
+              <div>
+                <dt>Session</dt>
+                <dd>
+                  <a className="text-cyan" href={`https://chainscan.0g.ai/tx/${DOC_PROOFS.sessionAnchor}`}>
+                    Proof ↗
+                  </a>
+                </dd>
+              </div>
+              <div>
+                <dt>x402</dt>
+                <dd>
+                  <a className="text-cyan" href={`https://chainscan.0g.ai/tx/${DOC_PROOFS.agentToll}`}>
+                    AgentToll ↗
+                  </a>
+                </dd>
+              </div>
+            </dl>
+            <p className="mt-10 font-mono text-[11px] tracking-[0.16em] text-ink/45">What can I use Till for?</p>
+            <ul className="uses-grid">
+              {USES.map((u) => (
+                <li key={u.label}>
+                  <a className="block rounded-[4.27px] border border-ink/10 p-5 hover:border-cyan" href="/till">
+                    <p className="font-semibold">{u.label}</p>
+                    <p className="mt-1 text-[14px] text-ink/60">{u.body}</p>
+                  </a>
+                </li>
+              ))}
+              <li>
+                <a className="block rounded-[4.27px] border border-ink/10 p-5 hover:border-cyan" href="/agents">
+                  <p className="font-semibold">For an autonomous agent</p>
+                  <p className="mt-1 text-[14px] text-ink/60">Bounded budget. No owner wallet.</p>
+                </a>
+              </li>
+              <li>
+                <a className="block rounded-[4.27px] border border-ink/10 p-5 hover:border-cyan" href="/jobs">
+                  <p className="font-semibold">For paid work</p>
+                  <p className="mt-1 text-[14px] text-ink/60">Lock, settle, or refund the same Till.</p>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </section>
 
         <section id="layers" className="bg-paper px-5 py-28 text-ink md:px-10 md:py-40">
           <div className="mx-auto max-w-[1400px]">

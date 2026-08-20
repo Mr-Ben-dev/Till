@@ -152,7 +152,7 @@ export function issueFromSignature(opts: {
   if (recovered.toLowerCase() !== ethers.getAddress(opts.owner).toLowerCase()) {
     throw new Error('signature does not match owner')
   }
-  const ttl = Math.min(Math.max(opts.exp, Math.floor(Date.now() / 1000) + 60), Math.floor(Date.now() / 1000) + 86400 * 7)
+  const ttl = Math.min(Math.max(opts.exp, Math.floor(Date.now() / 1000) + 60), Math.floor(Date.now() / 1000) + 86400)
   return {
     token: signAccessToken({ sub: opts.owner, tokenId: opts.tokenId, scopes, exp: ttl }),
     scopes,

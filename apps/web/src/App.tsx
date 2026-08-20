@@ -5,9 +5,10 @@ import { useTill } from './hooks/useTill'
 export function AppShell() {
   const till = useTill()
   const landing = useLocation().pathname === '/'
+  const docs = useLocation().pathname.startsWith('/developers')
   return (
     <div className={`min-h-[100dvh] text-white ${landing ? 'bg-navy' : 'bg-navy-deep'}`}>
-      {landing ? null : <div className="grain" />}
+      {landing || docs ? null : <div className="grain" />}
       <Nav
         ready={till.ready}
         authenticated={till.authenticated}

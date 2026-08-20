@@ -9,7 +9,16 @@ import { AgentsPage } from './pages/AgentsPage'
 import { JobsPage } from './pages/JobsPage'
 import { ActivityPage } from './pages/ActivityPage'
 import { VerifyPage } from './pages/VerifyPage'
-import { DevelopersPage } from './pages/DevelopersPage'
+import { DocsShell, DocsOauth } from './pages/docs/DocsShell'
+import {
+  DocsCore,
+  DocsMcp,
+  DocsOverview,
+  DocsQuickstart,
+  DocsReference,
+  DocsSdk,
+  DocsSecurity,
+} from './pages/docs/DocsPages'
 import { ogAristotle } from './lib/chain'
 import type { TillState } from './hooks/useTill'
 import './index.css'
@@ -32,9 +41,9 @@ function ActivityRoute() {
   const till = useOutletContext<TillState>()
   return <ActivityPage till={till} />
 }
-function DevelopersRoute() {
+function DocsRoute() {
   const till = useOutletContext<TillState>()
-  return <DevelopersPage till={till} />
+  return <DocsShell till={till} />
 }
 
 function RoutesTree() {
@@ -47,8 +56,16 @@ function RoutesTree() {
         <Route path="/jobs" element={<JobsRoute />} />
         <Route path="/activity" element={<ActivityRoute />} />
         <Route path="/verify" element={<VerifyPage />} />
-        <Route path="/developers" element={<DevelopersRoute />} />
-        <Route path="/developers/oauth" element={<DevelopersRoute />} />
+        <Route path="/developers" element={<DocsRoute />}>
+          <Route index element={<DocsOverview />} />
+          <Route path="quickstart" element={<DocsQuickstart />} />
+          <Route path="core" element={<DocsCore />} />
+          <Route path="mcp" element={<DocsMcp />} />
+          <Route path="sdk" element={<DocsSdk />} />
+          <Route path="reference" element={<DocsReference />} />
+          <Route path="security" element={<DocsSecurity />} />
+          <Route path="oauth" element={<DocsOauth />} />
+        </Route>
       </Route>
     </Routes>
   )

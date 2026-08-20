@@ -29,7 +29,7 @@ packages/contracts/deployments/16661-v2-pre-official-7857.json
 # Operator notes stay on disk. Public repo ships README.md only.
 *.md
 !README.md
-docs/
+/docs/
 DESIGN.md
 
 # One-shot probes / env patchers / history rewriter
