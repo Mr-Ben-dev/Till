@@ -173,7 +173,13 @@ export function MyTills({ till }: { till: TillState }) {
                 </div>
                 <div>
                   <dt className="text-white/45">Status</dt>
-                  <dd>{(active ? till.paused : card?.paused) ? 'PAUSED' : 'LIVE'}</dd>
+                  <dd>
+                    {(active ? till.paused : card?.paused)
+                      ? 'PAUSED'
+                      : (active ? till.hasPolicy : (card?.maxTxWei ?? 0n) > 0n)
+                        ? 'LIVE'
+                        : 'SETUP'}
+                  </dd>
                 </div>
                 <div>
                   <dt className="text-white/45">Mode</dt>

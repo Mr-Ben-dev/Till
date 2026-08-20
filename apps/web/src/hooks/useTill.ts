@@ -67,6 +67,23 @@ function asBig(v: unknown): bigint {
   }
 }
 
+function loadStoredTill(): string | null {
+  try {
+    return localStorage.getItem('till.selectedId')
+  } catch {
+    return null
+  }
+}
+
+function saveStoredTill(id: bigint | null) {
+  try {
+    if (id == null) localStorage.removeItem('till.selectedId')
+    else localStorage.setItem('till.selectedId', id.toString())
+  } catch {
+    /* ignore */
+  }
+}
+
 function loadAgent(tokenId: string): AgentStore | null {
   const raw = localStorage.getItem(`till.agent.${tokenId}`)
   if (!raw) return null
@@ -240,6 +257,7 @@ export function useTill() {
       clearTillScoped()
       tokenIdRef.current = id
       setTokenId(id)
+      saveStoredTill(id)
       writeTillQuery(id)
     },
     [clearTillScoped, writeTillQuery],
@@ -288,11 +306,17 @@ export function useTill() {
           useId = null
         }
       } else {
-        useId = ids[ids.length - 1] ?? null
+        const stored = loadStoredTill()
+        const storedMatch = stored ? ids.find((i) => i.toString() === stored) : undefined
+        useId = storedMatch ?? ids[ids.length - 1] ?? null
       }
       if (useId?.toString() !== tokenIdRef.current?.toString()) {
         tokenIdRef.current = useId
         setTokenId(useId)
+        saveStoredTill(useId)
+        writeTillQuery(useId)
+      } else if (useId != null) {
+        saveStoredTill(useId)
         writeTillQuery(useId)
       }
       if (ids.length) {
