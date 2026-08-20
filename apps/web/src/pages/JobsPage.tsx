@@ -24,7 +24,10 @@ export function JobsPage({ till }: { till: TillState }) {
   const [amt, setAmt] = useState('0.001')
   const [label, setLabel] = useState('private-brief')
   const idx = phaseIndex(till.jobPhase)
-  const loading = till.authenticated && (!till.hydrated || till.switching || (till.tokenId != null && !till.tillReady))
+  const loading =
+    till.authenticated &&
+    !till.loadError &&
+    (!till.hydrated || till.switching || (till.tokenId != null && !till.tillReady))
   return (
     <main className="app-page overflow-x-hidden w-full max-w-full">
       <h1 className="text-[clamp(1.8rem,3.2vw,2.8rem)] font-bold leading-tight">Pay when the work finishes.</h1>

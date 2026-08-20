@@ -45,7 +45,9 @@ export function TillPage({ till }: { till: TillState }) {
   const live = step === 6
   const autonomous = till.executionMode === 'autonomous'
   const loading =
-    till.authenticated && (!till.hydrated || till.switching || (till.tokenId != null && !till.tillReady))
+    till.authenticated &&
+    !till.loadError &&
+    (!till.hydrated || till.switching || (till.tokenId != null && !till.tillReady))
 
   const runMission = () => {
     if (!till.authenticated) {

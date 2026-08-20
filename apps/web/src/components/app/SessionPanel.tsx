@@ -9,6 +9,7 @@ import { PermissionDiagram } from './PermissionDiagram'
 
 export function SessionPanel({ till, gasAmt, setGasAmt }: { till: TillState; gasAmt: string; setGasAmt: (v: string) => void }) {
   const status = sessionLabel(till)
+  const sessionAddr = till.authorized.at(0)
   const exp =
     till.sessionExpiresAt > 0n ? new Date(Number(till.sessionExpiresAt) * 1000).toLocaleString() : 'not set'
   return (
@@ -61,8 +62,8 @@ export function SessionPanel({ till, gasAmt, setGasAmt }: { till: TillState; gas
             {till.paused ? 'Unpause' : 'Pause'}
           </CyanButton>
         )}
-        {till.authorized[0] ? (
-          <CyanButton variant="ghost" disabled={!!till.busy} onClick={() => till.revokeAgent(till.authorized[0])}>
+        {sessionAddr ? (
+          <CyanButton variant="ghost" disabled={!!till.busy} onClick={() => till.revokeAgent(sessionAddr)}>
             Revoke
           </CyanButton>
         ) : (
@@ -147,7 +148,7 @@ export function MyTills({ till }: { till: TillState }) {
       <p className="mod-lede">Switching loads the new Till. Old numbers never stay on screen as if they belong to the next one.</p>
       <ul className="mt-5 grid gap-3 md:grid-cols-2">
         {till.tokenIds.map((id) => {
-          const active = till.tokenId === id
+          const active = till.tokenId != null && till.tokenId.toString() === id.toString()
           const card = till.tillCards.find((c) => c.id === id)
           const ready = active ? till.executionMode === 'autonomous' : (card?.authorized ?? 0) > 0
           return (

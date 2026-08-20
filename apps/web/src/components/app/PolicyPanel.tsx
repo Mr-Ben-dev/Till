@@ -39,7 +39,7 @@ export function PolicyPanel({
 }) {
   const [editing, setEditing] = useState(!till.hasPolicy)
   const [step, setStep] = useState(0)
-  const chosen = POLICY_TEMPLATES.find((t) => t.id === template)!
+  const chosen = POLICY_TEMPLATES.find((t) => t.id === template) ?? POLICY_TEMPLATES[1]
   const max = template === 'custom' ? customMax : chosen.max
   const window = template === 'custom' ? customWindow : chosen.window
   const exp =

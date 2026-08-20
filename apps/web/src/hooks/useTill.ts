@@ -43,7 +43,28 @@ type AgentStore = { address: string; privateKey: string }
 const PRODUCT_PATHS = ['/till', '/agents', '/jobs', '/activity', '/verify']
 
 function sameId(a: bigint | null, b: bigint | null) {
-  return a != null && b != null && a === b
+  return a != null && b != null && a.toString() === b.toString()
+}
+
+function asAddrList(v: unknown): string[] {
+  if (v == null) return []
+  try {
+    return Array.from(v as Iterable<unknown>)
+      .map((a) => String(a))
+      .filter((a) => a.startsWith('0x'))
+  } catch {
+    return []
+  }
+}
+
+function asBig(v: unknown): bigint {
+  try {
+    if (typeof v === 'bigint') return v
+    if (v == null || v === '') return 0n
+    return BigInt(v as string | number | bigint)
+  } catch {
+    return 0n
+  }
 }
 
 function loadAgent(tokenId: string): AgentStore | null {
@@ -201,7 +222,6 @@ export function useTill() {
     setBriefModel('')
     setBriefTrust('')
     setLastExecutor('')
-    setTillCards([])
   }, [])
 
   const selectTill = useCallback(
@@ -228,111 +248,156 @@ export function useTill() {
   const refresh = useCallback(async () => {
     if (!address) return
     const gen = genRef.current
-    const provider = new JsonRpcProvider(RPC_URL)
-    const nft = new Contract(ADDR.nft, NFT_ABI, provider)
-    const vault = new Contract(ADDR.vault, VAULT_ABI, provider)
-    const policy = new Contract(ADDR.policy, POLICY_ABI, provider)
-    const filter = nft.filters.TillMinted(address)
-    let logs
     try {
-      logs = await nft.queryFilter(filter, MINT_FROM_BLOCK)
-    } catch {
-      logs = await nft.queryFilter(filter, -50_000)
-    }
-    if (gen !== genRef.current) return
-    const ids = logs
-      .map((l) => {
-        const parsed = nft.interface.parseLog({ topics: l.topics as string[], data: l.data })
-        return parsed?.args.tokenId as bigint
-      })
-      .filter(Boolean)
-    setTokenIds(ids)
-    const wanted = tokenIdRef.current
-    const urlWant = urlTillRef.current
-    let useId: bigint | null = null
-    if (wanted != null && ids.some((i) => i === wanted)) useId = wanted
-    else if (urlWant) {
-      const match = ids.find((i) => i.toString() === urlWant)
-      if (match) useId = match
-      else if (ids.length) {
-        setLoadError(`Till #${urlWant} is not on this wallet. Showing your latest Till.`)
-        useId = ids[ids.length - 1]
-      } else {
-        setLoadError(`Till #${urlWant} was not found for this wallet.`)
-        useId = null
+      const provider = new JsonRpcProvider(RPC_URL)
+      const nft = new Contract(ADDR.nft, NFT_ABI, provider)
+      const vault = new Contract(ADDR.vault, VAULT_ABI, provider)
+      const policy = new Contract(ADDR.policy, POLICY_ABI, provider)
+      const filter = nft.filters.TillMinted(address)
+      let logs
+      try {
+        logs = await nft.queryFilter(filter, MINT_FROM_BLOCK)
+      } catch {
+        logs = await nft.queryFilter(filter, -50_000)
       }
-    } else {
-      useId = ids[ids.length - 1] ?? null
-    }
-    if (useId !== tokenIdRef.current) {
-      tokenIdRef.current = useId
-      setTokenId(useId)
-      writeTillQuery(useId)
-    }
-    if (ids.length) {
-      const rows = await Promise.all(
-        ids.map(async (id) => {
-          const [avail, lockedAmt, auths, p] = await Promise.all([
-            vault.available(id),
-            vault.locked(id),
-            nft.authorizedUsersOf(id),
-            policy.policyOf(id),
-          ])
-          return { id, avail, lockedAmt, auths: auths as string[], p }
-        }),
-      )
       if (gen !== genRef.current) return
-      setTillCards(
-        rows.map((r) => ({
-          id: r.id,
-          available: r.avail,
-          maxTxWei: BigInt(r.p.maxSpendPerTx),
-          paused: Boolean(r.p.paused),
-          authorized: r.auths.length,
-        })),
-      )
-      const row = useId != null ? rows.find((r) => r.id === useId) : undefined
-      if (row && useId != null) {
-        setAvailable(row.avail)
-        setLocked(row.lockedAmt)
-        setAuthorized(row.auths)
-        setPaused(Boolean(row.p.paused))
-        setMaxTxWei(BigInt(row.p.maxSpendPerTx))
-        setWindowBudgetWei(BigInt(row.p.rollingWindowBudget))
-        setWindowSpentWei(BigInt(row.p.windowSpent))
-        setSessionExpiresAt(BigInt(row.p.sessionExpiresAt))
-        const stored = loadAgent(useId.toString())
-        if (stored) setAgentGas(await provider.getBalance(stored.address))
-        else setAgentGas(0n)
-        if (gen !== genRef.current) return
-        setPolicyTested(sessionStorage.getItem(`till.tested.${useId}`) === '1' || BigInt(row.p.windowSpent) > 0n)
-        setAgentSkipped(sessionStorage.getItem(`till.skipAgent.${useId}`) === '1')
-        setLoadedFor(useId)
-        loadedForRef.current = useId
+      const ids = logs
+        .map((l) => {
+          const parsed = nft.interface.parseLog({ topics: l.topics as string[], data: l.data })
+          const raw = parsed?.args.tokenId
+          return raw == null ? null : asBig(raw)
+        })
+        .filter((id): id is bigint => id != null && id > 0n)
+      setTokenIds(ids)
+      const wanted = tokenIdRef.current
+      const urlWant = urlTillRef.current
+      const inList = (id: bigint | null) => id != null && ids.some((i) => i.toString() === id.toString())
+      let useId: bigint | null = null
+      if (wanted != null && inList(wanted)) useId = ids.find((i) => i.toString() === wanted.toString()) ?? wanted
+      else if (switchingRef.current && wanted != null) {
+        useId = wanted
+        if (!inList(wanted)) setLoadError(`Till #${wanted} is not on this wallet.`)
+      } else if (urlWant) {
+        const match = ids.find((i) => i.toString() === urlWant)
+        if (match) useId = match
+        else if (ids.length) {
+          setLoadError(`Till #${urlWant} is not on this wallet. Showing your latest Till.`)
+          useId = ids[ids.length - 1]
+        } else {
+          setLoadError(`Till #${urlWant} was not found for this wallet.`)
+          useId = null
+        }
       } else {
+        useId = ids[ids.length - 1] ?? null
+      }
+      if (useId?.toString() !== tokenIdRef.current?.toString()) {
+        tokenIdRef.current = useId
+        setTokenId(useId)
+        writeTillQuery(useId)
+      }
+      if (ids.length) {
+        const rows = await Promise.all(
+          ids.map(async (id) => {
+            try {
+              const [avail, lockedAmt, auths, p] = await Promise.all([
+                vault.available(id),
+                vault.locked(id),
+                nft.authorizedUsersOf(id),
+                policy.policyOf(id),
+              ])
+              return {
+                id,
+                avail: asBig(avail),
+                lockedAmt: asBig(lockedAmt),
+                auths: asAddrList(auths),
+                maxTxWei: asBig(p?.maxSpendPerTx),
+                windowBudgetWei: asBig(p?.rollingWindowBudget),
+                windowSpentWei: asBig(p?.windowSpent),
+                sessionExpiresAt: asBig(p?.sessionExpiresAt),
+                paused: Boolean(p?.paused),
+                ok: true,
+              }
+            } catch {
+              return {
+                id,
+                avail: 0n,
+                lockedAmt: 0n,
+                auths: [] as string[],
+                maxTxWei: 0n,
+                windowBudgetWei: 0n,
+                windowSpentWei: 0n,
+                sessionExpiresAt: 0n,
+                paused: false,
+                ok: false,
+              }
+            }
+          }),
+        )
+        if (gen !== genRef.current) return
+        setTillCards(
+          rows.map((r) => ({
+            id: r.id,
+            available: r.avail,
+            maxTxWei: r.maxTxWei,
+            paused: r.paused,
+            authorized: r.auths.length,
+          })),
+        )
+        const row = useId != null ? rows.find((r) => r.id.toString() === useId.toString()) : undefined
+        if (row && useId != null) {
+          setAvailable(row.avail)
+          setLocked(row.lockedAmt)
+          setAuthorized(row.auths)
+          setPaused(row.paused)
+          setMaxTxWei(row.maxTxWei)
+          setWindowBudgetWei(row.windowBudgetWei)
+          setWindowSpentWei(row.windowSpentWei)
+          setSessionExpiresAt(row.sessionExpiresAt)
+          const stored = loadAgent(useId.toString())
+          if (stored) setAgentGas(await provider.getBalance(stored.address))
+          else setAgentGas(0n)
+          if (gen !== genRef.current) return
+          if (row.ok) setLoadError('')
+          else setLoadError(`Till #${useId} could not be fully loaded from Aristotle.`)
+          setPolicyTested(sessionStorage.getItem(`till.tested.${useId}`) === '1' || row.windowSpentWei > 0n)
+          setAgentSkipped(sessionStorage.getItem(`till.skipAgent.${useId}`) === '1')
+          setLoadedFor(useId)
+          loadedForRef.current = useId
+        } else {
+          setAuthorized([])
+          setLoadedFor(null)
+          loadedForRef.current = null
+        }
+      } else {
+        setTillCards([])
+        setAuthorized([])
         setLoadedFor(null)
         loadedForRef.current = null
       }
-    } else {
-      setTillCards([])
-      setLoadedFor(null)
-      loadedForRef.current = null
-    }
-    if (gen !== genRef.current) return
-    setWalletBal(await provider.getBalance(address))
-    try {
-      const erc20 = new Contract(USDCE, ['function balanceOf(address) view returns (uint256)'], provider)
-      const bal = await erc20.balanceOf(address)
       if (gen !== genRef.current) return
-      setUsdceAtomic(bal)
-    } catch {
+      setWalletBal(await provider.getBalance(address))
+      try {
+        const erc20 = new Contract(USDCE, ['function balanceOf(address) view returns (uint256)'], provider)
+        const bal = await erc20.balanceOf(address)
+        if (gen !== genRef.current) return
+        setUsdceAtomic(asBig(bal))
+      } catch {
+        if (gen !== genRef.current) return
+        setUsdceAtomic(0n)
+      }
+    } catch (e) {
       if (gen !== genRef.current) return
-      setUsdceAtomic(0n)
+      const msg = decodeErr(e)
+      setLoadError(msg)
+      setError(msg)
+      setAuthorized([])
+    } finally {
+      if (gen === genRef.current) {
+        switchingRef.current = false
+        setSwitching(false)
+        setHydrated(true)
+      }
     }
-    if (gen !== genRef.current) return
-    switchingRef.current = false
-    setSwitching(false)
-    setHydrated(true)
   }, [address, writeTillQuery])
 
   useEffect(() => {

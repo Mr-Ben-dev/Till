@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import { Nav } from './components/Nav'
+import { ErrorBoundary } from './components/app/ErrorBoundary'
 import { TillContextBar } from './components/app/TillContextBar'
 import { useTill } from './hooks/useTill'
 
@@ -20,7 +21,9 @@ export function AppShell() {
         onLogout={till.logout}
       />
       {product ? <TillContextBar till={till} /> : null}
-      <Outlet context={till} />
+      <ErrorBoundary key={till.tokenId?.toString() ?? 'none'}>
+        <Outlet context={till} />
+      </ErrorBoundary>
     </div>
   )
 }

@@ -8,7 +8,10 @@ import { loadTillName } from '../lib/tillMeta'
 
 export function AgentsPage({ till }: { till: TillState }) {
   const [gasAmt, setGasAmt] = useState('0.002')
-  const loading = till.authenticated && (!till.hydrated || till.switching || (till.tokenId != null && !till.tillReady))
+  const loading =
+    till.authenticated &&
+    !till.loadError &&
+    (!till.hydrated || till.switching || (till.tokenId != null && !till.tillReady))
   return (
     <main className="app-page overflow-x-hidden w-full max-w-full">
       <h1 className="text-[clamp(1.8rem,3.2vw,2.8rem)] font-bold leading-tight">Autonomous agent</h1>

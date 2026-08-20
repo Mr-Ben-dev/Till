@@ -14,7 +14,10 @@ export function ActivityPage({ till }: { till: TillState }) {
   const [rows, setRows] = useState<Row[]>([])
   const [err, setErr] = useState('')
   const [loading, setLoading] = useState(false)
-  const switching = till.authenticated && (!till.hydrated || till.switching || (till.tokenId != null && !till.tillReady))
+  const switching =
+    till.authenticated &&
+    !till.loadError &&
+    (!till.hydrated || till.switching || (till.tokenId != null && !till.tillReady))
 
   useEffect(() => {
     setRows([])

@@ -8,7 +8,7 @@ export function TillContextBar({ till }: { till: TillState }) {
   const path = useLocation().pathname
   if (!till.authenticated) return null
   const name = till.tokenId != null ? loadTillName(till.tokenId) : 'No Till'
-  const switching = till.switching || (till.tokenId != null && !till.tillReady)
+  const switching = !till.loadError && (till.switching || (till.tokenId != null && !till.tillReady))
   const links = [
     { to: '/till', label: 'Overview' },
     { to: '/till#policy', label: 'Policy' },
