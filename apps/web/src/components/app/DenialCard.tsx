@@ -23,3 +23,4 @@ export function DenialCard({ denial }: { denial: Denial }) {
     </section>
   )
 }
+// note
