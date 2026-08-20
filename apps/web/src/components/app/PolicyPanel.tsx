@@ -93,7 +93,7 @@ export function PolicyPanel({
           View permissions
         </a>
       </div>
-      {till.writePhase === 'signing' || till.writePhase === 'submitted' || till.writePhase === 'waiting' || till.busy.toLowerCase().includes('policy') ? (
+      {till.writePhase === 'signing' || till.writePhase === 'submitted' || till.writePhase === 'waiting' ? (
         <p className="mt-4 font-mono text-[13px] text-cyan">Waiting for the Aristotle receipt…</p>
       ) : null}
       {till.writePhase === 'confirmed' && till.lastWrite === 'policy' && till.lastTx ? (
