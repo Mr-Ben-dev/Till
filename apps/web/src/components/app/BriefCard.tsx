@@ -1,3 +1,5 @@
+import { humanCheck } from '../../lib/serviceLabels'
+import { ProofRow } from './ProofRow'
 import type { BriefDoc } from '../../lib/api'
 
 const TONE: Record<string, string> = {
@@ -13,67 +15,83 @@ export function BriefCard({
   spentUsd,
   remainingUsd,
   sources,
+  tee,
+  storageTx,
+  explorerNote = 'Verified on 0G Aristotle',
 }: {
   brief: BriefDoc
   model?: string
   trust?: string
   spentUsd?: number
   remainingUsd?: number
-  sources?: { seller: string; sku: string; usd: number }[]
+  sources?: { seller: string; sku: string; usd: number; tx?: string }[]
+  tee?: boolean
+  storageTx?: string
+  explorerNote?: string
 }) {
   const verdict = brief.verdict ?? 'HOLD'
+  const why = brief.risks.length ? brief.risks : brief.findings
   return (
-    <article className="mt-6 rounded-[4.27px] border border-cyan/40 bg-cyan/5 p-6">
-      <p className="font-mono text-[11px] tracking-[0.16em] text-cyan">VERDICT</p>
-      <p className={`mt-3 inline-block rounded-[4.27px] border px-3 py-1 font-mono text-[22px] font-bold tracking-[0.12em] ${TONE[verdict] ?? TONE.HOLD}`}>
-        {verdict}
-      </p>
-      <h2 className="mt-4 text-[1.35rem] font-bold leading-tight text-white">{brief.title}</h2>
-      <p className="mt-3 max-w-[62ch] text-[15px] leading-relaxed text-white/80">{brief.summary}</p>
-      {brief.findings.length > 0 && (
-        <div className="mt-5">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-white/50">Key findings</p>
-          <ul className="mt-2 grid gap-2">
-            {brief.findings.map((f) => (
-              <li key={f} className="text-[14px] leading-relaxed text-white/80">
-                {f}
+    <article className="mt-6 overflow-hidden rounded-[4.27px] border border-white/15">
+      <div className={`border-b px-6 py-6 ${TONE[verdict] ?? TONE.HOLD}`}>
+        <p className="font-mono text-[11px] tracking-[0.18em]">VERDICT</p>
+        <h2 className="mt-2 font-mono text-[clamp(2.2rem,5vw,3.4rem)] font-bold tracking-[0.08em]">{verdict}</h2>
+        <p className="mt-3 max-w-[52ch] text-[16px] leading-relaxed text-white/85">{brief.title}</p>
+      </div>
+      <div className="grid gap-6 p-6 md:grid-cols-2">
+        <section>
+          <p className="font-mono text-[11px] tracking-[0.16em] text-muted">Why</p>
+          <ol className="mt-3 grid gap-2">
+            {why.slice(0, 3).map((w, i) => (
+              <li key={w} className="text-[14px] leading-relaxed text-white/80">
+                {i + 1}. {w}
               </li>
             ))}
-          </ul>
-        </div>
-      )}
-      {brief.risks.length > 0 && (
-        <div className="mt-5">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-white/50">Risks</p>
-          <ul className="mt-2 grid gap-2">
-            {brief.risks.map((r) => (
-              <li key={r} className="text-[14px] leading-relaxed text-white/70">
-                {r}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      <p className="mt-5 text-[14px] text-white/80">
-        Confidence <span className="font-mono text-cyan">{brief.confidence ?? 'medium'}</span>
-      </p>
-      {sources && sources.length > 0 && (
-        <p className="mt-3 text-[13px] text-white/60">
-          Purchased sources:{' '}
-          {sources.map((s) => `${s.seller} ${s.sku} $${s.usd.toFixed(3)}`).join(' · ')}
+          </ol>
+        </section>
+        <section className="grid gap-3 text-[14px] text-white/75">
+          <p>
+            <span className="text-muted">Evidence</span> {sources?.length ?? 0} independent paid checks
+          </p>
+          <p>
+            <span className="text-muted">Cost</span> ${ (spentUsd ?? 0).toFixed(3) }
+          </p>
+          {remainingUsd != null && (
+            <p>
+              <span className="text-muted">Budget remaining</span> ${remainingUsd.toFixed(3)}
+            </p>
+          )}
+          <p className="font-mono text-[12px] text-cyan">
+            0G proof · TEE {tee ? '✓' : '—'} · Storage {storageTx ? '✓' : '—'} · Aristotle ✓
+          </p>
+        </section>
+      </div>
+      <div className="border-t border-white/10 px-6 py-4">
+        <p className="mb-2 font-mono text-[11px] tracking-[0.16em] text-muted">{explorerNote}</p>
+        {sources?.map((s) => {
+          const h = humanCheck(s.seller, s.sku)
+          return (
+            <ProofRow
+              key={s.seller + s.sku}
+              ok
+              label={h.title}
+              detail={`${h.body} · ${h.provider} · $${s.usd.toFixed(3)}`}
+              hash={s.tx}
+            />
+          )
+        })}
+        {storageTx ? <ProofRow ok label="Storage anchored" hash={storageTx} /> : null}
+      </div>
+      <details className="border-t border-white/10 px-6 py-4">
+        <summary className="cursor-pointer text-[13px] text-white/55">Evidence, model, TEE, storage</summary>
+        <p className="mt-3 max-w-[62ch] text-[14px] leading-relaxed text-white/70">{brief.summary}</p>
+        {brief.next_action ? <p className="mt-3 text-[14px] text-cyan">{brief.next_action}</p> : null}
+        <p className="mt-4 font-mono text-[11px] text-white/40">
+          {brief.subject}
+          {model ? ` · ${model}` : ''}
+          {trust ? ` · ${trust}` : ''}
         </p>
-      )}
-      {spentUsd != null && remainingUsd != null && (
-        <p className="mt-2 font-mono text-[13px] text-cyan">
-          Spent ${spentUsd.toFixed(3)} · remaining ${remainingUsd.toFixed(3)}
-        </p>
-      )}
-      {brief.next_action && <p className="mt-5 text-[14px] text-cyan">Next: {brief.next_action}</p>}
-      <p className="mt-4 font-mono text-[11px] text-white/45">
-        {brief.subject}
-        {model ? ` · ${model}` : ''}
-        {trust ? ` · ${trust}` : ''}
-      </p>
+      </details>
     </article>
   )
 }

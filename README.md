@@ -2,7 +2,7 @@
 
 **Give an agent a Till. It can pay and finish work. It cannot empty you.**
 
-Till is a permissioned spend account for autonomous agents on [0G Aristotle](https://chainscan.0g.ai) (chain ID **16661**). The agent can buy the intelligence it needs. It cannot empty you.
+An agent service account with a budget you control. It buys the intelligence needed to complete a task. The agent never receives your wallet.
 
 - App: https://till-0g.vercel.app
 - API: https://till-api.onrender.com
@@ -12,7 +12,24 @@ No shared operator wallet. No mock TEE. No OpenAI/Groq fallback.
 
 ## Before you pay
 
-Paste a token, contract, protocol, wallet, or vendor. The agent quotes real x402 checks, 0G Compute verifies privately, then you get **BUY / HOLD / AVOID** with spend and on-chain proof.
+Paste a token, contract, or protocol. The agent selects real x402 checks (token safety, market/oracle, contract risk), 0G Compute verifies privately, then you get **BUY / HOLD / AVOID** with spend and on-chain proof.
+
+## Owner vs autonomous
+
+| Step | Who signs |
+|---|---|
+| Connect, mint, fund, policy, authorize, revoke, withdraw, pause | Owner wallet (MetaMask) |
+| x402 service purchases | Operator Herald rail (USDC.e). Not your session key. |
+| Storage proof (`anchorPacket`) | **Session key** if autonomous mode is authorized and funded with gas; otherwise owner |
+| Jobs TEE-signer bind | Owner only (`setTillTeeSigner`) |
+
+Autonomous mode is a device-local session key on this Till. It cannot withdraw or change policy. If gas is zero, the app stays in owner mode for on-chain proof.
+
+## Funding
+
+- **Till balance** — native 0G you can withdraw.
+- **USDC.e** — x402 settlement asset. Swap on [0G Hub](https://hub.0g.ai/swap?network=mainnet).
+- **0G Compute** — billed separately via Payment Layer.
 
 ## Production contracts (Aristotle 16661)
 
@@ -24,41 +41,22 @@ Paste a token, contract, protocol, wallet, or vendor. The agent quotes real x402
 | TillVault | [`0x2eD09745E5Ca4BdeaBc93aB3aab65781B03Ed4cB`](https://chainscan.0g.ai/address/0x2eD09745E5Ca4BdeaBc93aB3aab65781B03Ed4cB) |
 | TillJobEscrow | [`0x1BB730Ff8A4Ff93dE9eDD54B178C0Bc9ddE99de9`](https://chainscan.0g.ai/address/0x1BB730Ff8A4Ff93dE9eDD54B178C0Bc9ddE99de9) |
 
-ERC-7857 `supportsInterface`: `0x80ac58cd` `0x2afbede9` `0xdf597d99` `0x74f8628b`.
+Verify a payment: open `/verify`. No wallet required.
 
-Verify a payment: open `/verify` and paste a tx hash. No wallet required.
+## MetaMask “malicious site” on vercel.app
 
-## Layout
-
-```text
-apps/web            React + Vite + Privy
-apps/api            Fastify (Compute, x402, Storage, verify)
-apps/demo-402       Local x402 rehearsal only
-packages/contracts  Foundry
-packages/sdk
-packages/config
-```
-
-## Networks
-
-| | Chain ID | RPC | Explorer |
-|---|---|---|---|
-| Production | 16661 | https://evmrpc.0g.ai | https://chainscan.0g.ai |
-| Rehearsal only | 16602 | https://evmrpc-testnet.0g.ai | https://chainscan-galileo.0g.ai |
+Privy **Allowed origins** does not control that warning. MetaMask/Blockaid often flags `*.vercel.app`. Confirm the URL is `https://till-0g.vercel.app`, then Connect anyway if it matches. Switch the Privy app from **Development** to **Production**. Report false positives: [eth-phishing-detect](https://github.com/MetaMask/eth-phishing-detect/issues) and [Blockaid](https://report.blockaid.io/).
 
 ## Run locally
 
 ```bash
 cp .env.example .env
-# fill keys — never commit .env
-
 npm install
-npm run test:contracts   # needs Foundry
 npm run api
 npm run web
 ```
 
-Frontend public env is `VITE_PRIVY_APP_ID` and `VITE_API_URL`. Never put `sk-`, `mk-`, or private keys in `VITE_*`.
+Never put `sk-`, `mk-`, or private keys in `VITE_*`.
 
 ## License
 

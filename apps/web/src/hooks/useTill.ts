@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
 import { BrowserProvider, Contract, JsonRpcProvider, Wallet, formatEther, id as keccakId, keccak256, parseEther, toUtf8Bytes, type Signer } from 'ethers'
-import { ADDR, CHAIN_ID, DEFAULT_BRIEF_SUBJECT, MINT_FROM_BLOCK, RESOURCE, RPC_URL, ensureOgChain } from '../lib/chain'
+import { ADDR, CHAIN_ID, DEFAULT_BRIEF_SUBJECT, HUB_SWAP, MINT_FROM_BLOCK, MISSION_CAP_USD, RESOURCE, RPC_URL, USDCE, ensureOgChain } from '../lib/chain'
 import { ESCROW_ABI, NFT_ABI, POLICY_ABI, VAULT_ABI, VERIFIER_ABI } from '../lib/abi'
 import { decodeErr } from '../lib/errors'
 import type { Denial } from '../components/app/DenialCard'
@@ -15,15 +15,15 @@ export type PipelineStep = {
 }
 
 const INITIAL_STEPS: PipelineStep[] = [
-  { key: 'plan', label: 'Plan', state: 'idle' },
-  { key: 'budget', label: 'Budget', state: 'idle' },
-  { key: 'tee', label: 'TEE', state: 'idle' },
-  { key: 'buy1', label: 'Purchase #1', state: 'idle' },
-  { key: 'buy2', label: 'Purchase #2', state: 'idle' },
-  { key: 'buy3', label: 'Purchase #3', state: 'idle' },
-  { key: 'result', label: 'Verdict', state: 'idle' },
-  { key: 'storage', label: 'Storage', state: 'idle' },
-  { key: 'proof', label: 'Proof', state: 'idle' },
+  { key: 'plan', label: 'Planning', state: 'idle' },
+  { key: 'budget', label: '3 services selected', state: 'idle' },
+  { key: 'tee', label: 'TEE verified', state: 'idle' },
+  { key: 'buy1', label: 'Purchase 1', state: 'idle' },
+  { key: 'buy2', label: 'Purchase 2', state: 'idle' },
+  { key: 'buy3', label: 'Purchase 3', state: 'idle' },
+  { key: 'result', label: 'Private synthesis', state: 'idle' },
+  { key: 'storage', label: 'Storage anchored', state: 'idle' },
+  { key: 'proof', label: 'Verdict', state: 'idle' },
 ]
 
 export type JobPhase = 'idle' | 'quote' | 'lock' | 'working' | 'settle' | 'refunded' | 'failed'
@@ -79,6 +79,8 @@ export function useTill() {
   const [briefTrust, setBriefTrust] = useState('')
   const [mission, setMission] = useState<api.MissionDiscover | null>(null)
   const [purchases, setPurchases] = useState<api.PurchaseRecord[]>([])
+  const [usdceAtomic, setUsdceAtomic] = useState(0n)
+  const [lastExecutor, setLastExecutor] = useState<'owner' | 'session' | ''>('')
 
   const resourceHash = useMemo(() => keccak256(toUtf8Bytes(RESOURCE)), [])
 
@@ -88,8 +90,32 @@ export function useTill() {
     await ensureOgChain(provider)
     const browser = new BrowserProvider(provider, CHAIN_ID)
     const signer = await browser.getSigner()
+    setLastExecutor('owner')
     await fn(signer)
   }, [wallet])
+
+  const sessionWallet = useCallback(() => {
+    if (tokenId == null) return null
+    const stored = loadAgent(tokenId.toString())
+    if (!stored) return null
+    const ok = authorized.some((a) => a.toLowerCase() === stored.address.toLowerCase())
+    if (!ok || agentGas === 0n) return null
+    return stored
+  }, [tokenId, authorized, agentGas])
+
+  const withExecutor = useCallback(
+    async (fn: (s: Signer) => Promise<void>) => {
+      const stored = sessionWallet()
+      if (stored) {
+        const w = new Wallet(stored.privateKey, new JsonRpcProvider(RPC_URL))
+        setLastExecutor('session')
+        await fn(w)
+        return
+      }
+      await withSigner(fn)
+    },
+    [sessionWallet, withSigner]
+  )
 
   const switchNetwork = () =>
     run('Switching to 0G Mainnet', async () => {
@@ -144,6 +170,12 @@ export function useTill() {
       else setAgentGas(0n)
     }
     setWalletBal(await provider.getBalance(address))
+    try {
+      const erc20 = new Contract(USDCE, ['function balanceOf(address) view returns (uint256)'], provider)
+      setUsdceAtomic(await erc20.balanceOf(address))
+    } catch {
+      setUsdceAtomic(0n)
+    }
   }, [address, tokenId])
 
   useEffect(() => {
@@ -479,7 +511,7 @@ export function useTill() {
       const proofTx = bought[0]?.ogTx
       if (!proofTx) throw new Error('Missing 0G settlement hash')
       setLastTx(proofTx)
-      await withSigner(async (s) => {
+      await withExecutor(async (s) => {
         const c = contractsOf(s)
         try {
           patchStep('storage', { state: 'wait' })
@@ -672,6 +704,12 @@ export function useTill() {
       if (tokenId != null) sessionStorage.setItem(`till.skipAgent.${tokenId}`, '1')
     },
     hasPolicy: maxTxWei > 0n,
+    executionMode: sessionWallet() ? 'autonomous' : 'owner',
+    lastExecutor,
+    usdceAtomic,
+    usdceUsd: Number(usdceAtomic) / 1e6,
+    missionCapUsd: MISSION_CAP_USD,
+    hubSwap: HUB_SWAP,
   }
 }
 

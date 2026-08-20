@@ -21,25 +21,25 @@ export function humanError(e: unknown): string {
 
 export const POLICY_TEMPLATES = [
   {
-    id: 'careful',
-    name: 'Careful',
-    max: '0.01',
-    window: '0.05',
-    why: 'Small tests. Hard to overspend.',
-  },
-  {
-    id: 'daily',
-    name: 'Daily work',
+    id: 'conservative',
+    name: 'Conservative',
     max: '0.05',
-    window: '0.2',
-    why: 'Covers one investigation and a few more jobs.',
+    window: '0.20',
+    why: '$0.05 equivalent per purchase · $0.20 rolling. Approved service categories only.',
   },
   {
-    id: 'wide',
-    name: 'Wide cap',
-    max: '0.1',
-    window: '0.5',
-    why: 'Still capped. You can tighten later.',
+    id: 'balanced',
+    name: 'Balanced',
+    max: '0.10',
+    window: '0.50',
+    why: '$0.10 per purchase · $0.50 rolling. Default for one investigation.',
+  },
+  {
+    id: 'custom',
+    name: 'Custom',
+    max: '0.05',
+    window: '0.20',
+    why: 'You set max per purchase, rolling spend, and session length.',
   },
 ] as const
 

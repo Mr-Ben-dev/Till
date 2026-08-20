@@ -122,7 +122,7 @@ export function HomePage() {
             It cannot empty you.
           </h1>
           <p data-hero className="hero-sub mx-auto mt-4 max-w-[661px] text-white">
-            Give it a Till so it can buy the resources it needs to finish useful work — without ever receiving your wallet.
+            An agent service account with a budget you control. It buys the intelligence needed to finish the task. Private 0G reasoning, on-chain policy, durable proof. The agent never receives your wallet.
           </p>
           <div data-hero className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <CyanButton to="/till">Open a Till</CyanButton>

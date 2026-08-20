@@ -718,7 +718,78 @@ html.lenis body {
   .acc-play,
   .acc-rule,
   .foot-link,
-  .foot-link::before {
+  .foot-link::before,
+  .og-rail__dot,
+  .og-rail__line {
     transition: none;
   }
 }
+
+.og-rail {
+  display: grid;
+  gap: 0;
+  margin-top: 1rem;
+}
+
+@media (min-width: 900px) {
+  .og-rail {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+}
+
+.og-rail__node {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.4rem 0 1rem;
+  color: #8aa3b0;
+}
+
+.og-rail__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #8aa3b0;
+  box-shadow: 0 0 0 0 transparent;
+  transition: background 0.35s var(--ease-expo), box-shadow 0.35s var(--ease-expo);
+}
+
+.og-rail__line {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .og-rail__line {
+    display: block;
+    position: absolute;
+    top: 8px;
+    left: 14px;
+    right: -8px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.12);
+  }
+}
+
+.og-rail__label {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.og-rail__node.is-wait .og-rail__dot {
+  background: #00bde9;
+  box-shadow: 0 0 0 6px rgba(0, 189, 233, 0.16);
+}
+
+.og-rail__node.is-ok {
+  color: #f4fafc;
+}
+
+.og-rail__node.is-ok .og-rail__dot {
+  background: #00bde9;
+}
+
+.og-rail__node.is-fail .og-rail__dot {
+  background: #c23b3b;
+}
+

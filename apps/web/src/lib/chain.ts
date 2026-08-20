@@ -21,6 +21,9 @@ export const RESOURCE = 'herald://before-you-pay'
 export const DEFAULT_BRIEF_SUBJECT =
   'Should I deposit into this protocol? 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
 export const MINT_FROM_BLOCK = 42_110_000n
+export const USDCE = '0x1f3aa82227281ca364bfb3d253B0f1af1da6473e'
+export const HUB_SWAP = 'https://hub.0g.ai/swap?network=mainnet'
+export const MISSION_CAP_USD = 0.5
 
 /** Official wallet add params from 0G docs. Must match MetaMask's existing "0G Mainnet". */
 export const OG_WALLET_NETWORK = {

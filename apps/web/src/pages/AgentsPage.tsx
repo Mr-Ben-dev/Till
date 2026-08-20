@@ -8,9 +8,9 @@ export function AgentsPage({ till }: { till: TillState }) {
   const ready = till.authorized.length > 0
   return (
     <main className="app-page">
-      <h1 className="text-[clamp(1.8rem,3.2vw,2.8rem)] font-bold leading-tight">Agents</h1>
+      <h1 className="text-[clamp(1.8rem,3.2vw,2.8rem)] font-bold leading-tight">Autonomous agent</h1>
       <p className="mt-3 max-w-[54ch] text-[16px] leading-relaxed text-white/65">
-        An agent is a grant on your Till. It can spend inside the cap. It cannot empty you.
+        A device-local session on your Till. It can prove work. It cannot withdraw or change policy. Revoke turns it off immediately.
       </p>
       {till.error && <div className="mt-6"><Notice tone="danger" title="Stopped" body={till.error} /></div>}
       {till.busy && <p className="mt-6 font-mono text-[12px] text-cyan">{till.busy}</p>}
@@ -19,7 +19,7 @@ export function AgentsPage({ till }: { till: TillState }) {
         <div className="mt-10">
           <Notice
             title="No Till yet"
-            body="Create a Till first. Then attach an agent."
+            body="Create a Till first. Then authorize a session."
             action={<CyanButton to="/till">Open Till</CyanButton>}
           />
         </div>

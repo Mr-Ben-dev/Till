@@ -30,9 +30,9 @@ export function JobsPage({ till }: { till: TillState }) {
   const idx = phaseIndex(till.jobPhase)
   return (
     <main className="app-page">
-      <h1 className="text-[clamp(1.8rem,3.2vw,2.8rem)] font-bold leading-tight">Jobs</h1>
+      <h1 className="text-[clamp(1.8rem,3.2vw,2.8rem)] font-bold leading-tight">Pay only when the work finishes</h1>
       <p className="mt-3 max-w-[54ch] text-[16px] leading-relaxed text-white/65">
-        Tell the agent what to check before you pay. Three independent x402 purchases, then BUY / HOLD / AVOID.
+        Need a paid result? Budget locks, work starts, then the seller is paid — or the Till is refunded. TillJobEscrow is the contract; this page is the job.
       </p>
       {till.error && <div className="mt-6"><Notice tone="danger" title="Stopped" body={till.error} /></div>}
       {till.lastDenial && <div className="mt-6"><DenialCard denial={till.lastDenial} /></div>}
@@ -46,7 +46,7 @@ export function JobsPage({ till }: { till: TillState }) {
         <ActionCard
           what="Before you pay"
           why="Paste a token or keep the Base USDC default. The agent buys safety, oracle, and bytecode from three different providers, then 0G writes BUY / HOLD / AVOID."
-          next="Storage anchor is the on-chain proof. Then try Buy $5 worth against the $0.50 cap."
+          next="Storage anchor is the on-chain proof. Then test over-budget spend against the mission cap."
         >
           <label className="flex max-w-xl flex-col gap-2">
             <span className="text-[12px] text-white/70">Mission</span>
@@ -64,7 +64,7 @@ export function JobsPage({ till }: { till: TillState }) {
               Run mission
             </CyanButton>
             <CyanButton variant="ghost" disabled={!!till.busy} onClick={() => till.tryOverBudget()}>
-              Buy $5 worth
+              Test over-budget spend
             </CyanButton>
           </div>
           {till.mission && <MissionCard mission={till.mission} purchases={till.purchases} />}
