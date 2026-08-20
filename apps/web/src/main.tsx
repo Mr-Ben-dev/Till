@@ -11,9 +11,14 @@ import { ActivityPage } from './pages/ActivityPage'
 import { VerifyPage } from './pages/VerifyPage'
 import { DocsShell, DocsOauth } from './pages/docs/DocsShell'
 import {
+  DocsArchitecture,
+  DocsClaude,
+  DocsContracts,
   DocsCore,
+  DocsCursor,
   DocsMcp,
   DocsOverview,
+  DocsProof,
   DocsQuickstart,
   DocsReference,
   DocsSdk,
@@ -61,8 +66,13 @@ function RoutesTree() {
           <Route path="quickstart" element={<DocsQuickstart />} />
           <Route path="core" element={<DocsCore />} />
           <Route path="mcp" element={<DocsMcp />} />
+          <Route path="cursor" element={<DocsCursor />} />
+          <Route path="claude" element={<DocsClaude />} />
           <Route path="sdk" element={<DocsSdk />} />
+          <Route path="architecture" element={<DocsArchitecture />} />
+          <Route path="proof" element={<DocsProof />} />
           <Route path="reference" element={<DocsReference />} />
+          <Route path="contracts" element={<DocsContracts />} />
           <Route path="security" element={<DocsSecurity />} />
           <Route path="oauth" element={<DocsOauth />} />
         </Route>

@@ -62,7 +62,7 @@ export function BriefCard({
             </p>
           )}
           <p className="font-mono text-[12px] text-cyan">
-            0G proof · TEE {tee ? '✓' : '—'} · Storage {storageTx ? '✓' : '—'} · Aristotle ✓
+            0G proof · TEE {tee ? 'yes' : 'no'} · Storage {storageTx ? 'yes' : 'no'} · Aristotle yes
           </p>
         </section>
       </div>

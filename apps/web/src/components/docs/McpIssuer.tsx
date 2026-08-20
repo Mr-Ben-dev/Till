@@ -145,6 +145,7 @@ export function McpIssuer({ till }: { till: TillState }) {
           />
           <CopyBlock label="Scoped token" value={token} />
           <CopyBlock label="Copy setup prompt" value={setupPrompt(token)} />
+          <CopyBlock label="Endpoint" value={MCP_URL} />
           <CopyBlock label="Cursor mcp.json with this token" value={cursorJson} />
           <button type="button" className="text-left text-[13px] text-white/50 underline" onClick={() => setShown(false)}>
             Hide token from this page

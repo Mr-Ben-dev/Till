@@ -4,7 +4,7 @@ import { TillMark } from './TillMark'
 
 const links = [
   { to: '/', label: 'Home' },
-  { to: '/till', label: 'Till' },
+  { to: '/till', label: 'Tills' },
   { to: '/agents', label: 'Agents' },
   { to: '/jobs', label: 'Jobs' },
   { to: '/activity', label: 'Activity' },

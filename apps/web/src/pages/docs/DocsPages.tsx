@@ -93,7 +93,7 @@ export function DocsQuickstart() {
     <Page kicker="Getting started" title="Quick start" lede="Create a Till, set policy, enable a session, then quote before you spend.">
       <ol className="docs-steps">
         <li>
-          <strong>Open the app.</strong> {WEB} — connect the owner wallet on Aristotle {CHAIN_ID}.
+          <strong>Open the app.</strong> {WEB}. Connect the owner wallet on Aristotle {CHAIN_ID}.
         </li>
         <li>
           <strong>Create a Till</strong> at {WEB}/till. Mint is an owner-wallet transaction.
@@ -118,7 +118,7 @@ export function DocsQuickstart() {
         value={`npm install ${NPM_SDK}\nnpx -y ${NPM_MCP}`}
       />
       <p className="text-[13px] text-white/45">
-        MCP and the SDK receive a scoped token from /developers/mcp — never the owner private key.
+        MCP and the SDK receive a scoped token from /developers/mcp. Never the owner private key.
       </p>
     </Page>
   )
@@ -133,7 +133,7 @@ export function DocsCore() {
     >
       <h2>Till</h2>
       <p>
-        An ERC-721 service account (TillAgentNFT) with a vault. You can have more than one. None of them are special —
+        An ERC-721 service account (TillAgentNFT) with a vault. You can have more than one. None of them are special.
         My Tills shows ACTIVE, BALANCE, POLICY, AGENT, STATUS for the selected instance.
       </p>
       <h2>Protection policy</h2>
@@ -173,10 +173,30 @@ export function DocsMcp() {
   return (
     <Page
       kicker="MCP"
-      title="Connect Cursor or Claude"
-      lede="Streamable HTTP remotely. Newline-delimited stdio locally. OAuth 2.1 + PKCE. Bearer header only. No private keys."
+      title="Connect your agent"
+      lede="Use Till with any MCP-compatible agent. Verified paths: Cursor, Claude Code, Streamable HTTP, and local stdio. Generic OpenAI-compatible agents are not claimed until tested."
     >
       <McpIssuer till={till} />
+      <div className="mt-8 grid gap-3 md:grid-cols-2">
+        <Link className="docs-card" to="/developers/cursor">
+          <strong>Cursor</strong>
+          <p>Deep link plus mcp.json. Verified install path.</p>
+        </Link>
+        <Link className="docs-card" to="/developers/claude">
+          <strong>Claude Code</strong>
+          <p>HTTP and stdio commands below. Verified.</p>
+        </Link>
+        <div className="docs-card">
+          <strong>Custom MCP agents</strong>
+          <p>POST {MCP_URL} with Bearer. Protocol 2025-11-25.</p>
+        </div>
+        <div className="docs-card">
+          <strong>Local agent</strong>
+          <p>
+            <code>npx -y {NPM_MCP}</code> with TILL_ACCESS_TOKEN. Stdio NDJSON.
+          </p>
+        </div>
+      </div>
       <h2>Transports</h2>
       <p>
         Remote: POST {MCP_URL} (JSON-RPC, protocol 2025-11-25). Local: <code>npx -y {NPM_MCP}</code> with TILL_ACCESS_TOKEN.
@@ -227,7 +247,7 @@ claude mcp add --transport stdio till --env TILL_ACCESS_TOKEN=YOUR_TOKEN -- npx 
       <p>
         Default scopes: {SCOPES_READ.join(' ')} plus optional {SCOPES_EXEC[0]}. High-risk, not silent:{' '}
         {SCOPES_RISK.join(' ')}. till_run_mission refuses unless session status is READY. MCP does not hold the session
-        key, so it does not fake Storage anchor. till_revoke_session does not sign — it returns {WEB}/agents.
+        key, so it does not fake Storage anchor. till_revoke_session does not sign. It returns {WEB}/agents.
       </p>
     </Page>
   )
@@ -260,7 +280,7 @@ const proof = await till.getProof('0x…')`}
       />
       <p>
         createClient rejects missing tokens, localhost API URLs (unless TILL_ALLOW_LOCALHOST=1), and 64-byte hex private
-        keys. Examples live in packages/client/examples (01–07). Mint stays in the app — the SDK cannot hold a key.
+        keys. Examples live in packages/client/examples (01-07). Mint stays in the app. The SDK cannot hold a key.
       </p>
     </Page>
   )
@@ -304,21 +324,21 @@ export function DocsReference() {
       <ul>
         {INTERFACES.map((i) => (
           <li key={i.id}>
-            <code>{i.id}</code> {i.name} — {i.result ? 'true' : 'false'}
+            <code>{i.id}</code> {i.name} - {i.result ? 'true' : 'false'}
           </li>
         ))}
       </ul>
       <h2>API</h2>
       <ul>
         <li>
-          GET {API}/health — chainId 16661, simulate false
+          GET {API}/health, chainId 16661, simulate false
         </li>
-        <li>POST {MCP_URL} — JSON-RPC</li>
+        <li>POST {MCP_URL} (JSON-RPC)</li>
         <li>GET {API}/.well-known/oauth-protected-resource</li>
         <li>GET {API}/.well-known/oauth-authorization-server</li>
-        <li>GET {API}/v1/tills — Bearer JWT</li>
+        <li>GET {API}/v1/tills (Bearer JWT)</li>
         <li>
-          GET {WEB}/verify — no wallet
+          GET {WEB}/verify (no wallet)
         </li>
       </ul>
       <p>
@@ -435,6 +455,72 @@ export function DocsSecurity() {
       <Link className="text-cyan" to="/verify">
         Open Verify
       </Link>
+    </Page>
+  )
+}
+
+export function DocsArchitecture() {
+  return (
+    <Page kicker="Architecture" title="How Till is wired" lede="Owner funds a Till. Policy bounds spend. Session executes. Agent never holds the wallet.">
+      <ArchDiagram />
+      <MoneyFlow />
+      <Boundaries />
+    </Page>
+  )
+}
+
+export function DocsProof() {
+  return (
+    <Page kicker="Proof" title="Mainnet receipts" lede="Paste a hash on Verify. These are recorded production transactions, not placeholders.">
+      <ul>
+        <li>
+          <a href={txUrl(PROOFS.agentToll)}>AgentToll x402</a>
+        </li>
+        <li>
+          <a href={txUrl(PROOFS.api402x)}>api402x x402</a>
+        </li>
+        <li>
+          <a href={txUrl(PROOFS.tokenRisk)}>token-risk x402</a>
+        </li>
+        <li>
+          <a href={txUrl(PROOFS.storageAnchor)}>Storage anchor</a>
+        </li>
+        <li>
+          <a href={txUrl(PROOFS.sessionAnchor)}>Session executor anchorPacket</a>
+        </li>
+      </ul>
+      <CyanButton to="/verify">Open Verify</CyanButton>
+    </Page>
+  )
+}
+
+export function DocsContracts() {
+  return <DocsReference />
+}
+
+export function DocsCursor() {
+  return (
+    <Page kicker="Cursor" title="Install Till in Cursor" lede="Verified: Streamable HTTP MCP with a scoped Bearer token from this site.">
+      <ol className="docs-steps">
+        <li>Open Connect your agent and create a scoped MCP token.</li>
+        <li>Copy the setup prompt into the agent, or paste mcp.json.</li>
+        <li>Confirm tools/list then till_list. Do not spend yet.</li>
+      </ol>
+      <CyanButton to="/developers/mcp">Create scoped MCP token</CyanButton>
+    </Page>
+  )
+}
+
+export function DocsClaude() {
+  return (
+    <Page kicker="Claude Code" title="Install Till in Claude Code" lede="Verified HTTP and stdio commands. Claude.ai desktop is not claimed until tested.">
+      <CopyBlock
+        label="Claude Code"
+        value={`claude mcp add --transport http till ${MCP_URL}
+claude mcp add --transport http till ${MCP_URL} --header "Authorization: Bearer YOUR_TOKEN"
+claude mcp add --transport stdio till --env TILL_ACCESS_TOKEN=YOUR_TOKEN -- npx -y ${NPM_MCP}`}
+      />
+      <CyanButton to="/developers/mcp">Create scoped MCP token</CyanButton>
     </Page>
   )
 }

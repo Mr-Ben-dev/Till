@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
+import { saveTillName } from '../lib/tillMeta'
 import { BrowserProvider, Contract, JsonRpcProvider, Wallet, formatEther, id as keccakId, keccak256, parseEther, toUtf8Bytes, type Signer } from 'ethers'
 import { ADDR, CHAIN_ID, DEFAULT_BRIEF_SUBJECT, HUB_SWAP, MINT_FROM_BLOCK, MISSION_CAP_USD, RESOURCE, RPC_URL, USDCE, ensureOgChain } from '../lib/chain'
 import { ESCROW_ABI, NFT_ABI, POLICY_ABI, VAULT_ABI, VERIFIER_ABI } from '../lib/abi'
@@ -28,7 +30,21 @@ const INITIAL_STEPS: PipelineStep[] = [
 
 export type JobPhase = 'idle' | 'quote' | 'lock' | 'working' | 'settle' | 'refunded' | 'failed'
 
+export type TillCard = {
+  id: bigint
+  available: bigint
+  maxTxWei: bigint
+  paused: boolean
+  authorized: number
+}
+
 type AgentStore = { address: string; privateKey: string }
+
+const PRODUCT_PATHS = ['/till', '/agents', '/jobs', '/activity', '/verify']
+
+function sameId(a: bigint | null, b: bigint | null) {
+  return a != null && b != null && a === b
+}
 
 function loadAgent(tokenId: string): AgentStore | null {
   const raw = localStorage.getItem(`till.agent.${tokenId}`)
@@ -43,6 +59,10 @@ function loadAgent(tokenId: string): AgentStore | null {
 export function useTill() {
   const { ready, authenticated, login, logout } = usePrivy()
   const { wallets } = useWallets()
+  const location = useLocation()
+  const [params, setParams] = useSearchParams()
+  const onProduct = PRODUCT_PATHS.some((p) => location.pathname === p || location.pathname.startsWith(`${p}/`))
+  const urlTill = params.get('tillId')
   const wallet =
     wallets.find((w) => w.walletClientType === 'metamask') ||
     wallets.find((w) => w.connectorType === 'injected') ||
@@ -81,6 +101,22 @@ export function useTill() {
   const [purchases, setPurchases] = useState<api.PurchaseRecord[]>([])
   const [usdceAtomic, setUsdceAtomic] = useState(0n)
   const [lastExecutor, setLastExecutor] = useState<'owner' | 'session' | ''>('')
+  const [switching, setSwitching] = useState(false)
+  const [hydrated, setHydrated] = useState(false)
+  const [loadedFor, setLoadedFor] = useState<bigint | null>(null)
+  const [loadError, setLoadError] = useState('')
+  const [tillCards, setTillCards] = useState<TillCard[]>([])
+  const genRef = useRef(0)
+  const tokenIdRef = useRef<bigint | null>(null)
+  tokenIdRef.current = tokenId
+  const urlTillRef = useRef(urlTill)
+  urlTillRef.current = urlTill
+  const onProductRef = useRef(onProduct)
+  onProductRef.current = onProduct
+  const setParamsRef = useRef(setParams)
+  setParamsRef.current = setParams
+  const switchingRef = useRef(false)
+  const loadedForRef = useRef<bigint | null>(null)
 
   const resourceHash = useMemo(() => keccak256(toUtf8Bytes(RESOURCE)), [])
 
@@ -132,8 +168,66 @@ export function useTill() {
     escrow: new Contract(ADDR.escrow, ESCROW_ABI, s),
   })
 
+  const writeTillQuery = useCallback((id: bigint | null) => {
+    if (!onProductRef.current) return
+    const next = new URLSearchParams(window.location.search)
+    if (id == null) next.delete('tillId')
+    else next.set('tillId', id.toString())
+    const cur = new URLSearchParams(window.location.search)
+    if (next.toString() === cur.toString()) return
+    setParamsRef.current(next, { replace: true })
+  }, [])
+
+  const clearTillScoped = useCallback(() => {
+    setAvailable(0n)
+    setLocked(0n)
+    setAuthorized([])
+    setPaused(false)
+    setMaxTxWei(0n)
+    setWindowBudgetWei(0n)
+    setWindowSpentWei(0n)
+    setSessionExpiresAt(0n)
+    setAgentGas(0n)
+    setMission(null)
+    setPurchases([])
+    setLastBrief(null)
+    setLastDenial(null)
+    setTech({})
+    setSteps(INITIAL_STEPS.map((s) => ({ ...s })))
+    setPolicyTested(false)
+    setAgentSkipped(false)
+    setJobPhase('idle')
+    setModelNote('')
+    setBriefModel('')
+    setBriefTrust('')
+    setLastExecutor('')
+    setTillCards([])
+  }, [])
+
+  const selectTill = useCallback(
+    (id: bigint) => {
+      if (sameId(tokenIdRef.current, id) && sameId(loadedForRef.current, id) && !switchingRef.current) {
+        writeTillQuery(id)
+        return
+      }
+      genRef.current += 1
+      switchingRef.current = true
+      setSwitching(true)
+      setLoadedFor(null)
+      loadedForRef.current = null
+      setLoadError('')
+      setError('')
+      clearTillScoped()
+      tokenIdRef.current = id
+      setTokenId(id)
+      writeTillQuery(id)
+    },
+    [clearTillScoped, writeTillQuery],
+  )
+
   const refresh = useCallback(async () => {
     if (!address) return
+    const gen = genRef.current
     const provider = new JsonRpcProvider(RPC_URL)
     const nft = new Contract(ADDR.nft, NFT_ABI, provider)
     const vault = new Contract(ADDR.vault, VAULT_ABI, provider)
@@ -145,6 +239,7 @@ export function useTill() {
     } catch {
       logs = await nft.queryFilter(filter, -50_000)
     }
+    if (gen !== genRef.current) return
     const ids = logs
       .map((l) => {
         const parsed = nft.interface.parseLog({ topics: l.topics as string[], data: l.data })
@@ -152,36 +247,102 @@ export function useTill() {
       })
       .filter(Boolean)
     setTokenIds(ids)
-    const current = tokenId && ids.includes(tokenId) ? tokenId : ids[ids.length - 1] ?? null
-    if (current !== tokenId) setTokenId(current)
-    const useId = current
-    if (useId != null) {
-      setAvailable(await vault.available(useId))
-      setLocked(await vault.locked(useId))
-      setAuthorized(await nft.authorizedUsersOf(useId))
-      const p = await policy.policyOf(useId)
-      setPaused(Boolean(p.paused))
-      setMaxTxWei(BigInt(p.maxSpendPerTx))
-      setWindowBudgetWei(BigInt(p.rollingWindowBudget))
-      setWindowSpentWei(BigInt(p.windowSpent))
-      setSessionExpiresAt(BigInt(p.sessionExpiresAt))
-      const stored = loadAgent(useId.toString())
-      if (stored) setAgentGas(await provider.getBalance(stored.address))
-      else setAgentGas(0n)
+    const wanted = tokenIdRef.current
+    const urlWant = urlTillRef.current
+    let useId: bigint | null = null
+    if (wanted != null && ids.some((i) => i === wanted)) useId = wanted
+    else if (urlWant) {
+      const match = ids.find((i) => i.toString() === urlWant)
+      if (match) useId = match
+      else if (ids.length) {
+        setLoadError(`Till #${urlWant} is not on this wallet. Showing your latest Till.`)
+        useId = ids[ids.length - 1]
+      } else {
+        setLoadError(`Till #${urlWant} was not found for this wallet.`)
+        useId = null
+      }
+    } else {
+      useId = ids[ids.length - 1] ?? null
     }
+    if (useId !== tokenIdRef.current) {
+      tokenIdRef.current = useId
+      setTokenId(useId)
+      writeTillQuery(useId)
+    }
+    if (ids.length) {
+      const rows = await Promise.all(
+        ids.map(async (id) => {
+          const [avail, lockedAmt, auths, p] = await Promise.all([
+            vault.available(id),
+            vault.locked(id),
+            nft.authorizedUsersOf(id),
+            policy.policyOf(id),
+          ])
+          return { id, avail, lockedAmt, auths: auths as string[], p }
+        }),
+      )
+      if (gen !== genRef.current) return
+      setTillCards(
+        rows.map((r) => ({
+          id: r.id,
+          available: r.avail,
+          maxTxWei: BigInt(r.p.maxSpendPerTx),
+          paused: Boolean(r.p.paused),
+          authorized: r.auths.length,
+        })),
+      )
+      const row = useId != null ? rows.find((r) => r.id === useId) : undefined
+      if (row && useId != null) {
+        setAvailable(row.avail)
+        setLocked(row.lockedAmt)
+        setAuthorized(row.auths)
+        setPaused(Boolean(row.p.paused))
+        setMaxTxWei(BigInt(row.p.maxSpendPerTx))
+        setWindowBudgetWei(BigInt(row.p.rollingWindowBudget))
+        setWindowSpentWei(BigInt(row.p.windowSpent))
+        setSessionExpiresAt(BigInt(row.p.sessionExpiresAt))
+        const stored = loadAgent(useId.toString())
+        if (stored) setAgentGas(await provider.getBalance(stored.address))
+        else setAgentGas(0n)
+        if (gen !== genRef.current) return
+        setPolicyTested(sessionStorage.getItem(`till.tested.${useId}`) === '1' || BigInt(row.p.windowSpent) > 0n)
+        setAgentSkipped(sessionStorage.getItem(`till.skipAgent.${useId}`) === '1')
+        setLoadedFor(useId)
+        loadedForRef.current = useId
+      } else {
+        setLoadedFor(null)
+        loadedForRef.current = null
+      }
+    } else {
+      setTillCards([])
+      setLoadedFor(null)
+      loadedForRef.current = null
+    }
+    if (gen !== genRef.current) return
     setWalletBal(await provider.getBalance(address))
     try {
       const erc20 = new Contract(USDCE, ['function balanceOf(address) view returns (uint256)'], provider)
-      setUsdceAtomic(await erc20.balanceOf(address))
+      const bal = await erc20.balanceOf(address)
+      if (gen !== genRef.current) return
+      setUsdceAtomic(bal)
     } catch {
+      if (gen !== genRef.current) return
       setUsdceAtomic(0n)
     }
-  }, [address, tokenId])
+    if (gen !== genRef.current) return
+    switchingRef.current = false
+    setSwitching(false)
+    setHydrated(true)
+  }, [address, writeTillQuery])
 
   useEffect(() => {
     if (!authenticated || !wallet) {
       setAddress('')
       setChainId(null)
+      setHydrated(false)
+      setLoadedFor(null)
+      setTokenId(null)
+      tokenIdRef.current = null
       return
     }
     setAddress(wallet.address)
@@ -192,7 +353,15 @@ export function useTill() {
 
   useEffect(() => {
     if (authenticated && address) void refresh().catch((e) => setError(decodeErr(e)))
-  }, [authenticated, address, refresh])
+  }, [authenticated, address, tokenId, refresh])
+
+  useEffect(() => {
+    if (!urlTill || tokenId == null) return
+    if (urlTill === tokenId.toString()) return
+    if (!tokenIds.some((i) => i.toString() === urlTill)) return
+    const match = tokenIds.find((i) => i.toString() === urlTill)
+    if (match) selectTill(match)
+  }, [urlTill, tokenId, tokenIds, selectTill])
 
   useEffect(() => {
     const ping = () => {
@@ -224,16 +393,6 @@ export function useTill() {
     return () => window.clearInterval(id)
   }, [])
 
-  useEffect(() => {
-    if (tokenId == null) return
-    if (sessionStorage.getItem(`till.tested.${tokenId}`) === '1') setPolicyTested(true)
-    if (sessionStorage.getItem(`till.skipAgent.${tokenId}`) === '1') setAgentSkipped(true)
-  }, [tokenId])
-
-  useEffect(() => {
-    if (windowSpentWei > 0n) setPolicyTested(true)
-  }, [windowSpentWei])
-
   const run = useCallback(
     async (label: string, fn: () => Promise<void>) => {
       setBusy(label)
@@ -250,7 +409,7 @@ export function useTill() {
     [refresh]
   )
 
-  const mint = () =>
+  const mint = (name = '') =>
     run('Creating Till', () =>
       withSigner(async (s) => {
         const { nft } = contractsOf(s)
@@ -258,6 +417,19 @@ export function useTill() {
         const rec = await tx.wait()
         if (!rec) throw new Error('mint: no receipt')
         setLastTx(rec.hash)
+        let newId: bigint | null = null
+        for (const log of rec.logs) {
+          try {
+            const parsed = nft.interface.parseLog({ topics: log.topics as string[], data: log.data })
+            if (parsed?.name === 'TillMinted') newId = parsed.args.tokenId as bigint
+          } catch {
+            /* ignore foreign logs */
+          }
+        }
+        if (newId != null) {
+          if (name.trim()) saveTillName(newId, name)
+          selectTill(newId)
+        }
       })
     )
 
@@ -654,7 +826,14 @@ export function useTill() {
     setError,
     tokenIds,
     tokenId,
-    setTokenId,
+    setTokenId: selectTill,
+    selectTill,
+    switching,
+    hydrated,
+    loadedFor,
+    loadError,
+    tillCards,
+    tillReady: tokenId != null && loadedFor === tokenId && !switching,
     available,
     locked,
     walletBal,

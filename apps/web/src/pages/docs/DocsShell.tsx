@@ -4,27 +4,34 @@ import { McpIssuer } from '../../components/docs/McpIssuer'
 
 const NAV = [
   {
-    label: 'Getting started',
+    label: 'Get started',
     items: [
       { to: '/developers', end: true, label: 'Overview' },
       { to: '/developers/quickstart', label: 'Quick start' },
     ],
   },
   {
-    label: 'Core concepts',
-    items: [{ to: '/developers/core', label: 'Till · policy · session' }],
+    label: 'Core',
+    items: [
+      { to: '/developers/core', label: 'Till, policy, session' },
+      { to: '/developers/architecture', label: 'Architecture' },
+      { to: '/developers/proof', label: 'Proof' },
+    ],
   },
   {
     label: 'Build',
     items: [
-      { to: '/developers/mcp', label: 'MCP' },
+      { to: '/developers/mcp', label: 'Connect your agent' },
+      { to: '/developers/cursor', label: 'Cursor' },
+      { to: '/developers/claude', label: 'Claude Code' },
       { to: '/developers/sdk', label: 'SDK' },
     ],
   },
   {
     label: 'Reference',
     items: [
-      { to: '/developers/reference', label: 'API · tools · contracts' },
+      { to: '/developers/reference', label: 'API · tools' },
+      { to: '/developers/contracts', label: 'Contracts' },
       { to: '/developers/security', label: 'Proof & security' },
     ],
   },

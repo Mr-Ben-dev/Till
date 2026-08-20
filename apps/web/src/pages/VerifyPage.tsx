@@ -58,14 +58,14 @@ export function VerifyPage() {
   const amount = /^\d+$/.test(amountRaw) ? fmt0g(amountRaw) : amountRaw
   const usdSpent = data?.usdceTransfers?.reduce((n, t) => n + (t.amountUsd ?? 0), 0) ?? 0
   const agent = args.executor != null ? String(args.executor) : data?.from ?? ''
-  const action = data?.released?.event ?? (usdSpent ? 'x402 USDC.e payment' : 'Transaction')
   const verdict = data?.sessionCache?.packet?.brief?.verdict
+  const tillId = data?.sessionCache?.packet?.till
 
   return (
-    <main className="app-page">
-      <h1 className="text-[clamp(1.8rem,3.2vw,2.8rem)] font-bold leading-tight">Verify</h1>
+    <main className="app-page overflow-x-hidden w-full max-w-full">
+      <h1 className="text-[clamp(1.8rem,3.2vw,2.8rem)] font-bold leading-tight">Verify a Till result</h1>
       <p className="mt-3 max-w-[54ch] text-[16px] leading-relaxed text-white/65">
-        Paste a transaction hash. No wallet needed. Aristotle is the source of truth.
+        Paste a transaction hash. Aristotle is the source of truth. No wallet needed.
       </p>
       <form
         className="mt-10 flex flex-col gap-3 md:flex-row"
@@ -83,48 +83,48 @@ export function VerifyPage() {
         />
         <CyanButton type="submit">Verify</CyanButton>
       </form>
-      {loading && <div className="mt-8 h-28 animate-pulse rounded-[4.27px] bg-white/[0.04]" />}
+      {loading && <div className="till-skel mt-8" aria-busy="true"><div className="till-skel__hero" /></div>}
       {error && (
         <div className="mt-8">
           <Notice tone="danger" title="Not verified" body={error} />
         </div>
       )}
       {data && !loading && (
-        <section className="mt-10 rounded-[4.27px] border border-white/10 p-6 md:p-8">
+        <section className={`surf mt-10 ${ok ? 'surf-proof' : 'surf-warn'}`}>
           <p className={`font-mono text-[11px] tracking-[0.18em] ${ok ? 'text-cyan' : 'text-danger'}`}>
-            {ok ? 'On Aristotle' : 'Failed on-chain'}
+            {ok ? 'Verified on Aristotle' : 'Failed on-chain'}
           </p>
-          {verdict ? (
-            <p className="mt-4 font-mono text-[22px] font-bold tracking-[0.12em] text-cyan">{verdict}</p>
-          ) : null}
-          <dl className="mt-6 grid gap-4 text-[15px] md:grid-cols-2">
-            <div>
-              <dt className="text-muted">From</dt>
-              <dd className="mt-1 break-all font-mono text-[12px]">{agent || 'not in this receipt'}</dd>
-            </div>
-            <div>
-              <dt className="text-muted">Action</dt>
-              <dd className="mt-1">{action}</dd>
-            </div>
-            <div>
-              <dt className="text-muted">Amount</dt>
-              <dd className="mt-1">
-                {usdSpent > 0 ? `$${usdSpent.toFixed(3)} USDC.e` : amount || data?.nativeValue0G || 'see explorer'}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted">Result</dt>
-              <dd className="mt-1">{ok ? 'Included' : 'Reverted'}</dd>
-            </div>
-            <div>
-              <dt className="text-muted">Block</dt>
-              <dd className="mt-1 font-mono text-[12px]">{data.blockNumber ?? '—'}</dd>
-            </div>
-            <div>
-              <dt className="text-muted">Storage root</dt>
-              <dd className="mt-1 break-all font-mono text-[11px]">{data.storageRoot || 'not in this tx'}</dd>
-            </div>
-          </dl>
+          {verdict ? <p className="mt-4 font-mono text-[22px] font-bold tracking-[0.12em] text-cyan">{verdict}</p> : null}
+          <ol className="proof-chain mt-6">
+            <li>
+              <span>Verdict</span>
+              <strong>{verdict || 'not in this receipt'}</strong>
+            </li>
+            <li>
+              <span>Amount</span>
+              <strong>{usdSpent > 0 ? `$${usdSpent.toFixed(3)} USDC.e` : amount || data?.nativeValue0G || 'see explorer'}</strong>
+            </li>
+            <li>
+              <span>Till</span>
+              <strong>{tillId ? `Till ${tillId}` : 'not in this receipt'}</strong>
+            </li>
+            <li>
+              <span>Agent</span>
+              <strong className="font-mono text-[12px]">{agent ? `${agent.slice(0, 8)}…${agent.slice(-4)}` : 'n/a'}</strong>
+            </li>
+            <li>
+              <span>TEE</span>
+              <strong>{data.sessionCache?.packet?.model || 'see packet'}</strong>
+            </li>
+            <li>
+              <span>Storage</span>
+              <strong className="font-mono text-[12px]">{data.storageRoot ? `${data.storageRoot.slice(0, 10)}…` : 'not in this tx'}</strong>
+            </li>
+            <li>
+              <span>External purchases</span>
+              <strong>{(data.usdceTransfers ?? []).length || 'none in this tx'}</strong>
+            </li>
+          </ol>
           <details className="mt-8">
             <summary className="cursor-pointer text-[13px] text-muted">Technical details</summary>
             <p className="mt-3 text-[13px] text-white/55">{data.note}</p>
@@ -133,18 +133,6 @@ export function VerifyPage() {
                 <dt className="text-muted">tx</dt>
                 <dd className="break-all">{data.tx}</dd>
               </div>
-              <div className="grid grid-cols-[120px_1fr] gap-3">
-                <dt className="text-muted">to</dt>
-                <dd className="break-all">{data.to}</dd>
-              </div>
-              {(data.usdceTransfers ?? []).map((t) => (
-                <div key={`${t.from}-${t.to}-${t.amount}`} className="grid grid-cols-[120px_1fr] gap-3">
-                  <dt className="text-muted">USDC.e</dt>
-                  <dd className="break-all">
-                    ${t.amountUsd?.toFixed(3)} → {t.to}
-                  </dd>
-                </div>
-              ))}
               {(data.vaultEvents ?? []).map((e) => (
                 <div key={e.event} className="grid grid-cols-[120px_1fr] gap-3">
                   <dt className="text-muted">{e.event}</dt>

@@ -95,44 +95,24 @@ export function addrUrl(addr: string) {
 }
 
 export function setupPrompt(token: string) {
-  return `You are connecting to Till.
+  return `You are connecting to Till MCP.
 
-Install the Till MCP server.
-
-Use ONLY the provided scoped token.
-Token (do not print, save to source, commit, or log): ${token}
+1. Install Till MCP (HTTP ${MCP_URL} or stdio npx -y till-0g-mcp).
+2. Configure that production endpoint. Do not use localhost unless I say so.
+3. Authenticate with the scoped token I provide. Token (do not print, save to source, commit, or log): ${token}
+4. initialize
+5. tools/list
+6. till_list then till_get for the active Till
+7. till_get_policy
+8. till_get_session and report READY / NOT_FUNDED / OWNER_MODE honestly
+9. till_quote_mission for the subject I give you
+10. Stop before any spend unless I explicitly ask you to run the mission
 
 Never print the token.
 Never save it to source code.
-Never commit it to git.
-Never send it to another service.
-Never expose it in logs.
+Never commit it.
+Never log it.
+Never execute till_run_mission unless the on-chain session is READY and I asked.
 
-Configure the MCP server using the following production endpoint:
-
-${MCP_URL}
-
-Use the provided authorization credential exactly as instructed.
-
-Then test:
-
-1. initialize
-2. tools/list
-3. till_list
-4. till_get
-5. till_get_policy
-6. till_quote_mission
-
-Do NOT execute spending until the user explicitly asks.
-
-If the user's Till has no READY autonomous session, explain that autonomous execution is unavailable.
-
-After setup, report ONLY:
-
-MCP connected
-Tools available
-Till detected
-Session status
-
-Never print the secret token.`
+After setup, report only: MCP connected, tools available, Till detected, session status.`
 }
