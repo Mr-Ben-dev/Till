@@ -184,7 +184,7 @@ export function useTill() {
     if (!wallet) throw new Error('Connect a wallet first')
     const provider = await wallet.getEthereumProvider()
     await ensureOgChain(provider)
-    const browser = new BrowserProvider(provider, CHAIN_ID)
+    const browser = new BrowserProvider(provider)
     const signer = await browser.getSigner()
     setLastExecutor('owner')
     await fn(signer)
@@ -535,6 +535,19 @@ export function useTill() {
     [refresh]
   )
 
+  const waitReceipt = async (hash: string) => {
+    const p = new JsonRpcProvider(RPC_URL)
+    for (let i = 0; i < 90; i++) {
+      const rec = await p.getTransactionReceipt(hash)
+      if (rec) {
+        if (rec.status === 0) throw new Error('Transaction reverted on Aristotle.')
+        return rec
+      }
+      await new Promise((r) => setTimeout(r, 2000))
+    }
+    throw new Error('No Aristotle receipt yet. Do not click again — check the explorer.')
+  }
+
   const trackOwnerTx = async (name: string, send: () => Promise<TransactionResponse>) => {
     setSignKind('owner')
     setLastWrite(name)
@@ -543,8 +556,7 @@ export function useTill() {
     setWritePhase('submitted')
     setLastTx(tx.hash)
     setWritePhase('waiting')
-    const rec = await tx.wait()
-    if (!rec) throw new Error(`${name}: no receipt`)
+    const rec = await waitReceipt(tx.hash)
     setLastTx(rec.hash)
     setWritePhase('confirmed')
     return rec
