@@ -6,6 +6,7 @@ import { CyanButton } from '../CyanButton'
 import type { TillState } from '../../hooks/useTill'
 import { sessionLabel } from './PolicyPanel'
 import { PermissionDiagram } from './PermissionDiagram'
+import { SignHint } from './SignHint'
 import { policyPresetName } from '../../lib/setup'
 
 export function SessionPanel({
@@ -55,27 +56,28 @@ export function SessionPanel({
       ) : null}
       <ul className="cap-list mt-6">
         <li className="is-yes">Buy allowed work</li>
-        <li className="is-yes">Run jobs</li>
+        <li className="is-no">Lock or settle Jobs (owner signs)</li>
         <li className="is-yes">Respect policy</li>
         <li className="is-no">Withdraw</li>
         <li className="is-no">Change policy</li>
         <li className="is-no">Spend another Till</li>
       </ul>
-      <div className="mt-6 flex flex-wrap gap-3">
+      <SignHint kind="owner" write={status === 'OWNER_MODE' || status === 'REVOKED' || status === 'EXPIRED' ? 'authorize' : 'revoke'} />
+      <div className="mt-3 flex flex-wrap gap-3">
         <CyanButton to="/till#mission" variant="ghost">
           Run
         </CyanButton>
         {status === 'OWNER_MODE' || status === 'REVOKED' || status === 'EXPIRED' ? (
-          <CyanButton disabled={!!till.busy} onClick={till.attachAgent}>
+          <CyanButton disabled={till.writeLocked} onClick={till.attachAgent}>
             Authorize session
           </CyanButton>
         ) : (
-          <CyanButton variant="ghost" disabled={!!till.busy} onClick={() => till.pause(!till.paused)}>
+          <CyanButton variant="ghost" disabled={till.writeLocked} onClick={() => till.pause(!till.paused)}>
             {till.paused ? 'Unpause' : 'Pause'}
           </CyanButton>
         )}
         {sessionAddr ? (
-          <CyanButton variant="ghost" disabled={!!till.busy} onClick={() => till.revokeAgent(sessionAddr)}>
+          <CyanButton variant="ghost" disabled={till.writeLocked} onClick={() => till.revokeAgent(sessionAddr)}>
             Revoke
           </CyanButton>
         ) : (
@@ -90,7 +92,7 @@ export function SessionPanel({
               value={gasAmt}
               onChange={(e) => setGasAmt(e.target.value)}
             />
-            <CyanButton disabled={!!till.busy} onClick={() => till.fundAgentGas(gasAmt)}>
+            <CyanButton disabled={till.writeLocked} onClick={() => till.fundAgentGas(gasAmt)}>
               Fund gas
             </CyanButton>
           </>

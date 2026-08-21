@@ -1328,6 +1328,59 @@ html.lenis body {
   font-size: 11px;
 }
 
+.sign-hint {
+  margin-top: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 4.27px;
+  font-size: 14px;
+  line-height: 1.45;
+  max-width: 54ch;
+}
+
+.sign-hint strong {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sign-hint--owner {
+  border: 1px solid rgba(0, 189, 233, 0.38);
+  background: rgba(0, 189, 233, 0.08);
+  color: rgba(244, 250, 252, 0.78);
+}
+
+.sign-hint--auto {
+  border: 1px solid rgba(0, 189, 233, 0.22);
+  background: #00141f;
+  color: rgba(244, 250, 252, 0.72);
+}
+
+.sign-hint--auto strong {
+  color: #00bde9;
+}
+
+.ov-more {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ov-more a {
+  padding: 0.55rem 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4.27px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(244, 250, 252, 0.7);
+}
+
+.ov-more a:hover {
+  border-color: #00bde9;
+  color: #00bde9;
+}
+
 .till-skel {
   margin-top: 1.5rem;
 }

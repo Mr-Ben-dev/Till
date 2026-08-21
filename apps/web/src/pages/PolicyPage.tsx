@@ -5,6 +5,7 @@ import { CyanButton } from '../components/CyanButton'
 import { ProductNotices } from '../components/app/ProductNotices'
 import { PolicyPanel } from '../components/app/PolicyPanel'
 import { JourneyFooter, TillSkeleton } from '../components/app/TillContextBar'
+import { SignHint } from '../components/app/SignHint'
 import { POLICY_TEMPLATES } from '../lib/human'
 
 function readPendingPreset(): (typeof POLICY_TEMPLATES)[number]['id'] {
@@ -22,6 +23,8 @@ export function PolicyPage({ till }: { till: TillState }) {
   const [customMax, setCustomMax] = useState('0.05')
   const [customWindow, setCustomWindow] = useState('0.20')
   const [sessionDays, setSessionDays] = useState('30')
+  const [fundAmt, setFundAmt] = useState('0.02')
+  const [withdrawAmt, setWithdrawAmt] = useState('0.001')
   const loading =
     till.authenticated &&
     !till.loadError &&
@@ -60,7 +63,37 @@ export function PolicyPage({ till }: { till: TillState }) {
             setSessionDays={setSessionDays}
             forceEdit
           />
-          <JourneyFooter nextTo="/till/agent" nextLabel="Enable agent" />
+          <section className="surf mt-8">
+            <p className="mod-kicker">Owner money</p>
+            <h2>Fund or withdraw</h2>
+            <p className="mod-lede">These always use your wallet. One click is one transaction.</p>
+            <SignHint kind="owner" write="fund" />
+            <div className="mt-4 flex flex-wrap items-end gap-3">
+              <label className="flex flex-col gap-2">
+                <span className="text-[12px] text-white/70">Fund (0G)</span>
+                <input
+                  className="w-32 rounded-[4.27px] border border-white/15 bg-navy px-3 py-2 text-sm"
+                  value={fundAmt}
+                  onChange={(e) => setFundAmt(e.target.value)}
+                />
+              </label>
+              <CyanButton disabled={till.writeLocked} onClick={() => till.fund(fundAmt)}>
+                Fund Till
+              </CyanButton>
+              <label className="flex flex-col gap-2">
+                <span className="text-[12px] text-white/70">Withdraw (0G)</span>
+                <input
+                  className="w-32 rounded-[4.27px] border border-white/15 bg-navy px-3 py-2 text-sm"
+                  value={withdrawAmt}
+                  onChange={(e) => setWithdrawAmt(e.target.value)}
+                />
+              </label>
+              <CyanButton variant="ghost" disabled={till.writeLocked} onClick={() => till.withdraw(withdrawAmt)}>
+                Withdraw
+              </CyanButton>
+            </div>
+          </section>
+          <JourneyFooter backLabel="Till Overview" nextTo="/till/agent" nextLabel="Enable agent" />
         </div>
       )}
     </main>

@@ -5,6 +5,7 @@ import { CyanButton } from '../components/CyanButton'
 import { Notice } from '../components/app/Notice'
 import { DenialCard } from '../components/app/DenialCard'
 import { ProductNotices } from '../components/app/ProductNotices'
+import { SignHint } from '../components/app/SignHint'
 import { JourneyFooter, TillSkeleton } from '../components/app/TillContextBar'
 import { txUrl } from '../lib/chain'
 import { fmt0g } from '../lib/errors'
@@ -17,10 +18,11 @@ const PHASES: { id: JobPhase; label: string }[] = [
 ]
 
 function phaseIndex(p: JobPhase) {
+  if (p === 'quoted') return 1
+  if (p === 'working') return 3
   if (p === 'refunded') return 3
   if (p === 'failed') return -1
-  const i = PHASES.findIndex((x) => x.id === p)
-  return i
+  return PHASES.findIndex((x) => x.id === p)
 }
 
 function jobBlockedReason(till: TillState, amt: string) {
@@ -48,8 +50,10 @@ export function JobsPage({ till }: { till: TillState }) {
     !till.loadError &&
     (!till.hydrated || till.switching || (till.tokenId != null && !till.tillReady))
   const blocked = jobBlockedReason(till, amt)
-  const canRun = !blocked && !till.busy && !loading && till.writePhase !== 'signing' && till.writePhase !== 'submitted' && till.writePhase !== 'waiting'
+  const idle = !till.writeLocked && !loading
   const jobDenial = till.jobPhase === 'failed' ? till.lastDenial : null
+  const quoted = till.jobPhase === 'quoted'
+  const locked = till.jobPhase === 'working'
 
   return (
     <main className="app-page overflow-x-hidden w-full max-w-full">
@@ -59,13 +63,13 @@ export function JobsPage({ till }: { till: TillState }) {
         Lock a budget for a job. Work happens. If it succeeds, the seller is paid. If it is refunded, the money returns to this Till.
       </p>
       <p className="mt-3 max-w-[54ch] text-[14px] text-white/50">
-        It is separate from Before You Pay. You can use a Job when an agent needs someone else to complete paid work.
+        It is separate from Before You Pay. Jobs are not autonomous. Each on-chain step is one owner signature.
       </p>
       <ol className="mt-6 max-w-[54ch] text-[15px] text-white/75">
-        <li>Quote — 0G Compute decides if this lock is allowed</li>
-        <li>Lock funds — amount leaves the available balance into escrow</li>
+        <li>Quote — 0G Compute. No wallet.</li>
+        <li>Lock funds — owner signature, amount moves to escrow</li>
         <li>Work — the seller performs the job</li>
-        <li>Settle OR Refund — seller is paid, or this Till is restored</li>
+        <li>Settle OR Refund — one more owner signature</li>
       </ol>
       <div className="mt-8">
         <ProductNotices till={till} hideDenial />
@@ -105,9 +109,6 @@ export function JobsPage({ till }: { till: TillState }) {
             </li>
           ))}
         </ol>
-        {till.busy ? (
-          <p className="mt-4 font-mono text-[13px] text-cyan">{till.busy}…</p>
-        ) : null}
         <div className="mt-8 grid gap-4 md:grid-cols-2">
           <label className="flex flex-col gap-2">
             <span className="text-[12px] text-white/70">Job label</span>
@@ -115,6 +116,7 @@ export function JobsPage({ till }: { till: TillState }) {
               className="rounded-[4.27px] border border-white/15 bg-navy px-3 py-2.5 text-sm"
               value={label}
               onChange={(e) => setLabel(e.target.value)}
+              disabled={!idle || quoted || locked}
             />
           </label>
           <label className="flex flex-col gap-2">
@@ -123,6 +125,7 @@ export function JobsPage({ till }: { till: TillState }) {
               className="rounded-[4.27px] border border-white/15 bg-navy px-3 py-2.5 text-sm"
               value={amt}
               onChange={(e) => setAmt(e.target.value)}
+              disabled={!idle || quoted || locked}
             />
           </label>
         </div>
@@ -131,21 +134,49 @@ export function JobsPage({ till }: { till: TillState }) {
             <Notice title="Jobs cannot run yet" body={blocked} />
           </div>
         ) : (
-          <div className="mt-6 flex flex-wrap gap-3">
-            <CyanButton disabled={!canRun} onClick={() => till.lockJob(label, amt, 'settle')}>
-              Lock and settle
-            </CyanButton>
-            <CyanButton variant="ghost" disabled={!canRun} onClick={() => till.lockJob(label, amt, 'refund')}>
-              Lock and refund
-            </CyanButton>
+          <div className="mt-6 grid gap-4">
+            {!quoted && !locked ? (
+              <>
+                <p className="text-[13px] text-white/55">Quote uses 0G Compute. No wallet signature.</p>
+                <CyanButton disabled={!idle} onClick={() => till.quoteJob(label, amt)}>
+                  Get quote
+                </CyanButton>
+              </>
+            ) : null}
+            {quoted && till.jobNeedsTee ? (
+              <>
+                <SignHint kind="owner" write="job-tee" />
+                <CyanButton disabled={!idle} onClick={() => till.registerJobTee()}>
+                  Register TEE signer
+                </CyanButton>
+              </>
+            ) : null}
+            {quoted && !till.jobNeedsTee ? (
+              <>
+                <SignHint kind="owner" write="job-lock" />
+                <CyanButton disabled={!idle} onClick={() => till.lockQuotedJob()}>
+                  Lock funds
+                </CyanButton>
+              </>
+            ) : null}
+            {locked ? (
+              <>
+                <SignHint kind="owner" write="job-finish" />
+                <div className="flex flex-wrap gap-3">
+                  <CyanButton disabled={!idle} onClick={() => till.finishJob('settle')}>
+                    Settle
+                  </CyanButton>
+                  <CyanButton variant="ghost" disabled={!idle} onClick={() => till.finishJob('refund')}>
+                    Refund
+                  </CyanButton>
+                </div>
+              </>
+            ) : null}
           </div>
         )}
         {till.jobPhase === 'failed' && !blocked ? (
-          <p className="mt-3 text-[13px] text-white/50">Quote was denied. Fix the reason above, then try again. Nothing left this Till.</p>
+          <p className="mt-3 text-[13px] text-white/50">Quote was denied. Fix the reason above, then get a new quote. Nothing left this Till.</p>
         ) : null}
-        <p className="mt-4 text-[13px] text-white/45">
-          A successful job needs a Compute quote, then two owner signatures: lock, then settle or refund.
-        </p>
         {till.tech.mode && till.lastWrite === 'job' && (
           <div className="surf-ok mt-8 p-5">
             <p className="text-[15px] font-semibold text-white">
@@ -173,7 +204,7 @@ export function JobsPage({ till }: { till: TillState }) {
           </div>
         )}
       </section>
-      <JourneyFooter nextTo="/activity" nextLabel="View activity" />
+      <JourneyFooter backLabel="Till Overview" nextTo="/activity" nextLabel="View activity" />
     </main>
   )
 }

@@ -3,6 +3,7 @@ import { fmt0g } from '../../lib/errors'
 import { HUB_SWAP, txUrl } from '../../lib/chain'
 import { POLICY_TEMPLATES, sessionStatus } from '../../lib/human'
 import { CyanButton } from '../CyanButton'
+import { SignHint } from './SignHint'
 import type { TillState } from '../../hooks/useTill'
 
 export function sessionLabel(till: TillState) {
@@ -83,10 +84,10 @@ export function PolicyPanel({
         </div>
       </dl>
       <div className="mt-6 flex flex-wrap gap-3">
-        <CyanButton disabled={!!till.busy} onClick={() => setEditing(true)}>
+        <CyanButton disabled={till.writeLocked} onClick={() => setEditing(true)}>
           Edit policy
         </CyanButton>
-        <CyanButton variant="ghost" disabled={!!till.busy} onClick={() => till.pause(!till.paused)}>
+        <CyanButton variant="ghost" disabled={till.writeLocked} onClick={() => till.pause(!till.paused)}>
           {till.paused ? 'Unpause' : 'Pause'}
         </CyanButton>
         <a className="inline-flex items-center text-[14px] text-cyan" href="/till/agent">
@@ -186,7 +187,8 @@ export function PolicyPanel({
               <p className="text-[15px] text-white/80">
                 Save writes {max} 0G per purchase and {window} 0G rolling for {sessionDays} days.
               </p>
-              <p className="mt-2 text-[14px] text-white/55">Wallet signature required. Nothing is saved until the receipt lands on Aristotle.</p>
+              <p className="mt-2 text-[14px] text-white/55">One Save is one owner signature. Nothing is saved until the receipt lands on Aristotle.</p>
+              <SignHint kind="owner" write="policy" />
               <details className="mt-4 text-[13px] text-white/50">
                 <summary className="cursor-pointer text-white/70">Technical values</summary>
                 <p className="mt-2 font-mono text-[12px]">
@@ -205,9 +207,9 @@ export function PolicyPanel({
               <CyanButton onClick={() => setStep((s) => s + 1)}>Continue</CyanButton>
             ) : (
               <CyanButton
-                disabled={!!till.busy || till.writePhase === 'signing' || till.writePhase === 'submitted' || till.writePhase === 'waiting'}
+                disabled={till.writeLocked}
                 onClick={() => {
-                  if (till.busy || till.writePhase === 'signing' || till.writePhase === 'submitted' || till.writePhase === 'waiting') return
+                  if (till.writeLocked) return
                   void till.setPolicy(max, window, Number(sessionDays) || 30)
                 }}
               >

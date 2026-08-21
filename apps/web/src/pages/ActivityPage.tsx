@@ -116,7 +116,7 @@ export function ActivityPage({ till }: { till: TillState }) {
           <li className="py-10 text-white/50">No events yet. Fund or run a payment and they will show here.</li>
         )}
       </ol>
-      <JourneyFooter />
+      <JourneyFooter backLabel="Till Overview" />
     </main>
   )
 }

@@ -7,6 +7,7 @@ import { ProductNotices } from '../components/app/ProductNotices'
 import { POLICY_TEMPLATES } from '../lib/human'
 import { saveTillName } from '../lib/tillMeta'
 import { txUrl } from '../lib/chain'
+import { SignHint } from '../components/app/SignHint'
 
 const inputCls =
   'w-full rounded-[4.27px] border border-white/15 bg-navy px-3 py-2.5 text-sm text-white outline-none focus:border-cyan'
@@ -148,12 +149,13 @@ export function CreateTillPage({ till }: { till: TillState }) {
             <p className="mt-4 text-[13px] text-white/50">
               Policy is not written until you confirm it on the next screen. Nothing moves until the Aristotle receipt.
             </p>
+            <SignHint kind="owner" write="mint" />
             <div className="mt-6 flex flex-wrap gap-3">
               <CyanButton variant="ghost" onClick={() => setStep(1)}>
                 Back
               </CyanButton>
               <CyanButton
-                disabled={!!till.busy}
+                disabled={till.writeLocked}
                 onClick={() => {
                   setWaiting(true)
                   setPriorTx(till.lastTx)

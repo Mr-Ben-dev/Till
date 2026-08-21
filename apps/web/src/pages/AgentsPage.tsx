@@ -7,6 +7,7 @@ import { ProductNotices } from '../components/app/ProductNotices'
 import { SessionPanel } from '../components/app/SessionPanel'
 import { sessionLabel } from '../components/app/PolicyPanel'
 import { JourneyFooter, TillSkeleton } from '../components/app/TillContextBar'
+import { SignHint } from '../components/app/SignHint'
 import { loadTillName } from '../lib/tillMeta'
 
 export function AgentsPage({ till }: { till: TillState }) {
@@ -30,7 +31,10 @@ export function AgentsPage({ till }: { till: TillState }) {
           <p className="mt-3 max-w-[54ch] text-[16px] leading-relaxed text-white/65">
             Bound to {till.tokenId != null ? loadTillName(till.tokenId) : 'this Till'}. Approved work can run without a wallet prompt for every purchase.
           </p>
-          <div className="mt-6 flex flex-wrap gap-3">
+          <SignHint kind="auto" write="mission" />
+          <p className="mt-3 text-[13px] text-white/50">Revoke is an owner action.</p>
+          <SignHint kind="owner" write="revoke" />
+          <div className="mt-3 flex flex-wrap gap-3">
             <CyanButton to="/till#mission">Run a mission</CyanButton>
             <CyanButton to="/till" variant="ghost">
               View Till
@@ -40,7 +44,7 @@ export function AgentsPage({ till }: { till: TillState }) {
             </CyanButton>
             <CyanButton
               variant="ghost"
-              disabled={!!till.busy || !till.authorized[0]}
+              disabled={till.writeLocked || !till.authorized[0]}
               onClick={() => {
                 const addr = till.authorized[0]
                 if (addr) void till.revokeAgent(addr)
@@ -56,8 +60,9 @@ export function AgentsPage({ till }: { till: TillState }) {
           <p className="mt-3 max-w-[54ch] text-[16px] leading-relaxed text-white/65">
             Authorize a device-local session so approved work can run without asking you to sign every transaction.
           </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <CyanButton disabled={!!till.busy || loading || till.tokenId == null} onClick={till.attachAgent}>
+            <SignHint kind="owner" write="authorize" />
+            <div className="mt-3 flex flex-wrap gap-3">
+            <CyanButton disabled={till.writeLocked || loading || till.tokenId == null} onClick={till.attachAgent}>
               Authorize session
             </CyanButton>
             <button type="button" className="text-[14px] text-white/55 underline" onClick={till.skipAgent}>
@@ -82,7 +87,7 @@ export function AgentsPage({ till }: { till: TillState }) {
       ) : (
         <div className="mt-10 grid gap-6">
           <SessionPanel till={till} gasAmt={gasAmt} setGasAmt={setGasAmt} />
-          <JourneyFooter nextTo="/till#mission" nextLabel="Run first mission" />
+          <JourneyFooter backLabel="Till Overview" nextTo="/till#mission" nextLabel="Run first mission" />
         </div>
       )}
     </main>

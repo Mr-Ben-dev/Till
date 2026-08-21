@@ -2,11 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
 import { saveTillName } from '../lib/tillMeta'
-import { BrowserProvider, Contract, JsonRpcProvider, Wallet, formatEther, id as keccakId, keccak256, parseEther, toUtf8Bytes, type Signer } from 'ethers'
+import { BrowserProvider, Contract, JsonRpcProvider, Wallet, formatEther, id as keccakId, keccak256, parseEther, toUtf8Bytes, type Signer, type TransactionResponse } from 'ethers'
 import { ADDR, CHAIN_ID, DEFAULT_BRIEF_SUBJECT, HUB_SWAP, MINT_FROM_BLOCK, MISSION_CAP_USD, RESOURCE, RPC_URL, USDCE, ensureOgChain } from '../lib/chain'
 import { ESCROW_ABI, NFT_ABI, POLICY_ABI, VAULT_ABI, VERIFIER_ABI } from '../lib/abi'
 import { decodeErr } from '../lib/errors'
 import type { Denial } from '../components/app/DenialCard'
+import type { SignKind } from '../lib/signCopy'
 import * as api from '../lib/api'
 
 export type PipelineStep = {
@@ -28,7 +29,21 @@ const INITIAL_STEPS: PipelineStep[] = [
   { key: 'proof', label: 'Verdict', state: 'idle' },
 ]
 
-export type JobPhase = 'idle' | 'quote' | 'lock' | 'working' | 'settle' | 'refunded' | 'failed'
+export type JobPhase = 'idle' | 'quote' | 'quoted' | 'lock' | 'working' | 'settle' | 'refunded' | 'failed'
+
+type JobHold = {
+  tillId: bigint
+  jobId: string
+  amt: bigint
+  amountLabel: string
+  nonce: bigint
+  packed: string
+  teeSignature: string
+  teeSigner: string
+  label: string
+  model: string
+  lockTx?: string
+}
 export type WritePhase = 'idle' | 'signing' | 'submitted' | 'waiting' | 'confirmed' | 'failed'
 
 export type TillCard = {
@@ -133,6 +148,8 @@ export function useTill() {
   const [jobPhase, setJobPhase] = useState<JobPhase>('idle')
   const [writePhase, setWritePhase] = useState<WritePhase>('idle')
   const [lastWrite, setLastWrite] = useState('')
+  const [signKind, setSignKind] = useState<SignKind>('')
+  const [jobNeedsTee, setJobNeedsTee] = useState(false)
   const [modelNote, setModelNote] = useState('')
   const [agentSkipped, setAgentSkipped] = useState(false)
   const [lastBrief, setLastBrief] = useState<api.BriefDoc | null>(null)
@@ -159,6 +176,7 @@ export function useTill() {
   const switchingRef = useRef(false)
   const loadedForRef = useRef<bigint | null>(null)
   const busyRef = useRef(false)
+  const jobHoldRef = useRef<JobHold | null>(null)
 
   const resourceHash = useMemo(() => keccak256(toUtf8Bytes(RESOURCE)), [])
 
@@ -197,6 +215,8 @@ export function useTill() {
 
   const switchNetwork = () =>
     run('Switching to 0G Mainnet', async () => {
+      setSignKind('owner')
+      setLastWrite('network')
       if (!wallet) throw new Error('Connect a wallet first')
       const provider = await wallet.getEthereumProvider()
       await ensureOgChain(provider)
@@ -239,6 +259,10 @@ export function useTill() {
     setPolicyTested(false)
     setAgentSkipped(false)
     setJobPhase('idle')
+    setJobNeedsTee(false)
+    jobHoldRef.current = null
+    setSignKind('')
+    setLastWrite('')
     setModelNote('')
     setBriefModel('')
     setBriefTrust('')
@@ -511,14 +535,26 @@ export function useTill() {
     [refresh]
   )
 
+  const trackOwnerTx = async (name: string, send: () => Promise<TransactionResponse>) => {
+    setSignKind('owner')
+    setLastWrite(name)
+    setWritePhase('signing')
+    const tx = await send()
+    setWritePhase('submitted')
+    setLastTx(tx.hash)
+    setWritePhase('waiting')
+    const rec = await tx.wait()
+    if (!rec) throw new Error(`${name}: no receipt`)
+    setLastTx(rec.hash)
+    setWritePhase('confirmed')
+    return rec
+  }
+
   const mint = (name = '') =>
     run('Creating Till', () =>
       withSigner(async (s) => {
         const { nft } = contractsOf(s)
-        const tx = await nft.mint()
-        const rec = await tx.wait()
-        if (!rec) throw new Error('mint: no receipt')
-        setLastTx(rec.hash)
+        const rec = await trackOwnerTx('mint', () => nft.mint())
         let newId: bigint | null = null
         for (const log of rec.logs) {
           try {
@@ -538,12 +574,10 @@ export function useTill() {
   const fund = (amount: string) =>
     run('Funding', () =>
       withSigner(async (s) => {
-        if (tokenId == null) throw new Error('Create a Till first')
+        const id = tokenIdRef.current
+        if (id == null) throw new Error('Create a Till first')
         const { vault } = contractsOf(s)
-        const tx = await vault.deposit(tokenId, { value: parseEther(amount) })
-        const rec = await tx.wait()
-        if (!rec) throw new Error('deposit: no receipt')
-        setLastTx(rec.hash)
+        await trackOwnerTx('fund', () => vault.deposit(id, { value: parseEther(amount) }))
       })
     )
 
@@ -551,23 +585,15 @@ export function useTill() {
     run('Writing policy', async () => {
       const id = tokenIdRef.current
       if (id == null) throw new Error('Create a Till first')
-      setWritePhase('signing')
-      setLastWrite('policy')
       setLastDenial(null)
       await withSigner(async (s) => {
         if (!sameId(tokenIdRef.current, id)) throw new Error('Till changed. Policy write cancelled.')
         const { policy } = contractsOf(s)
         const days = Math.min(Math.max(sessionDays, 1), 90)
         const session = BigInt(Math.floor(Date.now() / 1000) + 86400 * days)
-        const tx = await policy.setPolicy(id, parseEther(maxTx), parseEther(windowBudget), 86400n, session, true, true)
-        setWritePhase('submitted')
-        setLastTx(tx.hash)
-        setWritePhase('waiting')
-        const rec = await tx.wait()
-        if (!rec) throw new Error('policy: no receipt')
-        if (!sameId(tokenIdRef.current, id)) return
-        setLastTx(rec.hash)
-        setWritePhase('confirmed')
+        await trackOwnerTx('policy', () =>
+          policy.setPolicy(id, parseEther(maxTx), parseEther(windowBudget), 86400n, session, true, true)
+        )
       })
     })
 
@@ -615,20 +641,18 @@ export function useTill() {
   const attachAgent = () =>
     run('Authorizing agent', () =>
       withSigner(async (s) => {
-        if (tokenId == null) throw new Error('Create a Till first')
-        let stored = loadAgent(tokenId.toString())
+        const id = tokenIdRef.current
+        if (id == null) throw new Error('Create a Till first')
+        let stored = loadAgent(id.toString())
         if (!stored) {
           const w = Wallet.createRandom()
           stored = { address: w.address, privateKey: w.privateKey }
-          localStorage.setItem(`till.agent.${tokenId}`, JSON.stringify(stored))
+          localStorage.setItem(`till.agent.${id}`, JSON.stringify(stored))
         }
         const { nft } = contractsOf(s)
-        const tx = await nft.authorizeUsage(tokenId, stored.address)
-        const rec = await tx.wait()
-        if (!rec) throw new Error('authorizeUsage: no receipt')
-        setLastTx(rec.hash)
+        await trackOwnerTx('authorize', () => nft.authorizeUsage(id, stored.address))
         await api.issueGrant({
-          tokenId: tokenId.toString(),
+          tokenId: id.toString(),
           owner: address,
           executor: stored.address,
           scopes: ['pay', 'job'],
@@ -642,44 +666,39 @@ export function useTill() {
   const fundAgentGas = (amount = '0.002') =>
     run('Sending agent gas', () =>
       withSigner(async (s) => {
-        if (tokenId == null) throw new Error('Create a Till first')
-        const stored = loadAgent(tokenId.toString())
+        const id = tokenIdRef.current
+        if (id == null) throw new Error('Create a Till first')
+        const stored = loadAgent(id.toString())
         if (!stored) throw new Error('Create an agent first')
-        const rec = await (await s.sendTransaction({ to: stored.address, value: parseEther(amount) })).wait()
-        if (!rec) throw new Error('agent gas: no receipt')
-        setLastTx(rec.hash)
+        await trackOwnerTx('gas', () => s.sendTransaction({ to: stored.address, value: parseEther(amount) }))
       })
     )
 
   const revokeAgent = (exec: string) =>
     run('Revoking', () =>
       withSigner(async (s) => {
-        if (tokenId == null) throw new Error('Create a Till first')
+        const id = tokenIdRef.current
+        if (id == null) throw new Error('Create a Till first')
         const { nft } = contractsOf(s)
-        const tx = await nft.revokeAuthorization(tokenId, exec)
-        const rec = await tx.wait()
-        if (!rec) throw new Error('revoke: no receipt')
-        setLastTx(rec.hash)
+        await trackOwnerTx('revoke', () => nft.revokeAuthorization(id, exec))
       })
     )
 
   const pause = (v: boolean) =>
     run(v ? 'Pausing' : 'Unpausing', () =>
       withSigner(async (s) => {
-        if (tokenId == null) throw new Error('Create a Till first')
-        const rec = await (await contractsOf(s).policy.setPaused(tokenId, v)).wait()
-        if (!rec) throw new Error('pause: no receipt')
-        setLastTx(rec.hash)
+        const id = tokenIdRef.current
+        if (id == null) throw new Error('Create a Till first')
+        await trackOwnerTx('pause', () => contractsOf(s).policy.setPaused(id, v))
       })
     )
 
   const withdraw = (amount: string) =>
     run('Withdrawing', () =>
       withSigner(async (s) => {
-        if (tokenId == null) throw new Error('Create a Till first')
-        const rec = await (await contractsOf(s).vault.withdraw(tokenId, parseEther(amount))).wait()
-        if (!rec) throw new Error('withdraw: no receipt')
-        setLastTx(rec.hash)
+        const id = tokenIdRef.current
+        if (id == null) throw new Error('Create a Till first')
+        await trackOwnerTx('withdraw', () => contractsOf(s).vault.withdraw(id, parseEther(amount)))
       })
     )
 
@@ -698,6 +717,8 @@ export function useTill() {
     run('Running mission', async () => {
       if (tokenId == null) throw new Error('Create a Till first')
       if (backend !== 'ok') throw new Error('Payment and proof services are offline. You can still create, fund, and set policy.')
+      setSignKind(sessionWallet() ? 'auto' : 'owner')
+      setLastWrite('mission')
       setLastDenial(null)
       setModelNote('')
       setLastBrief(null)
@@ -841,104 +862,137 @@ export function useTill() {
       })
     })
 
-  const lockJob = (jobLabel: string, amount: string, mode: 'settle' | 'refund') =>
-    run(mode === 'settle' ? 'Settling job' : 'Refunding job', async () => {
+  const quoteJob = (jobLabel: string, amount: string) =>
+    run('Preparing quote', async () => {
       const id = tokenIdRef.current
       if (id == null) throw new Error('Create a Till first')
-      setLastWrite('job')
+      setSignKind('')
+      setLastWrite('job-quote')
       setLastDenial(null)
       setJobPhase('quote')
-      setBusy('Preparing quote')
-      await withSigner(async (s) => {
-        if (!sameId(tokenIdRef.current, id)) throw new Error('Till changed. Job cancelled.')
-        const c = contractsOf(s)
-        const nonce = await nextNonce(c.vault, id)
-        const amt = parseEther(amount)
-        if (amt > available) throw new Error(`This Till only has ${formatEther(available)} 0G.`)
-        const jobId = keccakId(`${jobLabel}-${Date.now()}`)
-        const digest: string = await c.verifier.digest([id, nonce, payee, amt, resourceHash, true])
-        const jobResource = JSON.stringify([
-          {
-            destination: payee,
-            asset: '0G',
-            amount,
-            resource: RESOURCE,
-            reason: `Job escrow lock (${jobLabel}). Seller is paid only after settle; otherwise this Till is refunded.`,
-            grant: `till-job-${id.toString()}`,
-            deadline: new Date(Date.now() + 3600_000).toISOString(),
-          },
-        ])
-        const ev = await api.evaluateIntent({
-          digest,
-          tokenId: id.toString(),
-          target: payee,
-          amountWei: amt.toString(),
-          resource: jobResource,
-          role: 'jobSemantic',
+      const provider = new JsonRpcProvider(RPC_URL)
+      const vault = new Contract(ADDR.vault, VAULT_ABI, provider)
+      const verifier = new Contract(ADDR.verifier, VERIFIER_ABI, provider)
+      const nonce = await nextNonce(vault, id)
+      const amt = parseEther(amount)
+      const avail: bigint = await vault.available(id)
+      if (amt > avail) throw new Error(`This Till only has ${formatEther(avail)} 0G.`)
+      const jobId = keccakId(`${jobLabel}-${Date.now()}`)
+      const digest: string = await verifier.digest([id, nonce, payee, amt, resourceHash, true])
+      const jobResource = JSON.stringify([
+        {
+          destination: payee,
+          asset: '0G',
+          amount,
+          resource: RESOURCE,
+          reason: `Job escrow lock (${jobLabel}). Seller is paid only after settle; otherwise this Till is refunded.`,
+          grant: `till-job-${id.toString()}`,
+          deadline: new Date(Date.now() + 3600_000).toISOString(),
+        },
+      ])
+      const ev = await api.evaluateIntent({
+        digest,
+        tokenId: id.toString(),
+        target: payee,
+        amountWei: amt.toString(),
+        resource: jobResource,
+        role: 'jobSemantic',
+      })
+      if (!sameId(tokenIdRef.current, id)) throw new Error('Till changed. Job cancelled.')
+      if (!api.isAllow(ev) || !ev.packed || !ev.teeSignature || !ev.teeSigner) {
+        const why = api.decisionReason(ev, '0G Compute denied this job lock. No funds moved.')
+        setJobPhase('failed')
+        jobHoldRef.current = null
+        setJobNeedsTee(false)
+        setLastDenial({
+          amount: `${formatEther(amt)} 0G`,
+          why,
+          policy: true,
+          tee: true,
+          funds: true,
         })
-        if (!sameId(tokenIdRef.current, id)) throw new Error('Till changed. Job cancelled.')
-        if (!api.isAllow(ev) || !ev.packed || !ev.teeSignature || !ev.teeSigner) {
-          const why = api.decisionReason(ev, '0G Compute denied this job lock. No funds moved.')
-          setJobPhase('failed')
-          setLastDenial({
-            amount: `${formatEther(amt)} 0G`,
-            why,
-            policy: true,
-            tee: true,
-            funds: true,
-          })
-          return
-        }
-        const already = await c.verifier.tillTeeSigners(id, ev.teeSigner)
-        if (!already) {
-          setBusy('Registering TEE signer')
-          setWritePhase('signing')
-          const signerTx = await c.verifier.setTillTeeSigner(id, ev.teeSigner, true)
-          setWritePhase('submitted')
-          await signerTx.wait()
-        }
-        if (!sameId(tokenIdRef.current, id)) throw new Error('Till changed. Job cancelled.')
+        return
+      }
+      const already: boolean = await verifier.tillTeeSigners(id, ev.teeSigner)
+      jobHoldRef.current = {
+        tillId: id,
+        jobId,
+        amt,
+        amountLabel: amount,
+        nonce,
+        packed: ev.packed,
+        teeSignature: ev.teeSignature,
+        teeSigner: ev.teeSigner,
+        label: jobLabel,
+        model: ev.model?.id ?? '',
+      }
+      setJobNeedsTee(!already)
+      setJobPhase('quoted')
+    })
+
+  const registerJobTee = () =>
+    run('Registering TEE signer', async () => {
+      const hold = jobHoldRef.current
+      if (!hold) throw new Error('Get a quote first.')
+      await withSigner(async (s) => {
+        if (!sameId(tokenIdRef.current, hold.tillId)) throw new Error('Till changed. Job cancelled.')
+        await trackOwnerTx('job-tee', () => contractsOf(s).verifier.setTillTeeSigner(hold.tillId, hold.teeSigner, true))
+        setJobNeedsTee(false)
+      })
+    })
+
+  const lockQuotedJob = () =>
+    run('Locking funds', async () => {
+      const hold = jobHoldRef.current
+      if (!hold) throw new Error('Get a quote first.')
+      if (jobNeedsTee) throw new Error('Register the TEE signer first. That is one owner signature.')
+      await withSigner(async (s) => {
+        if (!sameId(tokenIdRef.current, hold.tillId)) throw new Error('Till changed. Job cancelled.')
         setJobPhase('lock')
-        setBusy('Locking funds')
-        setWritePhase('signing')
-        const lockTx = await c.vault.lockToJob(
-          jobId,
-          id,
-          payee,
-          amt,
-          resourceHash,
-          nonce,
-          BigInt(Math.floor(Date.now() / 1000) + 3600),
-          ev.packed,
-          ev.teeSignature
+        const rec = await trackOwnerTx('job-lock', () =>
+          contractsOf(s).vault.lockToJob(
+            hold.jobId,
+            hold.tillId,
+            payee,
+            hold.amt,
+            resourceHash,
+            hold.nonce,
+            BigInt(Math.floor(Date.now() / 1000) + 3600),
+            hold.packed,
+            hold.teeSignature
+          )
         )
-        setWritePhase('submitted')
-        setLastTx(lockTx.hash)
-        setWritePhase('waiting')
-        const lockRec = await lockTx.wait()
-        if (!lockRec) throw new Error('Job lock did not confirm')
         setJobPhase('working')
-        setBusy(mode === 'settle' ? 'Settling' : 'Refunding')
-        setWritePhase('signing')
-        const finTx = mode === 'settle' ? await c.escrow.settle(jobId) : await c.escrow.refund(jobId)
-        setWritePhase('submitted')
-        const fin = await finTx.wait()
-        if (!fin) {
-          setJobPhase('failed')
-          throw new Error('Job did not finish on-chain')
-        }
-        if (!sameId(tokenIdRef.current, id)) return
-        setLastTx(fin.hash)
-        setWritePhase('confirmed')
-        setJobPhase(mode === 'settle' ? 'settle' : 'refunded')
+        jobHoldRef.current = { ...hold, lockTx: rec.hash }
         setTech({
-          jobId,
-          lockTx: lockRec.hash,
-          finishTx: fin.hash,
+          jobId: hold.jobId,
+          lockTx: rec.hash,
+          amount: `${hold.amountLabel} 0G`,
+          model: hold.model,
+        })
+      })
+    })
+
+  const finishJob = (mode: 'settle' | 'refund') =>
+    run(mode === 'settle' ? 'Settling' : 'Refunding', async () => {
+      const hold = jobHoldRef.current
+      if (!hold) throw new Error('Lock funds first.')
+      await withSigner(async (s) => {
+        if (!sameId(tokenIdRef.current, hold.tillId)) throw new Error('Till changed. Job cancelled.')
+        const rec = await trackOwnerTx('job-finish', () =>
+          mode === 'settle' ? contractsOf(s).escrow.settle(hold.jobId) : contractsOf(s).escrow.refund(hold.jobId)
+        )
+        if (!sameId(tokenIdRef.current, hold.tillId)) return
+        setJobPhase(mode === 'settle' ? 'settle' : 'refunded')
+        setLastWrite('job')
+        setTech({
+          jobId: hold.jobId,
+          lockTx: hold.lockTx ?? '',
+          finishTx: rec.hash,
           mode,
-          amount: `${amount} 0G`,
+          amount: `${hold.amountLabel} 0G`,
           destination: mode === 'settle' ? payee : 'back to this Till',
-          model: ev.model?.id ?? '',
+          model: hold.model,
         })
       })
     })
@@ -947,9 +1001,7 @@ export function useTill() {
     run('Registering ERC-8004', () =>
       withSigner(async (s) => {
         const identity = new Contract(ADDR.identity, ['function register(string) returns (uint256)'], s)
-        const rec = await (await identity.register(uri)).wait()
-        if (!rec) throw new Error('register: no receipt')
-        setLastTx(rec.hash)
+        await trackOwnerTx('mint', () => identity.register(uri))
       })
     )
 
@@ -998,7 +1050,10 @@ export function useTill() {
     withdraw,
     payX402,
     tryOverBudget,
-    lockJob,
+    quoteJob,
+    registerJobTee,
+    lockQuotedJob,
+    finishJob,
     register8004,
     refresh,
     RESOURCE,
@@ -1012,8 +1067,12 @@ export function useTill() {
     lastDenial,
     policyTested,
     jobPhase,
+    jobNeedsTee,
     writePhase,
+    writeLocked:
+      writePhase === 'signing' || writePhase === 'submitted' || writePhase === 'waiting' || !!busy,
     lastWrite,
+    signKind,
     modelNote,
     agentSkipped,
     lastBrief,

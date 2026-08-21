@@ -8,7 +8,7 @@ export function Notice({
 }: {
   tone?: 'info' | 'danger' | 'ok' | 'block'
   title: string
-  body?: string
+  body?: ReactNode
   action?: ReactNode
 }) {
   const border =
@@ -21,7 +21,7 @@ export function Notice({
   return (
     <div className={`rounded-[4.27px] border px-4 py-3 ${border}`}>
       <p className={`text-[15px] font-semibold ${color}`}>{title}</p>
-      {body ? <p className="mt-1 text-[14px] leading-relaxed text-white/70">{body}</p> : null}
+      {body ? <div className="mt-1 text-[14px] leading-relaxed text-white/70">{body}</div> : null}
       {action ? <div className="mt-3">{action}</div> : null}
     </div>
   )

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 import type { TillState } from '../hooks/useTill'
 import { CyanButton } from '../components/CyanButton'
 import { Pipeline } from '../components/Pipeline'
@@ -8,7 +8,7 @@ import { MissionCard } from '../components/app/MissionCard'
 import { OgRail } from '../components/app/OgRail'
 import { ProductNotices } from '../components/app/ProductNotices'
 import { SetupChecklist } from '../components/app/SetupChecklist'
-import { SessionPanel } from '../components/app/SessionPanel'
+import { SignHint } from '../components/app/SignHint'
 import { JourneyFooter, TillSkeleton } from '../components/app/TillContextBar'
 import { fmt0g } from '../lib/errors'
 import { txUrl, DEFAULT_BRIEF_SUBJECT, HUB_SWAP } from '../lib/chain'
@@ -22,8 +22,6 @@ const inputCls =
 export function TillPage({ till }: { till: TillState }) {
   const loc = useLocation()
   const [fundAmt, setFundAmt] = useState('0.02')
-  const [withdrawAmt, setWithdrawAmt] = useState('0.001')
-  const [gasAmt, setGasAmt] = useState('0.002')
   const [subject, setSubject] = useState(DEFAULT_BRIEF_SUBJECT)
   const autonomous = till.executionMode === 'autonomous'
   const live = setupReady(till)
@@ -55,6 +53,7 @@ export function TillPage({ till }: { till: TillState }) {
   const est = till.mission?.totalUsd ?? 0.016
   const status = till.paused ? 'Paused' : live ? 'Live' : 'Setup'
   const policyName = till.hasPolicy ? policyPresetName(till.maxTxWei, till.windowBudgetWei) : 'Not set'
+  const nextSetup = setupItems(till).find((i) => !i.done)
 
   return (
     <main className="app-page overflow-x-hidden w-full max-w-full">
@@ -76,7 +75,7 @@ export function TillPage({ till }: { till: TillState }) {
                 </div>
                 <div>
                   <dt className="text-white/45">Agent</dt>
-                  <dd>{autonomous ? 'Autonomous' : 'Owner'}</dd>
+                  <dd>{autonomous ? 'Ready' : 'Owner'}</dd>
                 </div>
                 <div>
                   <dt className="text-white/45">Status</dt>
@@ -85,8 +84,8 @@ export function TillPage({ till }: { till: TillState }) {
               </dl>
             </div>
             <div className="mt-6 flex flex-wrap gap-3">
-              <CyanButton to={live ? '/till#mission' : (setupItems(till).find((i) => !i.done)?.to ?? '/till/policy')}>
-                {live ? 'Run a mission' : 'Finish setup'}
+              <CyanButton to={live ? '/till#mission' : (nextSetup?.to ?? '/till/policy')}>
+                {live ? 'Run a mission' : nextSetup?.label ?? 'Finish setup'}
               </CyanButton>
               <CyanButton to="/till/policy" variant="ghost">
                 Edit policy
@@ -108,13 +107,14 @@ export function TillPage({ till }: { till: TillState }) {
                 est={est}
                 runMission={runMission}
               />
+            ) : till.hasPolicy && till.available === 0n ? (
+              <FundBlock till={till} fundAmt={fundAmt} setFundAmt={setFundAmt} est={est} />
             ) : null}
 
-            {live ? (
+            {live && (till.busy.toLowerCase().includes('mission') || till.lastBrief) ? (
               <section className="surf" id="pipeline">
                 <p className="mod-kicker">0G pipeline</p>
-                <h2>How a mission runs on 0G</h2>
-                <p className="mod-lede">One path. Policy, compute, TEE, x402, storage, proof.</p>
+                <h2>How this mission runs</h2>
                 <div className="mt-6">
                   <OgRail steps={till.steps} tech={till.tech} spine />
                 </div>
@@ -150,137 +150,12 @@ export function TillPage({ till }: { till: TillState }) {
               </section>
             )}
 
-            <section className="surf" id="policy">
-              <p className="mod-kicker">Protection</p>
-              <h2>Protection policy</h2>
-              <p className="mod-lede">Your agent can spend within these rules.</p>
-              <dl className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="surf-inner">
-                  <dt>Maximum per purchase</dt>
-                  <dd>{till.hasPolicy ? fmt0g(till.maxTxWei) : 'not set'}</dd>
-                </div>
-                <div className="surf-inner">
-                  <dt>Mission budget</dt>
-                  <dd>${till.missionCapUsd.toFixed(2)}</dd>
-                </div>
-                <div className="surf-inner">
-                  <dt>Rolling spend</dt>
-                  <dd>{till.hasPolicy ? fmt0g(till.windowBudgetWei) : 'not set'}</dd>
-                </div>
-                <div className="surf-inner">
-                  <dt>Allowed services</dt>
-                  <dd>Safety, Market, Contract</dd>
-                </div>
-                <div className="surf-inner">
-                  <dt>Payment assets</dt>
-                  <dd>USDC.e · 0G</dd>
-                </div>
-                <div className="surf-inner">
-                  <dt>Session expiry</dt>
-                  <dd>
-                    {till.sessionExpiresAt > 0n
-                      ? new Date(Number(till.sessionExpiresAt) * 1000).toLocaleDateString()
-                      : 'not set'}
-                  </dd>
-                </div>
-              </dl>
-              <div className="mt-6 flex flex-wrap gap-3">
-                <CyanButton to="/till/policy">Edit policy</CyanButton>
-                <CyanButton to="/till/agent" variant="ghost">
-                  View permissions
-                </CyanButton>
-                <CyanButton variant="ghost" disabled={!!till.busy} onClick={() => till.pause(!till.paused)}>
-                  {till.paused ? 'Unpause' : 'Pause'}
-                </CyanButton>
-              </div>
-            </section>
-
-            {!live ? (
-              <FundBlock till={till} fundAmt={fundAmt} setFundAmt={setFundAmt} est={est} />
-            ) : null}
-
-            <SessionPanel till={till} gasAmt={gasAmt} setGasAmt={setGasAmt} compact />
-
-            {!live ? (
-              <MissionBlock
-                till={till}
-                subject={subject}
-                setSubject={setSubject}
-                checksOn={checksOn}
-                est={est}
-                runMission={runMission}
-              />
-            ) : (
-              <FundBlock till={till} fundAmt={fundAmt} setFundAmt={setFundAmt} est={est} />
-            )}
-
-            <section className="surf" id="activity">
-              <p className="mod-kicker">Activity</p>
-              <h2>Recent actions</h2>
-              <p className="mod-lede">Human-readable events for this Till. Hashes stay collapsed.</p>
-              <ol className="timeline mt-6">
-                {till.hasPolicy ? (
-                  <li className="timeline__item">
-                    <p className="timeline__title">Policy {policyName}</p>
-                  </li>
-                ) : null}
-                {till.authorized.length > 0 ? (
-                  <li className="timeline__item">
-                    <p className="timeline__title">Agent authorized</p>
-                  </li>
-                ) : till.agentSkipped ? (
-                  <li className="timeline__item">
-                    <p className="timeline__title">Owner mode</p>
-                  </li>
-                ) : null}
-                {till.lastBrief?.verdict ? (
-                  <li className="timeline__item">
-                    <p className="timeline__title">Verdict {till.lastBrief.verdict}</p>
-                  </li>
-                ) : null}
-                {till.tech.tee === 'true' ? (
-                  <li className="timeline__item">
-                    <p className="timeline__title">TEE verified</p>
-                  </li>
-                ) : null}
-                {till.tech.anchorTx ? (
-                  <li className="timeline__item">
-                    <p className="timeline__title">Evidence stored</p>
-                  </li>
-                ) : null}
-              </ol>
-              <div className="mt-4">
-                <CyanButton to="/activity" variant="ghost">
-                  Open activity
-                </CyanButton>
-              </div>
-            </section>
-
-            <section className="surf">
-              <p className="mod-kicker">Jobs</p>
-              <h2>Pay when the work finishes</h2>
-              <p className="mod-lede">Quote → Lock → Working → Settle / Refund. Seller is paid only after settlement.</p>
-              <CyanButton to="/jobs" variant="ghost">
-                Open Jobs
-              </CyanButton>
-            </section>
-
-            <details className="surf">
-              <summary className="cursor-pointer text-[15px] font-semibold">Owner controls</summary>
-              <p className="mt-3 max-w-[50ch] text-[14px] text-white/55">Pause, fund, withdraw. These always use your wallet.</p>
-              <div className="mt-5 flex flex-wrap items-end gap-3">
-                <CyanButton variant="ghost" disabled={!!till.busy} onClick={() => till.pause(!till.paused)}>
-                  {till.paused ? 'Unpause' : 'Pause'}
-                </CyanButton>
-                <label className="flex flex-col gap-2">
-                  <span className="text-[12px] text-white/70">Withdraw (0G)</span>
-                  <input className={`${inputCls} w-32`} value={withdrawAmt} onChange={(e) => setWithdrawAmt(e.target.value)} />
-                </label>
-                <CyanButton variant="ghost" disabled={!!till.busy} onClick={() => till.withdraw(withdrawAmt)}>
-                  Withdraw
-                </CyanButton>
-              </div>
-            </details>
+            <nav className="ov-more" aria-label="More on this Till">
+              <Link to="/till/policy">Policy</Link>
+              <Link to="/till/agent">Agent</Link>
+              <Link to="/jobs">Jobs</Link>
+              <Link to="/activity">Activity</Link>
+            </nav>
 
             {till.lastTx && (
               <p className="font-mono text-[12px] text-cyan">
@@ -288,14 +163,15 @@ export function TillPage({ till }: { till: TillState }) {
                 <a className="underline" href={txUrl(till.lastTx)} target="_blank" rel="noreferrer">
                   {till.lastTx.slice(0, 10)}…{till.lastTx.slice(-6)}
                 </a>
+                {till.lastExecutor ? ` · ${till.lastExecutor === 'session' ? 'session key' : 'owner wallet'}` : ''}
               </p>
             )}
-            {till.lastExecutor ? (
-              <p className="font-mono text-[11px] text-white/45">
-                Last on-chain executor: {till.lastExecutor === 'session' ? 'session key (no MetaMask)' : 'owner wallet'}
-              </p>
-            ) : null}
-            <JourneyFooter backTo="/tills" backLabel="All Tills" nextTo="/till/policy" nextLabel="Configure policy" />
+            <JourneyFooter
+              backTo="/tills"
+              backLabel="All Tills"
+              nextTo={live ? '/till#mission' : (nextSetup?.to ?? '/till/policy')}
+              nextLabel={live ? 'Run a mission' : nextSetup?.label ?? 'Configure policy'}
+            />
           </div>
         </>
       )}
@@ -318,6 +194,7 @@ function MissionBlock({
   est: number
   runMission: () => void
 }) {
+  const auto = till.executionMode === 'autonomous'
   return (
     <section className="surf surf-accent" id="mission">
       <p className="mod-kicker">Before You Pay</p>
@@ -342,8 +219,9 @@ function MissionBlock({
       <p className="mt-4 font-mono text-[12px] text-white/55">
         {checksOn} checks selected · ${est.toFixed(3)} estimated · ${till.missionCapUsd.toFixed(2)} maximum
       </p>
+      <SignHint kind={auto ? 'auto' : 'owner'} write="mission" />
       <div className="mt-5">
-        <CyanButton disabled={!!till.busy || !subject.trim()} onClick={runMission}>
+        <CyanButton disabled={till.writeLocked || !subject.trim()} onClick={runMission}>
           Analyze before I pay
         </CyanButton>
       </div>
@@ -366,7 +244,7 @@ function FundBlock({
     <section className="surf" id="fund">
       <p className="mod-kicker">Funding</p>
       <h2>Fund your Till</h2>
-      <p className="mod-lede">Some paid services use USDC.e on 0G.</p>
+      <p className="mod-lede">Setup step. Some paid services also need USDC.e on 0G.</p>
       <dl className="mt-5 grid gap-3 sm:grid-cols-3 text-[14px]">
         <div className="surf-inner">
           <dt>Till balance</dt>
@@ -381,12 +259,13 @@ function FundBlock({
           <dd className="font-mono">${est.toFixed(3)}</dd>
         </div>
       </dl>
+      <SignHint kind="owner" write="fund" />
       <div className="mt-5 flex max-w-lg flex-col gap-4 sm:flex-row sm:items-end">
         <label className="flex flex-1 flex-col gap-2">
           <span className="text-[12px] text-white/70">Amount (0G)</span>
           <input className={inputCls} value={fundAmt} onChange={(e) => setFundAmt(e.target.value)} />
         </label>
-        <CyanButton disabled={!!till.busy} onClick={() => till.fund(fundAmt)}>
+        <CyanButton disabled={till.writeLocked} onClick={() => till.fund(fundAmt)}>
           Fund Till
         </CyanButton>
       </div>

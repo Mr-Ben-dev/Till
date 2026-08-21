@@ -75,7 +75,7 @@ export function TillContextBar({ till }: { till: TillState }) {
       ) : null}
       {sub ? (
         <Link className="till-bar__back" to="/till">
-          ← Back to Till
+          ← Till Overview
         </Link>
       ) : null}
       <nav className="till-tabs" aria-label="Till sections">
@@ -107,7 +107,7 @@ export function JourneyFooter({
   nextTo,
   nextLabel,
   backTo = '/till',
-  backLabel = 'Back to Till',
+  backLabel = 'Till Overview',
 }: {
   nextTo?: string
   nextLabel?: string
