@@ -163,6 +163,16 @@ export type PaymentPayload = {
   }
 }
 
+function decodeX402Header(res: Response, name: string): unknown {
+  const raw = res.headers.get(name) ?? res.headers.get(name.toLowerCase())
+  if (!raw) return null
+  try {
+    return JSON.parse(Buffer.from(raw, 'base64').toString('utf8'))
+  } catch {
+    return { raw: raw.slice(0, 120) }
+  }
+}
+
 export async function settleWithPaymentPayload(
   destination: string,
   payment: PaymentPayload
@@ -170,12 +180,43 @@ export async function settleWithPaymentPayload(
   const from = payment.payload?.authorization?.from
   if (!from) throw new Error('PAYMENT-SIGNATURE missing authorization.from')
   const url = routerUrl(destination)
-  const normalized = withDestinationResource(payment, destination)
-  const encoded = Buffer.from(JSON.stringify(normalized)).toString('base64')
-  const res = await fetch(url, {
+  const client = new x402Client((_version, accepts) => {
+    const og = accepts.filter(
+      (a) => a.network === OG_CAIP && a.asset?.toLowerCase() === USDCE_16661.toLowerCase()
+    )
+    return og.find((a) => !a.extra?.verifyingContract) ?? og[0] ?? accepts[0]
+  })
+  client.registerPolicy((_version, requirements) =>
+    requirements.filter(
+      (r) =>
+        r.network === OG_CAIP &&
+        !(r.extra as { verifyingContract?: string } | undefined)?.verifyingContract
+    )
+  )
+  client.setSpendControls({
+    allowedAssets: [{ network: OG_CAIP, asset: USDCE_16661, maxAmountPerPayment: '500000' }],
+  })
+  client.register(OG_CAIP, {
+    scheme: 'exact',
+    createPaymentPayload: async (x402Version: number, requirements: HeraldAccept) => {
+      const auth = payment.payload?.authorization
+      const signature = payment.payload?.signature
+      if (!auth || !signature) throw new Error('PAYMENT-SIGNATURE missing payload')
+      if (auth.value !== requirements.amount) {
+        throw new Error(
+          `FAILED_HERALD: signed amount ${auth.value} != live quote ${requirements.amount}`
+        )
+      }
+      if (!auth.to || auth.to.toLowerCase() !== requirements.payTo.toLowerCase()) {
+        throw new Error(`FAILED_HERALD: signed payTo ${auth.to} != live ${requirements.payTo}`)
+      }
+      return { x402Version, payload: { signature, authorization: auth } }
+    },
+  } as never)
+  const paidFetch = wrapFetchWithPayment(fetch, client)
+  const res = await paidFetch(url, {
     headers: {
       Accept: 'application/json',
-      'PAYMENT-SIGNATURE': encoded,
       'User-Agent': 'Mozilla/5.0 Till/1.0',
     },
   })
@@ -186,21 +227,10 @@ export async function settleWithPaymentPayload(
   } catch {
     /* keep text */
   }
-  const settleHdr = res.headers.get('PAYMENT-RESPONSE') ?? res.headers.get('payment-response')
-  let settlement: unknown = settleHdr
-    ? (() => {
-        try {
-          return JSON.parse(Buffer.from(settleHdr, 'base64').toString('utf8'))
-        } catch {
-          return { paymentResponse: settleHdr }
-        }
-      })()
-    : null
+  const settlement = decodeX402Header(res, 'PAYMENT-RESPONSE')
   if (res.status === 402) {
-    const reason =
-      settlement && typeof settlement === 'object'
-        ? JSON.stringify(settlement).slice(0, 400)
-        : text.slice(0, 240)
+    const required = decodeX402Header(res, 'PAYMENT-REQUIRED')
+    const reason = JSON.stringify(required ?? settlement ?? body).slice(0, 400)
     throw new Error(`FAILED_HERALD: still 402 after session payment for ${destination}: ${reason}`)
   }
   if (!res.ok) {
