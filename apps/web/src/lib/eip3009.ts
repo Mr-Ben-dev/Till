@@ -61,12 +61,14 @@ export async function signExactEip3009(opts: {
     throw new Error('Payment resource.url must be the seller destination, not the Herald router')
   }
   const nonce = toHex(crypto.getRandomValues(new Uint8Array(32)))
+  const now = Math.floor(Date.now() / 1000)
   const validAfter = '0'
-  const validBefore = String(Math.floor(Date.now() / 1000) + (opts.accept.maxTimeoutSeconds ?? 300))
+  const windowSec = Math.max(opts.accept.maxTimeoutSeconds ?? 300, 900)
+  const validBefore = String(now + windowSec)
   const from = getAddress(opts.from)
   const to = getAddress(opts.accept.payTo)
   const verifyingContract = getAddress(opts.accept.asset || USDCE)
-  const signature = await account.signTypedData({
+  let signature = await account.signTypedData({
     domain: {
       name,
       version,
@@ -84,6 +86,10 @@ export async function signExactEip3009(opts: {
       nonce,
     },
   })
+  const v = Number.parseInt(signature.slice(130, 132), 16)
+  if (v === 0 || v === 1) {
+    signature = (`0x${signature.slice(2, 130)}${(v + 27).toString(16).padStart(2, '0')}`) as `0x${string}`
+  }
   return {
     x402Version: 2,
     resource: {

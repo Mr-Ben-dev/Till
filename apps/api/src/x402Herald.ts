@@ -1,6 +1,7 @@
 import { x402Client, x402HTTPClient } from '@x402/core/client'
 import { ExactEvmScheme } from '@x402/evm/exact/client'
 import { wrapFetchWithPayment } from '@x402/fetch'
+import { getAddress } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { requireEnv } from '@till/sdk'
 
@@ -173,6 +174,14 @@ function decodeX402Header(res: Response, name: string): unknown {
   }
 }
 
+function ecdsaV27(signature: string): string {
+  if (!/^0x[0-9a-fA-F]{130}$/.test(signature)) return signature
+  const body = signature.slice(2, 130)
+  let v = Number.parseInt(signature.slice(130, 132), 16)
+  if (v === 0 || v === 1) v += 27
+  return `0x${body}${v.toString(16).padStart(2, '0')}`
+}
+
 export async function settleWithPaymentPayload(
   destination: string,
   payment: PaymentPayload
@@ -210,7 +219,17 @@ export async function settleWithPaymentPayload(
       if (!auth.to || auth.to.toLowerCase() !== requirements.payTo.toLowerCase()) {
         throw new Error(`FAILED_HERALD: signed payTo ${auth.to} != live ${requirements.payTo}`)
       }
-      return { x402Version, payload: { signature, authorization: auth } }
+      return {
+        x402Version,
+        payload: {
+          signature: ecdsaV27(signature),
+          authorization: {
+            ...auth,
+            from: getAddress(auth.from),
+            to: getAddress(auth.to),
+          },
+        },
+      }
     },
   } as never)
   const paidFetch = wrapFetchWithPayment(fetch, client)
