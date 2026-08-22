@@ -12,7 +12,7 @@ export function SetupChecklist({ till }: { till: TillState }) {
         <strong>LIVE</strong>
         <span>Policy ✓</span>
         <span>Agent {sessionLabel(till) === 'READY' ? '✓' : 'owner'}</span>
-        <span>{mission ? 'Mission done' : 'Mission ready'}</span>
+        <span>{mission ? 'Work done' : 'Work ready'}</span>
       </p>
     )
   }
@@ -23,7 +23,7 @@ export function SetupChecklist({ till }: { till: TillState }) {
     <section className="surf surf-accent" id="setup">
       <h2>Finish setting up your Till</h2>
       <p className="mod-lede">
-        {done} / {core.length} · Create → Protect → Fund → Enable agent → Run first mission
+        {done} / {core.length} · Create → Protect → Fund → Enable agent → Start work
       </p>
       <ol className="setup-list">
         {items.map((item, i) => (

@@ -28,7 +28,10 @@ export async function liveModels() {
   return parse(res) as Promise<{
     count: number
     roles: Record<string, string>
+    presets?: Record<string, string>
+    spendAllow?: { id: string; provider: string; verifiability: string; tee: boolean }[]
     fetchedAt: string
+    note?: string
   }>
 }
 
@@ -110,7 +113,8 @@ export type MissionDiscover = {
   payable?: boolean
   blockReason?: string
   drawerNote?: string
-  fundUsd?: number
+  moneyNote?: string
+  privacy?: { private?: boolean; sharedWithSellers?: boolean }
 }
 
 export type PurchaseRecord = {
@@ -156,7 +160,17 @@ export type MissionRun = {
   briefChatId?: string
   briefProcessResponse?: boolean
   briefTeeVerifiedRouter?: boolean
+  proofId?: string
+  moneyNote?: string
   trust?: string
+  selection?: {
+    mode?: string
+    model?: string
+    provider?: string
+    trustMode?: string
+    tee?: string
+    reason?: string
+  }
   over?: { blocked?: boolean; spentUsd?: number; reason?: string; capUsd?: number; requestedUsd?: number }
   error?: string
 }
@@ -177,6 +191,7 @@ export async function compileMission(input: { text: string; family?: string; art
     target?: string | null
     expectedOutput?: string
     needsProcurement: boolean
+    copilot?: string
   }>
 }
 
@@ -198,6 +213,7 @@ export async function runMission(input: {
   session?: string
   payments?: unknown[]
   rail?: 'session' | 'operator'
+  preset?: 'auto' | 'cheap' | 'fast' | 'deep' | 'private'
 }) {
   const res = await fetch(`${API}/v1/mission/run`, {
     method: 'POST',

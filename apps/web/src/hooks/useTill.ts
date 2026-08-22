@@ -2,14 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
 import { saveTillName } from '../lib/tillMeta'
-import { BrowserProvider, Contract, JsonRpcProvider, Wallet, formatEther, id as keccakId, keccak256, parseEther, parseUnits, toUtf8Bytes, type Signer, type TransactionResponse } from 'ethers'
+import { BrowserProvider, Contract, JsonRpcProvider, Wallet, formatEther, id as keccakId, keccak256, parseEther, toUtf8Bytes, type Signer, type TransactionResponse } from 'ethers'
 import { ADDR, CHAIN_ID, DEFAULT_BRIEF_SUBJECT, HUB_SWAP, MINT_FROM_BLOCK, MISSION_CAP_USD, RESOURCE, RPC_URL, USDCE, ensureOgChain } from '../lib/chain'
 import { ESCROW_ABI, NFT_ABI, POLICY_ABI, VAULT_ABI, VERIFIER_ABI } from '../lib/abi'
 import { decodeErr } from '../lib/errors'
 import type { Denial } from '../components/app/DenialCard'
 import type { SignKind } from '../lib/signCopy'
 import * as api from '../lib/api'
-import { signExactEip3009 } from '../lib/eip3009'
 
 export type PipelineStep = {
   key: string
@@ -19,16 +18,11 @@ export type PipelineStep = {
 }
 
 const INITIAL_STEPS: PipelineStep[] = [
-  { key: 'plan', label: 'Compile', state: 'idle' },
-  { key: 'budget', label: 'Quote', state: 'idle' },
-  { key: 'drawer', label: 'Session drawer', state: 'idle' },
-  { key: 'tee', label: '0G Compute', state: 'idle' },
-  { key: 'buy1', label: 'Procurement', state: 'idle' },
-  { key: 'buy2', label: 'Procurement', state: 'idle' },
-  { key: 'buy3', label: 'Procurement', state: 'idle' },
+  { key: 'plan', label: 'Plan', state: 'idle' },
+  { key: 'budget', label: 'Policy', state: 'idle' },
+  { key: 'tee', label: 'Private compute', state: 'idle' },
   { key: 'result', label: 'Result', state: 'idle' },
   { key: 'storage', label: 'Storage', state: 'idle' },
-  { key: 'sweep', label: 'Sweep leftover USDC.e', state: 'idle' },
   { key: 'proof', label: 'Proof', state: 'idle' },
 ]
 
@@ -742,10 +736,10 @@ export function useTill() {
   const patchStep = (key: string, patch: Partial<PipelineStep>) =>
     setSteps((prev) => prev.map((s) => (s.key === key ? { ...s, ...patch } : s)))
 
-  const payX402 = (subject = DEFAULT_BRIEF_SUBJECT, extras?: { family?: string; artifact?: string }) =>
+  const payX402 = (subject = DEFAULT_BRIEF_SUBJECT, extras?: { family?: string; artifact?: string; preset?: 'auto' | 'cheap' | 'fast' | 'deep' | 'private' }) =>
     run('Running mission', async () => {
       if (tokenId == null) throw new Error('Create a Till first')
-      if (backend !== 'ok') throw new Error('Payment and proof services are offline. You can still create, fund, and set policy.')
+      if (backend !== 'ok') throw new Error('Work and proof services are offline. You can still create, fund, and set policy.')
       const stored = tokenId != null ? loadAgent(tokenId.toString()) : null
       const sessionOk =
         stored && authorized.some((a) => a.toLowerCase() === stored.address.toLowerCase())
@@ -765,114 +759,14 @@ export function useTill() {
       const found = await api.discoverMission(subject, extras?.family, extras?.artifact)
       setMission(found)
       if (found.compiled && found.compiled.ok === false) {
-        throw new Error(found.compiled.ask || found.compiled.refuse || 'Mission needs more information')
+        throw new Error(found.compiled.ask || found.compiled.refuse || 'Work needs more information')
       }
-      const buyLabels = (found.quotes ?? []).slice(0, 3).map((q, i) => ({
-        key: `buy${i + 1}`,
-        label: `${q.seller} ${q.sku}`,
-      }))
-      setSteps((prev) =>
-        prev.map((s) => {
-          const named = buyLabels.find((b) => b.key === s.key)
-          return named ? { ...s, label: named.label } : s
-        })
-      )
       patchStep('plan', { state: 'ok', detail: found.familyLabel || found.plan[0] })
       patchStep('budget', {
         state: 'ok',
-        detail: `$${(found.totalUsd ?? 0).toFixed(3)} quoted · $${found.capUsd.toFixed(2)} drawer max`,
+        detail: `Vault ${formatEther(available)} 0G · policy max ${formatEther(maxTxWei)} 0G · Compute billed on Payment Layer (operator)`,
       })
-      if ((found.totalUsd ?? 0) > found.capUsd) {
-        setLastDenial({
-          amount: `$${found.totalUsd} USDC.e`,
-          why: `Quote exceeds the $${found.capUsd} session-drawer cap. $0 spent.`,
-          policy: false,
-          tee: true,
-          funds: true,
-          kind: 'overbudget',
-          vault: true,
-        })
-        throw new Error(`Quote exceeds the $${found.capUsd} cap. $0 spent.`)
-      }
-      if (found.needsProcurement && !(found.quotes?.length)) {
-        const why =
-          found.blockReason ||
-          'FAILED_HERALD_ROUTER: no Aristotle-payable x402 specialist is live. $0 spent.'
-        patchStep('plan', { state: 'fail', detail: why })
-        setLastDenial({
-          amount: '$0',
-          why,
-          policy: true,
-          tee: true,
-          funds: true,
-          kind: 'mission',
-          vault: false,
-        })
-        throw new Error(why)
-      }
-      const erc20 = new Contract(
-        USDCE,
-        ['function balanceOf(address) view returns (uint256)', 'function transfer(address,uint256) returns (bool)'],
-        new JsonRpcProvider(RPC_URL)
-      )
-      const quoteAtomic = BigInt(found.totalAtomic || '0')
-      let missionError: unknown = null
-      try {
-      let drawer = asBig(await erc20.balanceOf(stored.address))
-      const hardMax = parseUnits('0.5', 6)
-      if (drawer > hardMax) {
-        patchStep('drawer', { state: 'fail', detail: 'Drawer over $0.50. Sweep first.' })
-        throw new Error('Session drawer exceeds the $0.50 hard max. Sweep leftover USDC.e to the owner, then retry.')
-      }
-      const slack = quoteAtomic > 20_000n ? (quoteAtomic * 5n) / 100n : 20_000n
-      if (quoteAtomic > 0n && drawer > quoteAtomic + slack) {
-        patchStep('drawer', { state: 'wait', detail: 'Sweeping leftover USDC.e before this mission' })
-        const w0 = new Wallet(stored.privateKey, new JsonRpcProvider(RPC_URL))
-        const token0 = new Contract(USDCE, ['function transfer(address,uint256) returns (bool)'], w0)
-        const tx0 = await token0.transfer(address, drawer)
-        await tx0.wait()
-        drawer = 0n
-      }
-      if (quoteAtomic > 0n && drawer < quoteAtomic) {
-        patchStep('drawer', { state: 'wait', detail: 'Funding this mission\'s session drawer from your wallet' })
-        const need = quoteAtomic - drawer
-        await withSigner(async (s) => {
-          const token = new Contract(USDCE, ['function transfer(address,uint256) returns (bool)'], s)
-          await trackOwnerTx('fund-drawer', () => token.transfer(stored.address, need) as Promise<TransactionResponse>)
-        })
-        setSignKind('auto')
-        setLastWrite('mission')
-        drawer = asBig(await erc20.balanceOf(stored.address))
-      }
-      if (quoteAtomic > 0n && drawer < quoteAtomic) {
-        throw new Error('Session drawer still underfunded after transfer.')
-      }
-      patchStep('drawer', {
-        state: 'ok',
-        detail: `Session drawer ${(Number(drawer) / 1e6).toFixed(3)} USDC.e · not TillPolicy`,
-      })
-      const payments = []
-      for (const acc of found.accepts ?? []) {
-        if (!acc.accept) {
-          if (quoteAtomic > 0n) throw new Error(acc.error || 'Missing Herald accept for a quoted SKU')
-          continue
-        }
-        const dest = acc.url
-        payments.push(
-          await signExactEip3009({
-            privateKey: stored.privateKey,
-            from: stored.address,
-            accept: acc.accept,
-            resourceUrl: dest,
-            resource: {
-              url: dest,
-              description: acc.resource?.description ?? '',
-              mimeType: acc.resource?.mimeType ?? '',
-            },
-          })
-        )
-      }
-      patchStep('tee', { state: 'wait', detail: '0G is evaluating the purchase privately' })
+      patchStep('tee', { state: 'wait', detail: 'AUTO · private 0G Compute' })
       const result = await api.runMission({
         subject,
         tokenId: tokenId.toString(),
@@ -880,21 +774,22 @@ export function useTill() {
         family: extras?.family || found.family,
         artifact: extras?.artifact,
         session: stored.address,
-        payments,
+        payments: [],
         rail: 'session',
+        preset: extras?.preset || 'auto',
       })
       if (!result.ok) {
         patchStep('tee', { state: 'fail', detail: result.over?.reason || result.error })
         setLastDenial({
-          amount: '$0',
-          why: result.over?.reason || result.error || 'Mission blocked',
-          policy: false,
+          amount: '0 0G',
+          why: result.over?.reason || result.error || 'Work blocked',
+          policy: true,
           tee: true,
           funds: true,
           kind: 'mission',
-          vault: false,
+          vault: true,
         })
-        throw new Error(result.over?.reason || result.error || 'Mission blocked')
+        throw new Error(result.over?.reason || result.error || 'Work blocked')
       }
       const ev = result.eval
       setModelNote(ev?.model?.id ?? '')
@@ -906,115 +801,77 @@ export function useTill() {
         verify_tee: String(ev?.teeVerifiedRouter),
         chatId: ev?.chatId ?? '',
         digest: result.digest ?? '',
-        spentUsd: String(result.spentUsd ?? found.totalUsd),
         rail: result.rail ?? 'session',
         signer: stored.address,
+        money:
+          result.selection?.reason ||
+          'Payment Layer bills operator Compute. TillVault not debited for tokens.',
       })
       const teeOk = ev?.processResponse === true && ev?.teeVerifiedRouter === true
       patchStep('tee', {
         state: teeOk ? 'ok' : 'fail',
         detail: `${ev?.model?.id ?? ''} processResponse=${String(ev?.processResponse)}`,
       })
-      const bought = result.purchases ?? []
-      setPurchases(bought)
-      ;[0, 1, 2].forEach((i) => {
-        const p = bought[i]
-        patchStep(`buy${i + 1}`, {
-          state: p ? (p.status === 200 ? 'ok' : 'fail') : found.quotes[i] ? 'fail' : 'skip',
-          detail: p
-            ? `$${p.quote.amountUsd} ${p.seller} from ${p.payer ?? stored.address}`
-            : found.quotes[i]
-              ? 'missing'
-              : 'not needed',
-        })
-      })
+      setPurchases(result.purchases ?? [])
       if (!result.brief?.title) {
         patchStep('result', { state: 'fail', detail: 'No result' })
-        throw new Error('Mission finished without a result. Nothing extra was invented.')
+        throw new Error('Work finished without a result. Nothing extra was invented.')
       }
       setLastBrief(result.brief)
       setBriefModel(result.briefModel ?? '')
       setBriefTrust(result.trust ?? 'private')
       patchStep('result', {
         state: 'ok',
-        detail: `${result.brief.verdict ?? 'HOLD'} · $${(result.spentUsd ?? found.totalUsd).toFixed(3)} spent`,
+        detail: `${result.brief.verdict ?? 'HOLD'} · private Compute`,
       })
-      const proofTx = bought[0]?.ogTx
+      const proofId = result.proofId || result.briefChatId || ev?.chatId || `till-${tokenId}`
       await withExecutor(async (s) => {
         const c = contractsOf(s)
         try {
-          if (proofTx) {
-            patchStep('storage', { state: 'wait' })
-            const packet = await api.uploadPacket({
-              till: tokenId.toString(),
-              tx: proofTx,
-              model: result.briefModel || ev?.model?.id,
-              tee: result.briefProcessResponse === true || ev?.processResponse === true,
-              brief: result.brief,
-            })
-            const anc = await (await c.vault.anchorPacket(tokenId, packet.rootHash)).wait()
-            patchStep('storage', {
-              state: 'ok',
-              detail: `root ${packet.rootHash} flow ${packet.txHash} anchor ${anc?.hash ?? ''}`,
-            })
-            setTech((t) => ({
-              ...t,
-              storageRoot: packet.rootHash,
-              flowTx: packet.txHash,
-              anchorTx: anc?.hash ?? '',
-              briefModel: result.briefModel ?? '',
-              briefChatId: result.briefChatId ?? '',
-              briefTee: String(result.briefProcessResponse),
-              subject,
-              buy1: bought[0]?.ogTx ?? '',
-              buy2: bought[1]?.ogTx ?? '',
-              buy3: bought[2]?.ogTx ?? '',
-              remainingUsd: String(result.remainingUsd ?? ''),
-            }))
-            await api.storeReceipt(proofTx, {
+          patchStep('storage', { state: 'wait' })
+          const packet = await api.uploadPacket({
+            till: tokenId.toString(),
+            tx: proofId,
+            model: result.briefModel || ev?.model?.id,
+            tee: result.briefProcessResponse === true || ev?.processResponse === true,
+            brief: result.brief,
+          })
+          const anc = await (await c.vault.anchorPacket(tokenId, packet.rootHash)).wait()
+          const anchor = anc?.hash ?? ''
+          patchStep('storage', {
+            state: 'ok',
+            detail: `root ${packet.rootHash} flow ${packet.txHash} anchor ${anchor}`,
+          })
+          setTech((t) => ({
+            ...t,
+            storageRoot: packet.rootHash,
+            flowTx: packet.txHash,
+            anchorTx: anchor,
+            briefModel: result.briefModel ?? '',
+            briefChatId: result.briefChatId ?? '',
+            briefTee: String(result.briefProcessResponse),
+            subject,
+          }))
+          if (anchor) {
+            await api.storeReceipt(anchor, {
               tokenId: tokenId.toString(),
               digest: result.digest,
-              purchases: bought,
               brief: result.brief,
               family: result.family,
               session: stored.address,
               rail: 'session',
+              chatId: proofId,
             })
-            setLastTx(proofTx)
-            patchStep('proof', { state: 'ok', detail: proofTx })
+            setLastTx(anchor)
+            patchStep('proof', { state: 'ok', detail: anchor })
           } else {
-            patchStep('storage', { state: 'skip', detail: 'Compute-only mission — no x402 hash to anchor yet' })
-            patchStep('proof', { state: 'ok', detail: 'Compute attestation is the proof for this family' })
+            patchStep('proof', { state: 'fail', detail: 'No PacketAnchored hash' })
           }
         } catch (e) {
           patchStep('storage', { state: 'fail', detail: decodeErr(e) })
           patchStep('proof', { state: 'fail', detail: decodeErr(e) })
         }
       })
-      } catch (e) {
-        missionError = e
-        throw e
-      } finally {
-        if (quoteAtomic > 0n) {
-          try {
-            patchStep('sweep', { state: 'wait', detail: 'Sweep leftover USDC.e to owner before any revoke' })
-            const left = asBig(await erc20.balanceOf(stored.address))
-            if (left > 0n) {
-              const w = new Wallet(stored.privateKey, new JsonRpcProvider(RPC_URL))
-              const token = new Contract(USDCE, ['function transfer(address,uint256) returns (bool)'], w)
-              const tx = await token.transfer(address, left)
-              const rec = await tx.wait()
-              patchStep('sweep', { state: 'ok', detail: rec?.hash ?? tx.hash })
-              setTech((t) => ({ ...t, sweepTx: rec?.hash ?? tx.hash }))
-            } else {
-              patchStep('sweep', { state: 'ok', detail: 'Drawer empty' })
-            }
-          } catch (e) {
-            patchStep('sweep', { state: 'fail', detail: decodeErr(e) })
-            if (!missionError) throw new Error(`Sweep failed. Do not revoke yet. ${decodeErr(e)}`)
-          }
-        }
-      }
     })
 
   const sweepDrawer = () =>
@@ -1033,12 +890,13 @@ export function useTill() {
     })
 
   const tryOverBudget = () =>
-    run('Testing over-budget spend', async () => {
-      const res = await api.overBudget(5)
+    run('Testing over-budget 0G', async () => {
+      const cap = maxTxWei > 0n ? maxTxWei : parseEther('0.5')
+      const why = `BLOCKED. Test over-budget spend: requested 5 0G exceeds this Till (available ${formatEther(available)} 0G · policy max ${formatEther(cap)} 0G). 0 0G moved.`
       setLastDenial({
-        amount: `$${res.requestedUsd} USDC.e`,
-        why: res.reason,
-        policy: false,
+        amount: '5 0G',
+        why,
+        policy: true,
         tee: true,
         funds: true,
         kind: 'overbudget',

@@ -1,6 +1,6 @@
 import './env.js'
 export { productionGuards, requireEnv } from './env.js'
-export { fetchCatalog, selectModel, selectForRole, selectPreset } from './catalog.js'
+export { fetchCatalog, selectModel, selectForRole, selectPreset, spendAllowModels } from './catalog.js'
 export type { AutoPreset } from './catalog.js'
 export { evaluateIntent, writeBrief, packTeeAttestation } from './compute.js'
 export { uploadEncryptedPacket, downloadEncryptedPacket } from './storage.js'

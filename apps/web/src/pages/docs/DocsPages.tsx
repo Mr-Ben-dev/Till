@@ -13,7 +13,6 @@ import {
   CREATE_TX,
   EXPLORER,
   GITHUB,
-  HUB_SWAP,
   INTERFACES,
   MCP_URL,
   MISSION_CAP_USD,
@@ -48,7 +47,7 @@ export function DocsOverview() {
     <Page
       kicker="Till"
       title="Give your agents a Till."
-      lede="Bounded money for autonomous agents. Real work on 0G. No owner wallet access."
+      lede="Bounded native 0G for autonomous work. Private compute on 0G. No owner wallet access."
     >
       <div className="docs-cta">
         <CyanButton to="/developers/quickstart">5 minute quickstart</CyanButton>
@@ -58,7 +57,7 @@ export function DocsOverview() {
         <CyanButton to="/developers/mcp" variant="ghost">
           Connect with MCP
         </CyanButton>
-        <CyanButton href={txUrl('0xee6a0c2bab9749c9d425d843b8308016d179067c9f13470d0698fd3bfb51b131')} variant="ghost">
+        <CyanButton href={txUrl(PROOFS.storageAnchor)} variant="ghost">
           View Mainnet proof
         </CyanButton>
       </div>
@@ -72,21 +71,21 @@ export function DocsOverview() {
       <ArchDiagram />
       <h2>Why Till exists</h2>
       <p>
-        An autonomous agent needs money to buy work. The user must never hand it their wallet. A Till is a permissioned
-        spend account on 0G Aristotle ({CHAIN_ID}): you fund it, you set the policy, you authorize a device-local session.
-        The agent can buy approved work. It cannot withdraw, change policy, or spend another Till.
+        An autonomous agent needs a bounded account to finish work. The user must never hand it their wallet. A Till is a
+        permissioned work account on 0G Aristotle ({CHAIN_ID}): you fund it, you set the policy, you authorize a
+        device-local session. The agent can finish allowed work. It cannot withdraw, change policy, or spend another Till.
       </p>
-      <h2>Four mission families</h2>
+      <h2>Work Desk</h2>
       <p>
-        Before You Pay, Before You Trust, Research For Me, and Review This. Compute is the work. x402 is optional
-        procurement. Only a seller HTTP 200 plus Aristotle <code>Transfer.from == session</code> is SETTLED. No live
-        seller currently accepts <code>eip155:16661</code> natively; Herald router dest-settlement of Base SKUs is
-        blocked. Till fail-closes.
+        Investigate, Review, Research, and Compare. Compute is the work. AUTO selects a live TeeML model. x402 is optional
+        external work, not this product. No live seller currently accepts <code>eip155:16661</code> natively; Herald
+        router dest-settlement of Base SKUs is blocked. Till does not fake sellers.
       </p>
       <h2>Money rails</h2>
       <p>
-        TillPolicy controls native 0G in the vault. USDC.e x402 uses a per-mission session drawer and EIP-3009. The APP
-        path never uses the operator key. MCP execute is a labeled operator rail. USDC.e is not TillPolicy-controlled.
+        TillPolicy controls native 0G in the vault. Work Desk Compute tokens are billed to the operator Payment Layer, not
+        TillVault. Session gas pays Storage and PacketAnchored. Optional USDC.e x402 uses a session drawer and EIP-3009
+        and is not TillPolicy-controlled. MCP execute is a labeled operator Compute rail.
       </p>
       <MoneyFlow />
       <h2>Security boundaries</h2>
@@ -97,7 +96,7 @@ export function DocsOverview() {
 
 export function DocsQuickstart() {
   return (
-    <Page kicker="Getting started" title="Quick start" lede="Create a Till, set policy, enable a session, then quote before you spend.">
+    <Page kicker="Getting started" title="Quick start" lede="Create a Till, set policy, enable a session, then start work.">
       <ol className="docs-steps">
         <li>
           <strong>Open the app.</strong> {WEB}. Connect the owner wallet on Aristotle {CHAIN_ID}.
@@ -109,15 +108,14 @@ export function DocsQuickstart() {
           <strong>Write a protection policy</strong> (Conservative, Balanced, or Custom). The UI waits for the receipt.
         </li>
         <li>
-          <strong>Fund</strong> native 0G into the Till. Swap USDC.e on{' '}
-          <a href={HUB_SWAP}>0G Hub</a> if the mission quotes USDC.e.
+          <strong>Fund</strong> native 0G into the Till. Work Desk does not require USDC.e.
         </li>
         <li>
           <strong>Authorize a session</strong> and fund agent gas. The session key stays in this browser.
         </li>
         <li>
-          <strong>Run Before You Pay.</strong> Quote first. Execute only with a READY session if you want no owner
-          signature on the storage proof.
+          <strong>Start work.</strong> Investigate, review, research, or compare. Execute with a READY session if you
+          want no owner signature on the storage proof.
         </li>
       </ol>
       <CopyBlock
@@ -135,7 +133,7 @@ export function DocsCore() {
   return (
     <Page
       kicker="Core concepts"
-      title="Till, policy, session, mission"
+      title="Till, policy, session, work"
       lede="Plain English first. On-chain fields stay expandable in the app."
     >
       <h2>Till</h2>
@@ -145,26 +143,25 @@ export function DocsCore() {
       </p>
       <h2>Protection policy</h2>
       <p>
-        On-chain: max per purchase and rolling cap in native 0G, session expiry, pause. Application: ${MISSION_CAP_USD.toFixed(2)}{' '}
-        USDC.e session-drawer cap (not TillPolicy).
-        USDC.e mission cap for Before You Pay. Allowed services (Safety · Market · Contract) are selected by the agent
-        from live x402 quotes, not stored as an on-chain enum.
+        On-chain: max per task and rolling cap in native 0G, session expiry, pause. Work types are Investigate, Review,
+        Research, and Compare. Optional USDC.e x402 has a ${MISSION_CAP_USD.toFixed(2)} session-drawer application cap
+        (not TillPolicy) and currently has no live Aristotle-payable seller.
       </p>
       <h2>Owner vs autonomous</h2>
       <p>
-        Owner signs connect, mint, fund vault 0G, policy, authorizeUsage, gas, revoke, withdraw, pause, setTillTeeSigner,
-        and funding the session drawer with USDC.e. APP mission payments are EIP-3009 signed by the authorized session EOA.
-        The operator key is never used on that path. MCP <code>till_run_mission</code> is a labeled operator rail.
-        Storage <code>anchorPacket</code> is signed by the device-local session when gas is available.
+        Owner signs connect, mint, fund vault 0G, policy, authorizeUsage, gas, revoke, withdraw, pause, setTillTeeSigner.
+        APP Work Desk Compute uses the operator Payment Layer. Storage <code>anchorPacket</code> is signed by the
+        device-local session when gas is available. MCP <code>till_run_mission</code> is a labeled operator Compute rail
+        and cannot Storage-anchor.
       </p>
       <h2>Grants</h2>
       <p>ERC-7857 authorizeUsage on that Till. Cross-Till isolation is enforced on-chain. MCP uses a JWT grant, not a key.</p>
-      <h2>x402 / Compute / Storage / 8004</h2>
+      <h2>Compute / Storage / 8004 / optional x402</h2>
       <p>
-        Discovery and quote against live sellers. Herald facilitator Exact on 16661 USDC.e works; the Herald router
-        dest-proxy currently blocks SKU 200. Policy TEE {ROLES.fastPolicy} with processResponse. Brief writer{' '}
-        {ROLES.defaultPolicy} TeeML. Encrypted packet on 0G Storage, vault-anchored. ERC-8004 Identity and Reputation are
-        live. Validation Registry is not claimed.
+        Policy TEE {ROLES.fastPolicy} with processResponse. Brief writer {ROLES.defaultPolicy} TeeML. Encrypted packet on
+        0G Storage, vault-anchored. ERC-8004 Identity and Reputation are live. Validation Registry is not claimed.
+        Optional x402: Herald facilitator Exact on 16661 USDC.e works; the Herald router dest-proxy currently blocks SKU
+        200. Not the product.
       </p>
     </Page>
   )
@@ -174,8 +171,8 @@ export function DocsMcp() {
   const till = useOutletContext<TillState>()
   const prompts = [
     { kind: 'READ ONLY', text: 'List my Tills and show their balances, policy status, and session status.' },
-    { kind: 'READ ONLY', text: 'Quote a Before You Pay mission for this contract. Do not spend anything. 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' },
-    { kind: 'SAFE MUTATION', text: 'Run a Before You Pay mission for this contract using the active Till session and stay within the existing policy.' },
+    { kind: 'READ ONLY', text: 'Compile an Investigate job for this contract. Do not spend anything. 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' },
+    { kind: 'SAFE MUTATION', text: 'Run a Review job using the active Till session and stay within the existing policy.' },
     { kind: 'READ ONLY', text: 'Show me the complete proof for the latest mission.' },
     { kind: 'READ ONLY', text: 'Explain exactly why the last transaction was blocked.' },
     { kind: 'HIGH RISK', text: 'Revoke the active autonomous session. If you cannot sign, open the Till agent page instead.' },
@@ -461,7 +458,7 @@ export function DocsSecurity() {
         <li>ERC-8004 Validation Registry is absent on 0G. Identity + Reputation only.</li>
         <li>
           Herald facilitator Exact on 16661 works. The Herald router currently proxies the 16661 PAYMENT-SIGNATURE to Base
-          sellers, which revert. Before You Pay SKU 200 is blocked. Till fail-closes and sweeps. Old operator hashes are
+          sellers, which revert. Optional x402 SKU 200 is blocked. Work Desk does not require it. Old operator hashes are
           not session proof.
         </li>
         <li>MCP cannot upload the session private key, so it cannot Storage-anchor. Revoke is owner-wallet only.</li>

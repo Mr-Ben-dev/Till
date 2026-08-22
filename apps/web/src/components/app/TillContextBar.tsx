@@ -15,7 +15,7 @@ export function TillContextBar({ till }: { till: TillState }) {
     { to: '/till', label: 'Overview', on: path === '/till' },
     { to: '/till/policy', label: 'Policy', on: path === '/till/policy' },
     { to: '/till/agent', label: 'Agent', on: path === '/till/agent' || path === '/agents' },
-    { to: '/till/mission', label: 'Mission', on: path === '/till/mission' },
+    { to: '/till/mission', label: 'Work', on: path === '/till/mission' },
     { to: '/activity', label: 'Activity', on: path === '/activity' },
     { to: '/verify', label: 'Proof', on: path === '/verify' },
   ]

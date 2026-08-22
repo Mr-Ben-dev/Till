@@ -15,35 +15,35 @@ gsap.registerPlugin(ScrollTrigger)
 
 const MARQUEE = [
   'Aristotle 16661',
-  'Two money rails',
-  'Session EIP-3009',
-  'Four mission families',
+  'Bounded Till',
+  'Private compute',
+  'Work Desk',
   '0G Compute',
-  'Private result',
+  'TEE verified',
   'Cannot empty you',
 ]
 
 const WORDS =
-  'Tell your agent what you need done. It buys the work it needs. You get the result. You never hand it your wallet.'
+  'Tell your agent what you need done. Give it a bounded Till. It finishes the work. You get the result and proof.'
 
 const PROOFS = [
   {
-    tag: 'x402',
-    date: '08.20.26',
-    title: 'Herald facilitator Exact on 16661 (operator inbound — not a session SKU 200)',
-    href: 'https://chainscan.0g.ai/tx/0xee6a0c2bab9749c9d425d843b8308016d179067c9f13470d0698fd3bfb51b131',
-  },
-  {
-    tag: 'x402',
+    tag: 'Compute',
     date: '08.22.26',
-    title: 'Herald router dest-settlement of Base sellers is blocked',
-    href: 'https://docs.heraldprotocol.xyz/router/quickstart-x402',
+    title: 'F4 Review This — glm-5.2 processResponse on Aristotle',
+    href: 'https://till-0g.vercel.app/till/mission',
   },
   {
     tag: 'Storage',
     date: '08.20.26',
     title: 'v3 mission packet anchored on Aristotle',
     href: 'https://chainscan.0g.ai/tx/0xefbe1b3d29564f19bed969d4737f9182fd80f30553f80acc09adb5617a0a5415',
+  },
+  {
+    tag: 'Optional x402',
+    date: '08.22.26',
+    title: 'Herald facilitator Exact works; no live 16661 seller — not the product',
+    href: 'https://docs.heraldprotocol.xyz',
   },
 ]
 
@@ -115,13 +115,13 @@ export function HomePage() {
           <h1 data-hero className="hero-h1 mx-auto max-w-[62rem] font-bold text-white">
             Give an agent a Till.
             <br />
-            It can buy the work it needs.
+            It finishes the work.
             <br />
             It cannot empty you.
           </h1>
           <p data-hero className="hero-sub mx-auto mt-4 max-w-[661px] text-white">
-            Tell your agent what you need done. It buys the work it needs. You get the result. You never hand it your
-            wallet.
+            Tell your agent what you need done. Give it a bounded Till. It uses 0G private intelligence to finish the
+            job. You get the result and proof.
           </p>
           <div data-hero className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <CyanButton to="/tills">Open a Till</CyanButton>
@@ -129,7 +129,7 @@ export function HomePage() {
               Developers
             </CyanButton>
             <CyanButton href="#before" variant="ghost">
-              Mission families
+              Work Desk
             </CyanButton>
           </div>
           <figure data-hero className="hero-visual relative mt-6 flex min-h-0 w-full max-w-[1400px] flex-1 flex-col">
@@ -152,30 +152,26 @@ export function HomePage() {
 
         <section id="before" className="bg-paper px-5 py-24 text-ink md:px-10 md:py-32">
           <div className="mx-auto max-w-[1400px]">
-            <p className="font-mono text-[11px] tracking-[0.18em] text-ink/45">Mission Desk</p>
+            <p className="font-mono text-[11px] tracking-[0.18em] text-ink/45">Work Desk</p>
             <h2 className="mt-3 max-w-3xl text-[clamp(2rem,3.4vw,3.15rem)] font-bold leading-[1.08] tracking-tight">
-              Ask for a result. The agent buys facts only when it must.
+              Ask for a result. The agent finishes it inside your policy.
             </h2>
             <p className="mt-4 max-w-[58ch] text-[16px] text-ink/70">
-              Herald facilitator Exact on Aristotle works. No live seller currently accepts eip155:16661, and the Herald
-              router cannot dest-settle Base SKUs. Session APP path fail-closes. Old operator hashes are not session proof.
+              Investigate, review, research, or compare. AUTO picks a live TeeML model. x402 is optional external work
+              — not this product. No live Aristotle-payable seller exists today.
             </p>
             <dl className="mission-strip">
               <div>
                 <dt>Spent</dt>
-                <dd>$0 session SKU</dd>
+                <dd>0 vault 0G</dd>
               </div>
               <div>
                 <dt>Cap</dt>
-                <dd>$0.50</dd>
+                <dd>TillPolicy</dd>
               </div>
               <div>
-                <dt>Checks</dt>
-                <dd>0 live 16661 SKUs</dd>
-              </div>
-              <div>
-                <dt>Verdict</dt>
-                <dd>AVOID</dd>
+                <dt>Work</dt>
+                <dd>Investigate · Review</dd>
               </div>
               <div>
                 <dt>TEE</dt>
@@ -198,13 +194,10 @@ export function HomePage() {
                 </dd>
               </div>
               <div>
-                <dt>x402</dt>
+                <dt>Compute</dt>
                 <dd>
-                  <a
-                    className="text-cyan"
-                    href="https://chainscan.0g.ai/tx/0xee6a0c2bab9749c9d425d843b8308016d179067c9f13470d0698fd3bfb51b131"
-                  >
-                    Facilitator Exact ↗
+                  <a className="text-cyan" href="https://docs.0g.ai/developer-hub/building-on-0g/compute-network/overview">
+                    0G Compute ↗
                   </a>
                 </dd>
               </div>

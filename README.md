@@ -1,8 +1,8 @@
 # Till
 
-**Tell your agent what you need done. It buys the work it needs. You get the result. You never hand it your wallet.**
+**Tell your agent what you need done. Give it a bounded Till. It finishes the work. You get the result and proof.**
 
-A Till is a permissioned spend account on **0G Aristotle (chain ID 16661)**. Native 0G sits in a vault under **TillPolicy**. USDC.e for x402 sits in a **per-mission session drawer** and is spent with **EIP-3009** from the authorized session EOA. The owner never hands over their wallet.
+A Till is a permissioned **agent work account** on **0G Aristotle (chain ID 16661)**. Native 0G sits in a vault under **TillPolicy**. The owner never hands over their wallet.
 
 - App: https://till-0g.vercel.app
 - Docs: https://till-0g.vercel.app/developers
@@ -12,61 +12,74 @@ A Till is a permissioned spend account on **0G Aristotle (chain ID 16661)**. Nat
 - SDK: [`till-0g-sdk@0.1.0`](https://www.npmjs.com/package/till-0g-sdk)
 - MCP stdio: [`till-0g-mcp@0.1.0`](https://www.npmjs.com/package/till-0g-mcp)
 
-No shared operator wallet on the APP path. No mock TEE. No OpenAI/Groq fallback. No DA fake.
+No mock TEE. No OpenAI/Groq fallback. No DA fake. No invented x402 sellers.
 
 ## Why Till
 
-An agent that can finish work needs money: x402 APIs, 0G Compute, storage. Giving it the owner key is how people get emptied.
+An agent that can finish work needs a bounded account: 0G Compute, storage gas, policy. Giving it the owner key is how people get emptied.
 
-Till separates **owner authority** from **session authority**. You mint a Till, set a native-0G protection policy, fund the vault, and authorize a device-local session. The session can prove approved work and sign USDC.e EIP-3009 for the current mission quote. It cannot withdraw vault 0G, change policy, or spend another Till.
+Till separates **owner authority** from **session authority**. You mint a Till, set a native-0G protection policy, fund the vault, and authorize a device-local session. The session finishes allowed work and anchors proof. It cannot withdraw vault 0G, change policy, or spend another Till.
 
-## User journey
+## Product
 
-`REQUEST → COMPILE → PLAN → QUOTE → APPROVE → EXECUTE → RESULT → PROOF`
+Work Desk is the product.
+
+`WHAT DO YOU NEED DONE? → PLAN → POLICY → PRIVATE COMPUTE → TEE → RESULT → STORAGE → PROOF`
 
 The result is primary. Proof is secondary. Hashes are tertiary.
 
-A new Till: CREATE → PROTECT → FUND → ENABLE AGENT → FIRST MISSION. A LIVE Till: Mission ready.
+A new Till: CREATE → PROTECT → FUND → ENABLE AGENT → FIRST WORK. A LIVE Till: Start work.
 
-## Four mission families
+## Four work families
 
-1. **Before You Pay** — token/protocol/contract. **No live Aristotle-payable x402 SKU** as of 2026-08-22 (227 x402-list services scanned; zero `eip155:16661` accepts). Herald facilitator Exact on 16661 works. Herald router dest-settlement of Base sellers does not. Till fail-closes.
-2. **Before You Trust** — public on-chain facts + Compute. Paid wallet-risk SKUs stay quoted until a new settlement tx exists.
-3. **Research For Me** — 0G Compute private brief. x402 optional and only if SETTLED.
-4. **Review This** — Solidity/ABI/diff/on-chain target. AI-assisted review — **not a certified audit**.
+1. **Investigate** — address / token / protocol. Public Aristotle RPC facts + private 0G Compute. Not a paid scanner.
+2. **Review** — Solidity / ABI / diff / contract. AI-assisted — **not a certified audit**.
+3. **Research** — private structured brief. Not a chatbot.
+4. **Compare** — two addresses or artifacts. Differences, not a scoreboard.
+
+Copilot at compile time may ask one clarifying question. It is not a chat product.
+
+## Why 0G
+
+- **0G** is the engine: Till NFT + Policy + Compute TEE attestation + Storage + ERC-7857 + ERC-8004 Identity/Reputation + optional vault Jobs (`TillVerifier`).
+- **Payment Layer** `0xA3b15Bd2aD18BFB6b5f92D8AA9F444Dd59d1cE32` bills **0G Compute tokens for the operator Router key**. That is **not** TillVault. Do not claim “this Till paid Compute” unless a vault `Released` event exists.
+- **Session native 0G** on Work Desk is spent as **Storage gas + PacketAnchored**.
+
+## Optional x402 (not the product)
+
+x402 remains in the codebase under **optional external work**.
+
+- 227 x402-list services scanned (2026-08-22) → **zero** native `eip155:16661` accepts.
+- Herald **facilitator** Exact on 16661 **works**. Operator inbound [`0xee6a0c2b…`](https://chainscan.0g.ai/tx/0xee6a0c2bab9749c9d425d843b8308016d179067c9f13470d0698fd3bfb51b131) is **not** session SKU 200 proof.
+- Herald **router** dest-settlement of Base sellers **does not work**. Till will **not** facilitator-settle then pretend the SKU succeeded.
+- APP session `Transfer.from == session` + seller HTTP 200 is **not live**.
 
 Quoted ≠ settled. Catalog/README/x402-list is not settlement proof.
-
-## Why 0G / why x402 / why the session drawer
-
-- **0G** is the engine: Till NFT + Policy + Compute attestation + Storage + optional vault Work path (`TillVerifier`) for Jobs.
-- **x402** buys specialist facts. Settlement is Aristotle USDC.e via Herald. Seller data may describe Base.
-- **Session drawer** exists because Bridged USDC.e has EIP-3009 and **no EIP-1271**, so a TillVault contract cannot be `Transfer.from`. Herald Exact recovers an EOA. USDC.e is **not** TillPolicy-controlled.
 
 ## Money architecture
 
 | Rail | Asset | Gate | Signer (APP) |
 |---|---|---|---|
 | Vault | native 0G | **On-chain TillPolicy** | owner / session for lock-release Jobs |
-| Session drawer | USDC.e | quote + $0.50 hard max + pause/expiry/revoke **API fail-closed** | **session EOA EIP-3009** |
+| Work Desk Compute | 0G Compute tokens | live TeeML catalog | **operator Payment Layer** (labeled) |
+| Work Desk proof | native 0G gas | READY session | **session EOA** `anchorPacket` |
+| Optional x402 | USDC.e | quote + $0.50 hard max + pause/expiry/revoke **API fail-closed** | **session EOA EIP-3009** (blocked: no 16661 seller) |
 
-APP missions must never use `DEPLOYER_PRIVATE_KEY`. MCP `till_run_mission` is a **labeled operator rail**.
-
-After a mission, leftover USDC.e is swept to the owner **before** revoke. Revoke does not claw back USDC.e.
+APP Work Desk never uses `DEPLOYER_PRIVATE_KEY` for session Storage. MCP `till_run_mission` is a **labeled operator Compute rail** and cannot Storage-anchor.
 
 ## App
 
-Top navigation: **Home · Tills · Activity · Developers**. Context tabs: Overview · Policy · Agent · Mission · Activity · Proof. Jobs/Work are not on the primary Till nav.
+Top navigation: **Home · Tills · Activity · Developers**. Context tabs: Overview · Policy · Agent · Work · Activity · Proof. Jobs are not on the primary Till nav.
 
 | Route | Job |
 |---|---|
 | `/` | Marketing |
-| `/tills` | Your spending accounts |
+| `/tills` | Your work accounts |
 | `/tills/new` | Create wizard |
 | `/till` | Overview |
 | `/till/policy` | Native 0G protection |
 | `/till/agent` | Session |
-| `/till/mission` | Mission Desk |
+| `/till/mission` | Work Desk |
 | `/jobs` | Advanced escrow (hidden from primary nav) |
 | `/activity` | Proof timeline |
 | `/verify` | Paste a tx hash — no wallet |
@@ -74,9 +87,11 @@ Top navigation: **Home · Tills · Activity · Developers**. Context tabs: Overv
 
 ## AUTO models
 
-`GET https://router-api.0g.ai/v1/models` is re-queried. AUTO is not a frozen 29-model list. Spend/security ALLOW requires TeeML + JSON (+ tools). `verifiability=None` models cannot ALLOW spend. No OpenAI/Groq fallback. If the required model disappears, fail closed.
+`GET https://router-api.0g.ai/v1/models` is re-queried via `GET /v1/models/live`. AUTO is not a frozen 29-model list. Spend/security ALLOW requires TeeML + JSON (+ tools). `verifiability=None` models cannot ALLOW. No OpenAI/Groq fallback. If the required model disappears, fail closed.
 
-Presets: AUTO (default), CHEAP, FAST, DEEP, PRIVATE, CUSTOM (CUSTOM blocked for spend unless TeeML+JSON).
+UX: **AUTO first**. Choose model second (CHEAP / FAST / DEEP / PRIVATE from the live catalog). CUSTOM unverified models are blocked for ALLOW.
+
+Presets: AUTO (default), CHEAP, FAST, DEEP, PRIVATE.
 
 0G Compute `processResponse` is **not** the same as `TillVerifier.verifyAllow` (that path is Jobs lock).
 
@@ -85,29 +100,39 @@ flowchart TD
   Owner[Owner wallet] --> Till[Till NFT + Vault]
   Till --> Policy[TillPolicy native 0G]
   Till --> Session[Session EOA]
-  Session --> Drawer[USDC.e drawer]
-  Policy --> Compute[0G Compute]
-  Drawer --> Herald[Herald EIP-3009]
+  Policy --> Compute[0G Compute TEE]
   Compute --> Result[Private result]
-  Herald --> Result
-  Result --> Storage[0G Storage]
-  Storage --> Proof[Vault anchor + Verify]
+  Session --> Storage[0G Storage + PacketAnchored]
+  Result --> Storage
+  Storage --> Proof[Verify]
 ```
 
-Owner signs: connect, mint, fund vault 0G, policy, authorize, gas, revoke, withdraw, pause, `setTillTeeSigner`, fund session USDC.e.
+Owner signs: connect, mint, fund vault 0G, policy, authorize, gas, revoke, withdraw, pause, `setTillTeeSigner`.
 
-APP x402: session EOA signs EIP-3009. ChainScan `USDC.e Transfer.from` must equal the session. Operator key is never used on that path.
+APP Work Desk: session EOA signs Storage/anchor only. No MetaMask during READY autonomous work. Compute tokens bill the operator Payment Layer.
 
-MCP `till_run_mission` is operator-signed and labeled. It is not the APP session rail.
+MCP `till_run_mission` is operator Compute and labeled. It is not the APP session rail.
+
+## Privacy (claimed only where true)
+
+| What | Where it goes |
+|---|---|
+| Request text / pasted artifact | Till API, then 0G Router model |
+| Public `0x` facts | Aristotle RPC (public) |
+| Model output | Encrypted 0G Storage packet (backend holds AES key today) |
+| On-chain | Storage root + PacketAnchored digest. Not the full brief |
+| External sellers | **Not** called on Work Desk |
+
+Prompts are **not** “never leave the browser.” TEE `processResponse` is claimed only when the Router returns it.
 
 ## Security model
 
 | Actor | Can | Cannot |
 |---|---|---|
-| Owner | Mint, fund 0G, policy, authorize, revoke, withdraw, pause, fund/sweep drawer | Be impersonated by MCP |
-| Session | EIP-3009 for the current quote; `anchorPacket` when gas &gt; 0 | Withdraw vault 0G, set policy, spend another Till |
-| MCP JWT | Read / quote; execute only as labeled operator rail | Receive any private key |
-| Backend APP settle | Forward session PAYMENT-SIGNATURE | Sign APP USDC.e with deployer |
+| Owner | Mint, fund 0G, policy, authorize, revoke, withdraw, pause | Be impersonated by MCP |
+| Session | `anchorPacket` when gas &gt; 0; optional EIP-3009 if a real 16661 SKU exists | Withdraw vault 0G, set policy, spend another Till |
+| MCP JWT | Read / compile; execute only as labeled operator Compute | Receive any private key; Storage-anchor |
+| Backend APP | Forward Compute; never owner key | Pretend Payment Layer = TillVault |
 
 Cross-Till isolation is on-chain. Pause and expiry stop spend. Revoke is an owner signature in the app. MCP `till_revoke_session` does not sign; it returns `/till/agent`.
 
@@ -116,28 +141,14 @@ Cross-Till isolation is on-chain. Pause and expiry stop spend. Revoke is an owne
 | Piece | What | Why | Live evidence |
 |---|---|---|---|
 | Aristotle 16661 | Execution chain | Production must be Mainnet | [`GET /health`](https://till-api.onrender.com/health) `{chainId:"16661",simulate:false}` |
-| Compute | Router catalog, Payment Layer | Private policy + brief | 29 models · fast=`glm-5.2` · default=`0gm-1.0-35b-a3b` |
-| TEE | `processResponse` bind | Digest must match TillVerifier | Recorded glm-5.2 TeeML |
+| Compute | Router catalog, Payment Layer | Private policy + brief | Live catalog via `/v1/models/live` · AUTO spend role TeeML+JSON (`glm-5.2` as of 2026-08-22) |
+| TEE | `processResponse` bind | Digest must match | Recorded glm-5.2 TeeML |
 | Storage | Encrypted packet + Flow | Durable evidence | [flow](https://chainscan.0g.ai/tx/0x4ea0b7938003b35dfa13f4865289da130a36686ae6f56acebcbd8939d05bccd0) · [anchor](https://chainscan.0g.ai/tx/0xefbe1b3d29564f19bed969d4737f9182fd80f30553f80acc09adb5617a0a5415) |
 | ERC-7857 | `authorizeUsage` | Grant without shipping a key | IERC721 / IERC7857 / Authorize / Cloneable **true** on the NFT |
 | ERC-8004 | Identity + Reputation | Agent identity, feedback | [register](https://chainscan.0g.ai/tx/0x6446a6c24a28b23088ef36d92309a3aefbe58b7264da88ae691cb374358ff33a) |
-| x402 | Discovery + quote. Inbound Exact on 16661 via Herald **facilitator** | Buy work under a session EIP-3009 | Facilitator `/settle` [tx](https://chainscan.0g.ai/tx/0xee6a0c2bab9749c9d425d843b8308016d179067c9f13470d0698fd3bfb51b131) (operator inbound 0.003 USDC.e, **not** session proof). **Herald router dest-proxy currently fails** — SKU 200 is blocked. |
+| Optional x402 | Discovery only until a 16661 seller 200 exists | External work | Facilitator Exact [tx](https://chainscan.0g.ai/tx/0xee6a0c2bab9749c9d425d843b8308016d179067c9f13470d0698fd3bfb51b131) (operator inbound, **not** session proof). Router dest-proxy **blocked**. |
 
-Payment Layer `0xA3b15Bd2aD18BFB6b5f92D8AA9F444Dd59d1cE32` bills **Compute only**. It does not hold Till user funds.
-
-## x402
-
-Live sellers are quoted at run time. Unavailable sellers stay **UNAVAILABLE** (not faked). Settlement asset is **USDC.e** on 16661 (`0x1f3aa82227281ca364bfb3d253b0f1af1da6473e`).
-
-Herald **facilitator** `POST /verify` + `POST /settle` on `eip155:16661` Exact **works** (EIP-3009 `transferWithAuthorization`, gas payer `0x686C…`, `Transfer.to` = Herald payTo).
-
-Herald **cross-chain router** `https://router.heraldprotocol.xyz/route/x402` currently **proxies the 16661 `PAYMENT-SIGNATURE` to the destination seller**. Base sellers (AgentToll, etc.) try to settle that signature as Base USDC and revert. wrapFetch therefore returns HTTP 402 with dest-native `eip155:8453` accepts. Till **fail-closes and sweeps** the session drawer. Till will **not** call facilitator `/settle` and then pretend the SKU succeeded — that would move USDC.e to Herald with no seller 200.
-
-APP session `Transfer.from == session` + SKU 200 is **not live** until Herald fixes dest-proxy. Old operator hashes are not session proof.
-
-Swap USDC.e: https://hub.0g.ai/swap?network=mainnet
-
-Foreign-network 402s (e.g. Base USDC as the intended rail) are skipped.
+Payment Layer bills **Compute only**. It does not hold Till user funds.
 
 ## MCP
 
@@ -169,7 +180,7 @@ claude mcp add --transport stdio till --env TILL_ACCESS_TOKEN=YOUR_TOKEN -- npx 
 
 Tools: `till_list` `till_get` `till_get_policy` `till_create_mission` `till_quote_mission` `till_run_mission` `till_get_mission` `till_get_activity` `till_get_proof` `till_get_session` `till_revoke_session`
 
-`till_run_mission` requires scope `till.mission.execute`. It is the **operator rail** (not the browser session). MCP never receives a session private key, so it cannot Storage-anchor. `till_review` and `till_get_result` are also available.
+`till_run_mission` requires scope `till.mission.execute`. It is the **operator Compute rail** (not the browser session). MCP never receives a session private key, so it cannot Storage-anchor. `till_review` and `till_get_result` are also available.
 
 Default scopes: `till.read` `till.policy.read` `till.mission.create` `till.activity.read` `till.proof.read` `till.session.read`. Optional execute: `till.mission.execute`. High-risk, not silent: `till.policy.write` `till.session.revoke` `till.withdraw`.
 
@@ -187,7 +198,7 @@ const till = createClient({
 })
 await till.listTills()
 await till.getPolicy()
-await till.quoteMission('Should I deposit into this protocol? 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913')
+await till.quoteMission('Investigate this contract. 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913')
 await till.getSession()
 ```
 
@@ -217,45 +228,46 @@ Live `supportsInterface` on TillAgentNFT (Foundation IDs, not stale Till IDs):
 
 JSON: `packages/contracts/deployments/16661.json`
 
-## Proofs (selected, 2026-08-20 v3)
+No contract change in this product pivot. v3 already supports Work Desk.
+
+## Proofs (selected)
 
 | Event | Tx |
 |---|---|
 | Till #2 mint | [`0x02b13836…`](https://chainscan.0g.ai/tx/0x02b138362ded4b4930a55c3ab96eee9521b0eec009c90824cb0beb22326472d6) |
 | Fund 0.02 0G | [`0x8fb641a8…`](https://chainscan.0g.ai/tx/0x8fb641a85bdfe99a222399fbe25843c0bbdd2ad69b8f3063428997aabe3073d5) |
-| Herald facilitator Exact (operator inbound 0.003, **not** session SKU 200) | [`0xee6a0c2b…`](https://chainscan.0g.ai/tx/0xee6a0c2bab9749c9d425d843b8308016d179067c9f13470d0698fd3bfb51b131) |
-| AgentToll / api402x / token-risk (operator coincidence, not session proof) | [`0x58731e43…`](https://chainscan.0g.ai/tx/0x58731e432ae12ba2ed3d428fe834d40c28c838cf599ea87aa254d4091b1a37a1) · [`0x3994a707…`](https://chainscan.0g.ai/tx/0x3994a707a4c370a45fa98f39261c3ce1560af62656b45eda4ec64959b52315e3) · [`0x637d9ca7…`](https://chainscan.0g.ai/tx/0x637d9ca7d4ecf39bb256ee0aae0d62be9ea4cb4e4ca857499e9e3da916c4679f) |
 | Storage flow | [`0x4ea0b793…`](https://chainscan.0g.ai/tx/0x4ea0b7938003b35dfa13f4865289da130a36686ae6f56acebcbd8939d05bccd0) |
 | Vault anchor | [`0xefbe1b3d…`](https://chainscan.0g.ai/tx/0xefbe1b3d29564f19bed969d4737f9182fd80f30553f80acc09adb5617a0a5415) |
 | Session-key anchor | [`0x3ed197be…`](https://chainscan.0g.ai/tx/0x3ed197be21fd587954821f1e36c9387e53833e9108ab2ec0ebcca3a7c0380fd1) |
+| Herald facilitator Exact (operator inbound 0.003, **not** session SKU 200) | [`0xee6a0c2b…`](https://chainscan.0g.ai/tx/0xee6a0c2bab9749c9d425d843b8308016d179067c9f13470d0698fd3bfb51b131) |
 
-Over-budget $5 vs $0.50: **BLOCKED, $0 spent**. `/verify` reconstructs USDC.e and optional session cache. Job settle / refund proofs: [settle](https://chainscan.0g.ai/tx/0x50b1052fb6aa6b133d013f631f584867a6d14fdc685bc789f9ff9ba84666bbdc) · [refund](https://chainscan.0g.ai/tx/0x3695d0ffb906e4c3d82bd3a610276ba738bfca214113ce6b1f2b1117c6e60bad).
+Over-budget 5 0G vs policy: **BLOCKED, 0 moved**. `/verify` reconstructs the storage packet from the anchor tx. Job settle / refund proofs: [settle](https://chainscan.0g.ai/tx/0x50b1052fb6aa6b133d013f631f584867a6d14fdc685bc789f9ff9ba84666bbdc) · [refund](https://chainscan.0g.ai/tx/0x3695d0ffb906e4c3d82bd3a610276ba738bfca214113ce6b1f2b1117c6e60bad).
 
 ## Tests
 
-This session (2026-08-22 execution pass):
+This session (2026-08-22 Work Desk pivot, local):
 
-- Foundry **69/69** (unit + fuzz 256 + invariant 64×1280 + reentrancy) via `%USERPROFILE%\.foundry\bin\forge.exe`
-- API unit: compiler + mcp-auth + x402Herald.resource **10/10**
+- Foundry **69/69** (unit + fuzz 256 + invariant 64×1280 + reentrancy)
+- API unit: compiler + mcp-auth + x402Herald.resource **13/13**
 - `web:build` **PASS**
-- Chrome: Till switch, policy/agent/activity/verify/jobs/over-budget/home/deep-link ran on production. Policy edit / revoke / F1 seller 200 were not claimed.
-- MCP HTTP: 19/20 tool/auth cases (`till_get_proof` wrapper returned empty in the probe). Token created in the real UI.
-- SDK: fresh `npm install till-0g-sdk till-0g-mcp` in a temp directory. Imports, `createClient`, empty-token and private-key rejection **PASS**. npm `0.1.0` matches `packages/client`.
 
-Playwright production browser E2E and a new session-signed USDC.e ChainScan `from==session` hash are **not** claimed in this README until they are actually run after deploy.
+Production Chrome Work Desk (Investigate + Review + over-budget 5 0G + no MetaMask on READY Start) is recorded only after this SHA is live on Vercel + Render.
+
+F1 x402 session settlement remains **FAIL / NO-GO**. That is acceptable. Work Desk does not require it.
 
 ## Limitations
 
-- **USDC.e is not TillPolicy.** Session drawer + EIP-3009 + APP refuse. Maximum loss if the session key is stolen during a mission is leftover drawer USDC.e (target: one quote) plus session gas.
+- **Payment Layer ≠ TillVault.** Compute tokens are operator-billed. Session gas is the user-visible native 0G spend on Work Desk.
+- **x402 is optional and currently unavailable** for Aristotle-payable SKUs. F1 session settlement remains FAIL / NO-GO.
 - **Recorded 2026-08-20 x402 txs** (`0x58731e43…`, `0x3994a707…`, `0x637d9ca7…`) were paid from `0x220f…` (operator coincidence). Do not treat them as session-drawer proof.
-- **Quoted SKUs** (OnchainPulse, klymax holders, extra AgentToll routes) are not production-executable until a new settlement tx + regression test.
 - **DA** — DAEntrance has no code on 16661. Not used. Not faked.
 - **Foundation sealed iTransfer / AgenticID attestor** — not claimed. `iTransferFrom` reverts on Till.
 - **ERC-8004 Validation Registry** — not deployed on 0G.
 - **Render receipt file** — durable JSON on disk. Without a persistent disk, a Render dyno restart can drop in-API receipts; on-chain txs remain. `/verify` still reads Aristotle.
 - **OAuth DCR** — in-memory on Render; use a signed token from `/developers/mcp` after a dyno restart.
 - **MetaMask** — Blockaid currently BLOCKs `till-0g.vercel.app`. Confirm the URL. Custom domain is the durable fix.
-- Missions are **not** “on-chain TEE.” Compute attestation is `processResponse`. TillVerifier Work is the Jobs path.
+- Work is **not** “on-chain TEE.” Compute attestation is `processResponse`. TillVerifier Work is the Jobs path.
+- Review is **not** a certified audit.
 
 Galileo 16602 is rehearsal only.
 

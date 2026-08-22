@@ -2,13 +2,11 @@ import type { PipelineStep } from '../../hooks/useTill'
 import { txUrl } from '../../lib/chain'
 
 const NODES = [
-  { key: 'plan', title: 'Mission', body: 'What you are about to pay for' },
-  { key: 'budget', title: 'Till Policy', body: 'Spend checked against this Till' },
+  { key: 'plan', title: 'Work', body: 'What you asked for' },
+  { key: 'budget', title: 'Till Policy', body: 'Native 0G bounds' },
   { key: 'tee', title: '0G Compute', body: 'Private model selected' },
   { key: 'tee2', title: 'TEE', body: 'Decision verified in hardware', from: 'tee' },
-  { key: 'buy1', title: 'x402', body: 'Paid intel on Herald' },
-  { key: 'buy2', title: 'External Services', body: 'Safety · Market · Contract' },
-  { key: 'result', title: 'Private Analysis', body: 'BUY / HOLD / AVOID' },
+  { key: 'result', title: 'Private result', body: 'Read this first' },
   { key: 'storage', title: '0G Storage', body: 'Evidence anchored' },
   { key: 'proof', title: 'Proof', body: 'Receipt on Aristotle' },
 ] as const
@@ -36,10 +34,8 @@ export function OgRail({
           n.key === 'storage'
             ? tech?.anchorTx || tech?.flowTx
             : n.key === 'proof'
-              ? tech?.buy1
-              : n.key === 'buy1'
-                ? tech?.buy1
-                : ''
+              ? tech?.anchorTx
+              : ''
         return (
           <li key={n.key} className={`og-pipe__node is-${st}`}>
             <span className="og-pipe__pulse" aria-hidden />

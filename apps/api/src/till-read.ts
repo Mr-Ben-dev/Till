@@ -79,8 +79,8 @@ export async function getPolicy(owner: string, tokenId: string) {
     maximumPerPurchase0G: till.maxPerPurchase0G,
     rollingCap0G: till.rollingCap0G,
     missionBudgetUsd: Number(process.env.TILL_USDCE_MAX_ATOMIC ?? '500000') / 1e6,
-    allowedServices: ['Safety', 'Market', 'Contract — SETTLED only'],
-    allowedAssets: ['USDC.e session drawer (x402)', '0G (Till vault)'],
+    allowedServices: ['Investigate', 'Review', 'Research', 'Compare'],
+    allowedAssets: ['0G (Till vault + session gas)', '0G Compute (operator Payment Layer)', 'USDC.e session drawer (optional x402)'],
     sessionExpiresAt: exp,
     sessionExpiresIso: exp ? new Date(exp * 1000).toISOString() : null,
     paused: till.paused,
@@ -89,7 +89,7 @@ export async function getPolicy(owner: string, tokenId: string) {
       contract: addrs().policy,
       explorer: `${OG_EXPLORER_URL}/address/${addrs().policy}`,
     },
-    note: '0G vault caps are native 0G on TillPolicy. USDC.e missions use a per-mission session drawer (EIP-3009) with a $0.50 application cap. That drawer is not TillPolicy.',
+    note: '0G vault caps are native 0G on TillPolicy. Work Desk Compute tokens are billed to the operator Payment Layer, not TillVault. Optional USDC.e x402 uses a session drawer that is not TillPolicy.',
   }
 }
 
@@ -111,7 +111,7 @@ export async function getSession(owner: string, tokenId: string) {
     gas0G: ethers.formatEther(gas),
     scope: 'This Till only',
     expiresAt: till.sessionExpiresAt,
-    note: 'The session private key never leaves the owner device. APP USDC.e payments are EIP-3009 from this session. MCP execute is a labeled operator rail and does not use the session key.',
+    note: 'The session private key never leaves the owner device. Work Desk Storage/anchor is signed by this session. MCP execute is a labeled operator Compute rail and does not use the session key.',
     enableUrl: `${process.env.TILL_WEB_PUBLIC_URL || 'https://till-0g.vercel.app'}/agents`,
   }
 }

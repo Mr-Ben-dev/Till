@@ -60,20 +60,20 @@ export function PolicyPanel({
           <dd>{till.hasPolicy ? fmt0g(till.maxTxWei) : 'not set'}</dd>
         </div>
         <div className="surf-inner">
-          <dt>Session drawer max (USDC.e)</dt>
-          <dd>${till.missionCapUsd.toFixed(2)} application cap — not TillPolicy</dd>
+          <dt>Optional USDC.e drawer</dt>
+          <dd>${till.missionCapUsd.toFixed(2)} application cap — not TillPolicy · not Work Desk</dd>
         </div>
         <div className="surf-inner">
           <dt>Rolling spend</dt>
           <dd>{till.hasPolicy ? fmt0g(till.windowBudgetWei) : 'not set'}</dd>
         </div>
         <div className="surf-inner">
-          <dt>Allowed services</dt>
-          <dd>Safety, Market, Contract</dd>
+          <dt>Allowed work</dt>
+          <dd>Investigate · Review · Research · Compare</dd>
         </div>
         <div className="surf-inner">
           <dt>Payment assets</dt>
-          <dd>USDC.e · 0G</dd>
+          <dd>Native 0G (vault) · Compute billed on Payment Layer</dd>
         </div>
         <div className="surf-inner">
           <dt>Session</dt>
@@ -163,8 +163,8 @@ export function PolicyPanel({
           )}
           {step === 1 && (
             <div className="mt-5">
-              <p className="text-[15px] text-white/80">This Till may buy Safety, Market, and Contract checks.</p>
-              <p className="mt-2 text-[14px] text-white/55">The agent picks live x402 quotes. It cannot pay an unlisted seller.</p>
+              <p className="text-[15px] text-white/80">This Till may run Investigate, Review, Research, and Compare work.</p>
+              <p className="mt-2 text-[14px] text-white/55">Work uses 0G Compute. Optional external x402 is not this product and currently has no Aristotle-payable seller.</p>
             </div>
           )}
           {step === 2 && (
@@ -193,7 +193,7 @@ export function PolicyPanel({
               <details className="mt-4 text-[13px] text-white/50">
                 <summary className="cursor-pointer text-white/70">Technical values</summary>
                 <p className="mt-2 font-mono text-[12px]">
-                  maxSpendPerTx {max} · rollingWindowBudget {window} · sessionDays {sessionDays} · allowlist Safety/Market/Contract · assets USDC.e + 0G
+                  maxSpendPerTx {max} · rollingWindowBudget {window} · sessionDays {sessionDays} · work Investigate/Review/Research/Compare · native 0G
                 </p>
               </details>
             </div>
@@ -226,7 +226,7 @@ export function PolicyPanel({
         </div>
       ) : null}
       <a className="mt-4 inline-block text-[13px] text-cyan" href={HUB_SWAP} target="_blank" rel="noreferrer">
-        Get USDC.e on 0G Hub
+        Get 0G on 0G Hub
       </a>
     </section>
   )

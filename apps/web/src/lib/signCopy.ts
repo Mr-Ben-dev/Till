@@ -22,6 +22,6 @@ export function ownerWhy(write: string) {
 }
 
 export function autoWhy(write: string) {
-  if (write === 'mission') return 'The authorized session EOA signs EIP-3009 for this mission. MetaMask does not sign the USDC.e payment. Operator key is never used on the APP path.'
+  if (write === 'mission') return 'The authorized session finishes this work. MetaMask does not open. 0G Compute uses the operator Payment Layer. Session pays Storage gas only.'
   return 'Approved work runs on the device-local session. MetaMask will not open.'
 }

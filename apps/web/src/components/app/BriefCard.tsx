@@ -17,7 +17,6 @@ export function BriefCard({
   brief,
   model,
   trust,
-  spentUsd,
   remainingUsd,
   sources,
   tee,
@@ -56,10 +55,11 @@ export function BriefCard({
         </section>
         <section className="grid gap-3 text-[14px] text-white/75">
           <p>
-            <span className="text-muted">Evidence</span> {sources?.length ?? 0} independent paid checks
+            <span className="text-muted">Evidence</span>{' '}
+            {sources?.length ? `${sources.length} paid checks` : 'Public Aristotle RPC + private Compute'}
           </p>
           <p>
-            <span className="text-muted">Cost</span> ${ (spentUsd ?? 0).toFixed(3) }
+            <span className="text-muted">Cost</span> native 0G Compute (Payment Layer operator) · vault not debited for tokens
           </p>
           {remainingUsd != null && (
             <p>

@@ -2,44 +2,33 @@ export const CHECKS = [
   {
     id: 'safety',
     title: 'Safety',
-    body: 'Honeypot · taxes · admin controls',
-    seller: 'AgentToll',
-    sku: 'base-safety',
-    price: '$0.003',
-  },
-  {
-    id: 'market',
-    title: 'Market',
-    body: 'Price · oracle freshness · liquidity signals',
-    seller: 'api402x',
-    sku: 'oracle-staleness',
-    price: '$0.003',
-  },
-  {
-    id: 'contract',
-    title: 'Contract',
-    body: 'Mint · pause · blacklist · upgradeability',
-    seller: 'token-risk',
-    sku: 'bytecode-scan',
-    price: '$0.010',
+    body: 'Public on-chain facts plus private Compute',
+    seller: 'Aristotle RPC',
+    sku: 'investigate',
+    price: 'Compute',
   },
 ] as const
 
 export const USES = [
   {
-    label: 'Before You Pay',
-    body: 'Safety, oracle freshness, and contract risk before you send funds.',
-    value: 'Should I deposit into this protocol? 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    label: 'Investigate',
+    body: 'Private on-chain investigation of an address, token, or protocol.',
+    value: 'Investigate this contract. 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
   },
   {
-    label: 'Before You Trust',
-    body: 'Public on-chain facts before you grant authority. Paid SKUs only when SETTLED.',
-    value: 'Should I trust this address? 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    label: 'Review',
+    body: 'AI-assisted Solidity/ABI review. Not a certified audit.',
+    value: 'Review this Solidity. pragma solidity ^0.8.20; contract NaiveVault { mapping(address => uint256) public deposits; function deposit() external payable { deposits[msg.sender] += msg.value; } function rescue() external { payable(msg.sender).transfer(address(this).balance); } }',
   },
   {
-    label: 'Research For Me',
+    label: 'Research',
     body: 'A private structured brief from 0G Compute. Not a chatbot.',
-    value: 'Research this protocol for me. 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    value: 'Research the Till vault design on 0G Aristotle for me.',
+  },
+  {
+    label: 'Compare',
+    body: 'Two addresses. Differences, not a scoreboard.',
+    value: 'Compare 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 and 0x220f5CeDDB65FD7b9D228c9495639Af58e61d1d7',
   },
 ] as const
 
@@ -50,8 +39,5 @@ export function humanCheck(seller: string, sku: string) {
     (c) => c.seller.toLowerCase() === seller.toLowerCase() || sku.toLowerCase().includes(c.sku.split('-')[0]!),
   )
   if (hit) return { title: hit.title, body: hit.body, provider: hit.seller }
-  if (/toll|safety|honeypot|tax/i.test(seller + sku)) return { title: 'Token Safety', body: 'Honeypot / tax / owner checks', provider: seller }
-  if (/oracle|api402|price|pyth/i.test(seller + sku)) return { title: 'Market Check', body: 'Oracle freshness / price reliability', provider: seller }
-  if (/token-risk|bytecode|upgrade/i.test(seller + sku)) return { title: 'Contract Risk', body: 'Mint / pause / blacklist / upgradeability', provider: seller }
   return { title: seller, body: sku, provider: seller }
 }

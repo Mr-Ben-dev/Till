@@ -93,6 +93,12 @@ export function selectModel(
   return candidates[0]
 }
 
+export function spendAllowModels(catalog: Catalog): CatalogModel[] {
+  return catalog.data.filter(
+    (m) => (m.type === 'chatbot' || !m.type) && isTextChat(m) && isTeeML(m) && hasJson(m),
+  )
+}
+
 export async function selectForRole(role: Role): Promise<CatalogModel> {
   const catalog = await fetchCatalog()
   const preferred =

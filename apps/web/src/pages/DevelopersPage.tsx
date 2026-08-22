@@ -20,10 +20,10 @@ function cursorDeepLink() {
 
 const PROMPTS = [
   { kind: 'READ', text: 'List my Tills and show which one has an active autonomous session.' },
-  { kind: 'SAFE', text: 'Quote a Before You Pay mission for 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913. Do not execute anything.' },
-  { kind: 'MUTATING', text: 'Run a Before You Pay mission for this contract and stay under the Till budget. Only if autonomous execution is enabled.' },
-  { kind: 'READ', text: 'Show me why a $5 purchase would be blocked.' },
-  { kind: 'READ', text: 'Show me the complete proof path for the latest mission, including ChainScan links.' },
+  { kind: 'SAFE', text: 'Compile an Investigate job for 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913. Do not execute anything.' },
+  { kind: 'MUTATING', text: 'Run a Review mission for the pasted Solidity and stay under the Till policy. Only if autonomous execution is enabled.' },
+  { kind: 'READ', text: 'Show me why a 5 0G spend would be blocked.' },
+  { kind: 'READ', text: 'Show me the complete proof path for the latest work, including ChainScan links.' },
   { kind: 'MUTATING', text: 'Revoke the active autonomous session. If you cannot sign, open the Till agents page instead.' },
 ]
 

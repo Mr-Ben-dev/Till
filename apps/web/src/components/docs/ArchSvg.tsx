@@ -5,8 +5,6 @@ const ARCH = [
   'SESSION',
   'AGENT',
   '0G COMPUTE / TEE',
-  'x402',
-  'EXTERNAL SERVICES',
   'RESULT',
   '0G STORAGE',
   'PROOF',
@@ -23,14 +21,13 @@ const AUTON = [
 ]
 
 const MISSION = [
-  'Mission',
-  'Planning',
-  'Service discovery',
-  'Budget quote',
-  'TEE approval',
-  'x402 purchases',
-  'Private synthesis',
-  'Verdict',
+  'Work request',
+  'Plan',
+  'Policy check',
+  'Private compute',
+  'TEE verified',
+  'Result',
+  'Storage',
   'Proof',
 ]
 
@@ -64,7 +61,7 @@ export function ArchDiagram() {
     <div className="arch-grid">
       <Column title="Architecture" nodes={ARCH} pulse />
       <Column title="Autonomous execution" nodes={AUTON} />
-      <Column title="Before You Pay" nodes={MISSION} />
+      <Column title="Work Desk" nodes={MISSION} />
     </div>
   )
 }
@@ -84,7 +81,7 @@ export function MoneyFlow() {
       <line className="arch-line" x1="336" y1="74" x2="384" y2="74" />
       <rect className="arch-node" x="384" y="52" width="160" height="44" rx="4.27" />
       <text x="464" y="79" textAnchor="middle">
-        x402 service
+        0G Compute
       </text>
       <rect className="arch-forbid" x="196" y="116" width="248" height="32" rx="4.27" />
       <text x="320" y="137" textAnchor="middle">
@@ -98,8 +95,8 @@ export function Boundaries() {
   const zones = [
     { t: 'Owner', d: 'Mint, fund, policy, authorize, revoke, withdraw' },
     { t: 'Session', d: 'Anchor proof. Cannot withdraw or change policy' },
-    { t: 'MCP', d: 'Scoped JWT. No keys. Execute only if READY' },
-    { t: 'Backend', d: 'Herald USDC.e rail. Compute billing. Never owner key' },
+    { t: 'MCP', d: 'Scoped JWT. No keys. Execute is operator Compute, not session Storage' },
+    { t: 'Backend', d: '0G Compute billing on Payment Layer. Never owner key' },
   ]
   return (
     <ul className="bound-grid">

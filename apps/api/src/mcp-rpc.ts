@@ -17,11 +17,11 @@ const TOOLS = [
   { name: 'till_list', description: 'List Tills owned by the authenticated wallet.', scopes: ['till.read'] },
   { name: 'till_get', description: 'Get one Till: balance, policy summary, session status.', scopes: ['till.read'] },
   { name: 'till_get_policy', description: 'Read the protection policy in plain English plus on-chain fields.', scopes: ['till.policy.read'] },
-  { name: 'till_create_mission', description: 'Draft a Before You Pay mission from a token/contract/protocol string. Does not pay.', scopes: ['till.mission.create'] },
-  { name: 'till_quote_mission', description: 'Compile and quote a mission. Does not execute. Does not pay.', scopes: ['till.mission.create'] },
-  { name: 'till_run_mission', description: 'Execute a mission. OPERATOR RAIL: uses the API operator signer for USDC.e, not the browser session. Labeled. Never uses an owner private key. Never accepts a session private key.', scopes: ['till.mission.execute'] },
+  { name: 'till_create_mission', description: 'Draft a Work Desk job (investigate / review / research / compare). Does not execute. Does not pay.', scopes: ['till.mission.create'] },
+  { name: 'till_quote_mission', description: 'Compile a Work Desk job and return the plan. Does not execute. Does not pay.', scopes: ['till.mission.create'] },
+  { name: 'till_run_mission', description: 'Execute a Work Desk job. OPERATOR RAIL: uses the API operator for 0G Compute (Payment Layer). Not the browser session. Cannot Storage-anchor. Never uses an owner private key. Never accepts a session private key.', scopes: ['till.mission.execute'] },
   { name: 'till_get_result', description: 'Return stored mission receipt by tx hash if the API persisted it.', scopes: ['till.proof.read'] },
-  { name: 'till_review', description: 'Compile a Review This mission. Does not pay unless a SETTLED bytecode SKU is quoted later.', scopes: ['till.mission.create'] },
+  { name: 'till_review', description: 'Compile a Review job. AI-assisted — not a certified audit. Does not execute unless till_run_mission is called.', scopes: ['till.mission.create'] },
   { name: 'till_get_mission', description: 'Return the last mission payload passed in, or re-quote.', scopes: ['till.proof.read'] },
   { name: 'till_get_activity', description: 'Show Till status and how to open on-chain activity.', scopes: ['till.activity.read'] },
   { name: 'till_get_proof', description: 'Explain how to verify a transaction hash on Aristotle. Pass tx.', scopes: ['till.proof.read'] },
@@ -109,7 +109,7 @@ async function callTool(auth: Auth, name: string, params: unknown) {
       return {
         ...result,
         signerLabel:
-          'OPERATOR RAIL. MCP execute uses the configured operator signer for USDC.e EIP-3009. It does not use the browser session key. APP missions must use the session EOA.',
+          'OPERATOR RAIL. MCP execute uses the configured operator for 0G Compute (Payment Layer). It does not use the browser session key. APP work Storage-anchors with the session EOA.',
         storage: {
           anchored: false,
           reason: 'MCP never holds the session private key. Storage proof is anchored in the Till app by the device-local session.',

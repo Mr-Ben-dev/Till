@@ -9,6 +9,7 @@ import {
   revokeGrant,
   selectForRole,
   selectPreset,
+  spendAllowModels,
   uploadEncryptedPacket,
   writeBrief,
 } from '@till/sdk'
@@ -79,9 +80,15 @@ app.get('/v1/public-config', async () => ({
   verifier: process.env.TILL_VERIFIER,
   vault: process.env.TILL_VAULT,
   escrow: process.env.TILL_JOB_ESCROW,
+  workDesk: {
+    families: ['investigate', 'review', 'research', 'compare'],
+    money: 'native-0G Compute via Payment Layer (operator). TillVault not debited for tokens.',
+  },
   x402: {
+    optional: true,
     rail: 'herald',
-    resource: 'herald://before-you-pay',
+    status: 'no live eip155:16661 seller; Herald router dest-settlement blocked',
+    resource: 'herald://optional-external-work',
     publicMerchant:
       process.env.X402_PUBLIC_URL &&
       !/localhost|127\.0\.0\.1/i.test(process.env.X402_PUBLIC_URL)
@@ -122,12 +129,20 @@ app.get('/v1/models/live', async () => {
     deep: selectPreset(catalog, 'deep', 'highRisk').id,
     private: selectPreset(catalog, 'private', 'highRisk').id,
   }
+  const spendAllow = spendAllowModels(catalog).map((m) => ({
+    id: m.id,
+    provider: m.owned_by ?? '',
+    verifiability: m.verifiability ?? '',
+    tee: true,
+    providerCount: m.provider_count ?? 0,
+  }))
   return {
     count: catalog.data.length,
     roles,
     presets,
+    spendAllow,
     fetchedAt: catalog.fetchedAt,
-    note: 'AUTO reads this live catalog. Models with verifiability=None cannot ALLOW spend.',
+    note: 'AUTO is default. Spend/security ALLOW requires TeeML + JSON. Models with verifiability=None cannot ALLOW. Catalog is live — never a frozen list.',
   }
 })
 
@@ -400,8 +415,8 @@ app.post('/v1/mission/compile', async (req) => {
 app.get('/v1/mission/discover', async (req, reply) => {
   const q = req.query as { subject?: string; family?: string; artifact?: string }
   try {
-    const family = q.family === 'pay' || q.family === 'trust' || q.family === 'research' || q.family === 'review' ? q.family : undefined
-    return jsonSafe(await discoverMission(String(q.subject ?? ''), family, q.artifact))
+    const family = q.family || undefined
+    return jsonSafe(await discoverMission(String(q.subject ?? ''), family as never, q.artifact))
   } catch (e) {
     return reply.code(502).send({ error: (e as Error).message })
   }
@@ -438,11 +453,13 @@ app.post('/v1/mission/run', async (req, reply) => {
     tokenId?: string
     maxAtomic?: string
     owner?: string
-    family?: 'pay' | 'trust' | 'research' | 'review'
+    family?: string
     artifact?: string
     session?: string
     payments?: unknown[]
     rail?: 'session' | 'operator'
+    preset?: 'auto' | 'cheap' | 'fast' | 'deep' | 'private' | 'custom'
+    customModel?: string
   }
   if (!body.tokenId) return reply.code(400).send({ error: 'tokenId required' })
   try {
@@ -456,6 +473,8 @@ app.post('/v1/mission/run', async (req, reply) => {
       session: body.session,
       payments: body.payments as never,
       rail: body.rail,
+      preset: body.preset,
+      customModel: body.customModel,
     })
     if (!result.ok) return reply.code(403).send(jsonSafe(result))
     return jsonSafe(result)
@@ -523,18 +542,21 @@ app.post('/v1/storage/packet', async (req, reply) => {
   const body = req.body as {
     till?: string
     tx?: string
+    id?: string
     model?: string
     tee?: boolean
     brief?: unknown
   }
-  if (!body?.till || !body?.tx) return reply.code(400).send({ error: 'till and tx required' })
+  if (!body?.till) return reply.code(400).send({ error: 'till required' })
+  const id = String(body.tx || body.id || '')
+  if (!id) return reply.code(400).send({ error: 'tx or id required' })
   try {
     const packet = await uploadEncryptedPacket({
       till: body.till,
-      tx: body.tx,
+      tx: id,
       model: body.model,
       tee: body.tee,
-      sku: 'before-you-pay',
+      sku: 'work-desk',
       brief: body.brief ?? null,
     })
     return packet

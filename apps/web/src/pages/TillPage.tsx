@@ -72,7 +72,7 @@ export function TillPage({ till }: { till: TillState }) {
             </div>
             <div className="mt-6 flex flex-wrap gap-3">
               <CyanButton to={live ? '/till/mission' : (nextSetup?.to ?? '/till/policy')}>
-                {live ? 'Start a mission' : nextSetup?.label ?? 'Finish setup'}
+                {live ? 'Start work' : nextSetup?.label ?? 'Finish setup'}
               </CyanButton>
               <CyanButton to="/till/policy" variant="ghost">
                 Edit policy
@@ -87,11 +87,11 @@ export function TillPage({ till }: { till: TillState }) {
 
             {live ? (
               <section className="surf surf-accent">
-                <p className="mod-kicker">Mission ready</p>
+                <p className="mod-kicker">Work ready</p>
                 <h2>Tell your agent what you need done.</h2>
-                <p className="mod-lede">It buys the work it needs. You get the result. You never hand it your wallet.</p>
+                <p className="mod-lede">Give it a bounded Till. It finishes the work. You get the result and proof.</p>
                 <div className="mt-5">
-                  <CyanButton to="/till/mission">Start a mission</CyanButton>
+                  <CyanButton to="/till/mission">Start work</CyanButton>
                 </div>
               </section>
             ) : till.hasPolicy && till.available === 0n ? (
@@ -186,7 +186,7 @@ function FundBlock({
         </CyanButton>
       </div>
       <a className="mt-4 inline-block text-[14px] text-cyan underline-offset-4 hover:underline" href={HUB_SWAP} target="_blank" rel="noreferrer">
-        Get USDC.e
+        Get 0G
       </a>
     </section>
   )

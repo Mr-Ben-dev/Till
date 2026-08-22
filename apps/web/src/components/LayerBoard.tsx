@@ -4,7 +4,7 @@ import { OgLogo } from './OgLogo'
 export const LAYERS = [
   {
     name: 'Owner vault',
-    title: 'You keep the money. The agent gets a drawer.',
+    title: 'You keep the money. The agent gets a bounded Till.',
     body: 'Mint a Till per user, fund it, and withdraw as owner. Pause and revoke stay in your hands. The agent never receives your wallet.',
     scene: 'vault',
   },
@@ -28,8 +28,8 @@ export const LAYERS = [
   },
   {
     name: 'Investigation',
-    title: 'The agent buys the intel it can pay for.',
-    body: '0G Compute writes the private result. AUTO selects from the live catalog. x402 procurement is optional. Storage proves the packet.',
+    title: 'The agent finishes the work it is allowed to finish.',
+    body: '0G Compute writes the private result. AUTO selects from the live catalog. Storage proves the packet. x402 is optional and not required.',
     scene: 'receipt',
   },
 ] as const

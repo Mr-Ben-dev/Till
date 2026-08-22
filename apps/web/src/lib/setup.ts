@@ -16,7 +16,7 @@ export function setupItems(till: TillState): SetupItem[] {
     { id: 'policy', label: 'Set protection', done: till.hasPolicy, to: '/till/policy' },
     { id: 'fund', label: 'Add funds', done: till.available > 0n, to: '/till/policy' },
     { id: 'agent', label: 'Enable agent', done: agentDone, to: '/till/agent' },
-    { id: 'mission', label: 'Run first mission', done: Boolean(till.lastBrief), to: '/till/mission' },
+    { id: 'mission', label: 'Start first work', done: Boolean(till.lastBrief), to: '/till/mission' },
   ]
 }
 

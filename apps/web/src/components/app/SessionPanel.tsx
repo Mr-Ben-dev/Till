@@ -55,7 +55,7 @@ export function SessionPanel({
         <p className="mt-4 font-mono text-[12px] text-white/50">Session {shortAddr(till.agentOf.address)}</p>
       ) : null}
       <ul className="cap-list mt-6">
-        <li className="is-yes">Buy allowed work</li>
+        <li className="is-yes">Finish allowed work</li>
         <li className="is-no">Lock or settle Jobs (owner signs)</li>
         <li className="is-yes">Respect policy</li>
         <li className="is-no">Withdraw</li>
@@ -63,13 +63,13 @@ export function SessionPanel({
         <li className="is-no">Spend another Till</li>
       </ul>
       <p className="mt-4 text-[13px] text-white/55">
-        Sweep leftover USDC.e to the owner before revoke. Revoke does not claw back USDC.e. USDC.e is limited by this
-        mission&apos;s session drawer, not by TillPolicy.
+        Work Desk spends session gas for Storage + PacketAnchored. Compute tokens are billed to the operator Payment
+        Layer, not TillVault. Optional USDC.e leftover (external x402) should be swept before revoke.
       </p>
       <SignHint kind="owner" write={status === 'OWNER_MODE' || status === 'REVOKED' || status === 'EXPIRED' ? 'authorize' : 'revoke'} />
       <div className="mt-3 flex flex-wrap gap-3">
         <CyanButton to="/till/mission" variant="ghost">
-          Start a mission
+          Start work
         </CyanButton>
         {status === 'OWNER_MODE' || status === 'REVOKED' || status === 'EXPIRED' ? (
           <CyanButton disabled={till.writeLocked} onClick={till.attachAgent}>
@@ -117,7 +117,7 @@ export function SessionPanel({
       </div>
       {compact ? null : (
         <a className="mt-4 inline-block text-[13px] text-cyan" href={HUB_SWAP} target="_blank" rel="noreferrer">
-          Get USDC.e
+          Get 0G
         </a>
       )}
     </section>
@@ -127,44 +127,33 @@ export function SessionPanel({
 export function PaymentsPanel({ till }: { till: TillState }) {
   const required = till.mission?.totalUsd
   const needsUsdce = (required ?? 0) > 0
-  const rail = required != null ? till.usdceUsd >= required : till.usdceUsd > 0
   return (
     <section className="surf">
-      <p className="mod-kicker">Payment / funding</p>
+      <p className="mod-kicker">Funding</p>
       <h2>What this Till can pay with</h2>
       <dl className="mt-4 grid gap-3 sm:grid-cols-3 text-[14px]">
         <div className="surf-inner">
-          <dt>Till balance</dt>
+          <dt>Till vault</dt>
           <dd className="font-mono text-cyan">{fmt0g(till.available)}</dd>
         </div>
         <div className="surf-inner">
-          <dt>USDC.e on this wallet</dt>
-          <dd className="font-mono text-cyan">${till.usdceUsd.toFixed(3)}</dd>
+          <dt>Work Desk</dt>
+          <dd>Native 0G · Compute on Payment Layer</dd>
         </div>
         <div className="surf-inner">
-          <dt>This mission</dt>
+          <dt>Optional x402</dt>
           <dd className="font-mono">
-            {required == null ? 'Quote first' : needsUsdce ? `$${required.toFixed(3)} USDC.e` : 'No USDC.e required'}
+            {needsUsdce ? `$${required!.toFixed(3)} USDC.e` : 'No live Aristotle seller'}
           </dd>
         </div>
       </dl>
       <p className="mt-4 max-w-[54ch] text-[13px] text-white/55">
-        {needsUsdce
-          ? 'This mission settles in USDC.e. Swap a small amount of 0G for USDC.e on 0G Hub.'
-          : required == null
-            ? 'Before You Pay checks usually settle in USDC.e. Quote a mission to see the exact amount.'
-            : 'The current mission does not require USDC.e.'}
+        Work Desk does not debit TillVault for model tokens. Session gas pays Storage + PacketAnchored. Optional
+        external x402 currently has no live eip155:16661 seller.
       </p>
       <a className="mt-3 inline-block text-[14px] text-cyan underline-offset-4 hover:underline" href={HUB_SWAP} target="_blank" rel="noreferrer">
-        Get USDC.e
+        Get 0G
       </a>
-      <p className="mt-2 text-[12px] text-white/40">
-        {required == null
-          ? 'Balances are live on Aristotle after refresh.'
-          : rail
-            ? 'This wallet holds enough USDC.e for the quoted mission.'
-            : 'If settlement uses this wallet, fund USDC.e before you pay.'}
-      </p>
     </section>
   )
 }

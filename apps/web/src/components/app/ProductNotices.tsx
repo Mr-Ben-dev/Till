@@ -10,8 +10,8 @@ export function ProductNotices({ till, hideDenial = false }: { till: TillState; 
       {till.backend === 'down' && (
         <Notice
           tone="info"
-          title="Payment services are offline"
-          body="You can still create a Till, write policy, and fund. Private briefs wait until the service is back."
+          title="Work services are offline"
+          body="You can still create a Till, write policy, and fund. Private work waits until the service is back."
         />
       )}
       {till.wrongNetwork && (

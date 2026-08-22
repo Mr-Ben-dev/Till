@@ -59,7 +59,7 @@ export function decodeErr(e: unknown): string {
     return 'This wallet is not on 0G Aristotle (16661). Switch network, then retry.'
   }
   if (blob.includes('failed to fetch') || blob.includes('networkerror')) {
-    return 'Payment and proof services are offline. You can still create, fund, and set policy.'
+    return 'Work and proof services are offline. You can still create, fund, and set policy.'
   }
   return err.shortMessage || err.reason || err.message || 'The transaction did not complete.'
 }

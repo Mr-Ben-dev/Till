@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { ethers } from 'ethers'
 import { createZGComputeNetworkBroker } from '@0gfoundation/0g-compute-ts-sdk'
 import { OG_ROUTER_URL, OG_RPC_URL } from '@till/config'
-import { selectForRole, type CatalogModel } from './catalog.js'
+import { fetchCatalog, selectForRole, selectPreset, type AutoPreset, type CatalogModel } from './catalog.js'
 import type { Role } from '@till/config'
 import { requireEnv } from './env.js'
 
@@ -46,9 +46,15 @@ export async function evaluateIntent(opts: {
   target: string
   amountWei: string
   resource: string
+  preset?: AutoPreset
+  customModel?: string
 }): Promise<ComputeResult> {
   const apiKey = requireEnv('OG_ROUTER_API_KEY')
-  const model = await selectForRole(opts.role)
+  const catalog = await fetchCatalog()
+  const model =
+    opts.preset && opts.preset !== 'auto'
+      ? selectPreset(catalog, opts.preset, opts.role, opts.customModel)
+      : await selectForRole(opts.role)
 
   const tryOnce = async (m: CatalogModel): Promise<ComputeResult> => {
     const body = {
@@ -60,7 +66,7 @@ export async function evaluateIntent(opts: {
         {
           role: 'system',
           content:
-            'You are Till hard-policy semantic checker. Reply JSON only: {"allow":boolean,"reason":string,"intent_digest":string}. Copy intent_digest exactly. resource is a JSON list of intended x402 buys. allow=true only if every item has destination, asset, amount, resource, reason, grant, and deadline; the spend is not a withdrawal, policy change, or drain; and the amount is a procurement under the Till cap.',
+            'You are Till hard-policy semantic checker. Reply JSON only: {"allow":boolean,"reason":string,"intent_digest":string}. Copy intent_digest exactly. resource is a JSON list of intended work. allow=true only if every item has destination, asset, amount, resource, reason, grant, and deadline; the work is private 0G Compute (investigate/review/research/compare) or optional listed procurement; it is not a withdrawal, policy change, or drain.',
         },
         {
           role: 'user',
@@ -199,25 +205,31 @@ export type BriefResult = {
 }
 
 function briefSystem(facts: Record<string, unknown>): string {
-  const family = String(facts.missionFamily ?? facts.mission ?? 'pay')
+  const family = String(facts.missionFamily ?? facts.mission ?? 'investigate')
   if (family === 'review') {
-    return 'You write an AI-assisted code/security review. Reply JSON only: {"verdict":"CLEAR"|"ISSUES"|"HOLD","confidence":"low"|"medium"|"high","title":string,"summary":string,"findings":string[],"risks":string[],"next_action":string,"subject":string}. First finding MUST say this is not a certified audit. Cite only provided artifact and paid facts. Do not invent bytecode you did not see. English. Max 90 words in summary.'
+    return 'You write an AI-assisted code/security review. Reply JSON only: {"verdict":"CLEAR"|"ISSUES"|"HOLD","confidence":"low"|"medium"|"high","title":string,"summary":string,"findings":string[],"risks":string[],"next_action":string,"subject":string}. First finding MUST say this is not a certified audit. Cite only the provided artifact and publicFacts. Do not invent bytecode you did not see. English. Max 90 words in summary.'
   }
-  if (family === 'trust') {
-    return 'You write a Before You Trust brief. Reply JSON only: {"verdict":"TRUST"|"CAUTION"|"DONT","confidence":"low"|"medium"|"high","title":string,"summary":string,"findings":string[],"risks":string[],"next_action":string,"subject":string}. Use only on-chain facts and paid JSON. Do not invent wallet-risk scores. English. Max 70 words in summary.'
+  if (family === 'compare') {
+    return 'You compare two targets. Reply JSON only: {"verdict":"HOLD"|"CAUTION"|"AVOID","confidence":"low"|"medium"|"high","title":string,"summary":string,"findings":string[],"risks":string[],"next_action":string,"subject":string}. Cite only publicFacts. Do not invent unpaid scanner data. English. Max 90 words in summary.'
   }
   if (family === 'research') {
     return 'You write a private research brief. Reply JSON only: {"verdict":"HOLD","confidence":"low"|"medium"|"high","title":string,"summary":string,"findings":string[],"risks":string[],"next_action":string,"subject":string}. Cite only provided facts. No companionship. English. Max 90 words in summary.'
   }
-  return 'You write a BEFORE YOU PAY verdict. Reply JSON only: {"verdict":"BUY"|"HOLD"|"AVOID","confidence":"low"|"medium"|"high","title":string,"summary":string,"findings":string[],"risks":string[],"next_action":string,"subject":string}. Cite ONLY paid JSON in facts.purchases. Name provider, service, and 0G tx. If facts.skipped exists, one finding MUST say that seller was not paid and why. Do not invent unpaid data. verdict BUY only if paid checks show no material admin/honeypot/stale-oracle failure. HOLD if mixed or missing liquidity/oracle. AVOID if paid checks show honeypot, malicious owner, or high bytecode risk that is not explained. Not financial advice. English. Max 70 words in summary. Max 5 findings. Max 4 risks.'
+  return 'You write a private on-chain investigation. Reply JSON only: {"verdict":"HOLD"|"CAUTION"|"AVOID","confidence":"low"|"medium"|"high","title":string,"summary":string,"findings":string[],"risks":string[],"next_action":string,"subject":string}. Cite ONLY facts.publicFacts (Aristotle RPC). Do not invent paid scanner results or x402 data. One finding MUST say this is Compute + public RPC, not a paid safety oracle. Not financial advice. English. Max 80 words in summary. Max 5 findings. Max 4 risks.'
 }
 
 export async function writeBrief(opts: {
   subject: string
   facts: Record<string, unknown>
+  preset?: AutoPreset
+  customModel?: string
 }): Promise<BriefResult> {
   const apiKey = requireEnv('OG_ROUTER_API_KEY')
-  const model = await selectForRole('highRisk')
+  const catalog = await fetchCatalog()
+  const model =
+    opts.preset && opts.preset !== 'auto'
+      ? selectPreset(catalog, opts.preset, 'highRisk', opts.customModel)
+      : await selectForRole('highRisk')
 
   const tryOnce = async (m: CatalogModel): Promise<BriefResult> => {
     const body = {

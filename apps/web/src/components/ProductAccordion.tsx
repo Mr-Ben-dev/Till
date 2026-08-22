@@ -4,18 +4,18 @@ import { CaretRight } from '@phosphor-icons/react'
 const ITEMS = [
   {
     title: 'Hard policy, not a prompt',
-    body: 'Caps, allowlists, and expiry live on TillPolicy for native 0G. USDC.e missions are limited by the session drawer, not by TillPolicy.',
+    body: 'Caps, allowlists, pause, expiry, and isolation live on TillPolicy for native 0G in the vault.',
   },
   {
-    title: 'TEE-bound release',
-    body: '0G Compute processResponse must bind the digest. Replay, over-cap, and another user\'s Till are rejected on-chain, not in a dashboard.',
+    title: 'TEE-bound work',
+    body: '0G Compute processResponse must bind the digest. Replay, over-cap, and another user’s Till are rejected on-chain, not in a dashboard.',
   },
   {
-    title: 'x402 buys the work',
-    body: 'It discovers live x402 quotes on Aristotle USDC.e. Herald facilitator Exact settlement works; the Herald cross-chain router currently forwards the 0G signature to Base sellers, so SKU 200 is blocked. Till fail-closes and sweeps. Quoted is not settled.',
+    title: 'Private intelligence',
+    body: 'AUTO selects a live TeeML model. The result is private Compute plus public RPC facts. x402 is optional external work and currently has no Aristotle-payable seller.',
   },
   {
-    title: 'Storage + ERC-8004 receipt',
+    title: 'Storage + proof',
     body: 'Encrypted packet on 0G Storage, vault-anchored. Identity and reputation on Aristotle. Validation Registry is BLOCKED, not faked.',
   },
 ]

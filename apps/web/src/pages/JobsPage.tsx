@@ -63,7 +63,7 @@ export function JobsPage({ till }: { till: TillState }) {
         Lock a budget for a job. Work happens. If it succeeds, the seller is paid. If it is refunded, the money returns to this Till.
       </p>
       <p className="mt-3 max-w-[54ch] text-[14px] text-white/50">
-        It is separate from Before You Pay. Jobs are not autonomous. Each on-chain step is one owner signature.
+        It is separate from Work Desk. Jobs are not autonomous. Each on-chain step is one owner signature.
       </p>
       <ol className="mt-6 max-w-[54ch] text-[15px] text-white/75">
         <li>Quote — 0G Compute. No wallet.</li>

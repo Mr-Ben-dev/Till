@@ -5,9 +5,9 @@ import { LayerScene, LAYERS } from './LayerBoard'
 const STOPS = [
   { scene: LAYERS[0].scene, name: 'You', sub: 'owner vault' },
   { scene: LAYERS[1].scene, name: 'Policy', sub: 'hard cap' },
-  { scene: LAYERS[2].scene, name: 'Till', sub: 'spend drawer' },
+  { scene: LAYERS[2].scene, name: 'Till', sub: 'work account' },
   { scene: LAYERS[3].scene, name: '0G', sub: 'TEE bind' },
-  { scene: LAYERS[4].scene, name: 'Brief', sub: 'report' },
+  { scene: LAYERS[4].scene, name: 'Result', sub: 'proof' },
 ] as const
 
 export function FlowDiagram() {
@@ -43,7 +43,7 @@ export function FlowDiagram() {
   }, [])
 
   return (
-    <div ref={root} className="spend-path" role="img" aria-label="Spend path from owner vault to paid receipt on 0G">
+    <div ref={root} className="spend-path" role="img" aria-label="Work path from bounded Till to proof on 0G">
       <div className="spend-path__rail" data-rail>
         <span className="spend-path__packet" data-packet />
       </div>
