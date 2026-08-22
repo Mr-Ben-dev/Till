@@ -238,22 +238,31 @@ No contract change in this product pivot. v3 already supports Work Desk.
 | Fund 0.02 0G | [`0x8fb641a8…`](https://chainscan.0g.ai/tx/0x8fb641a85bdfe99a222399fbe25843c0bbdd2ad69b8f3063428997aabe3073d5) |
 | Storage flow | [`0x4ea0b793…`](https://chainscan.0g.ai/tx/0x4ea0b7938003b35dfa13f4865289da130a36686ae6f56acebcbd8939d05bccd0) |
 | Vault anchor | [`0xefbe1b3d…`](https://chainscan.0g.ai/tx/0xefbe1b3d29564f19bed969d4737f9182fd80f30553f80acc09adb5617a0a5415) |
-| Session-key anchor | [`0x3ed197be…`](https://chainscan.0g.ai/tx/0x3ed197be21fd587954821f1e36c9387e53833e9108ab2ec0ebcca3a7c0380fd1) |
+| Session-key Investigate Work Desk (Till 2, 2026-08-22) | [`0x494a2341…`](https://chainscan.0g.ai/tx/0x494a23418750b795ef8070240f0d8bb416b29f7f2f8ffd7613265101f5cbeb50) |
+| Session-key Review Work Desk (Till 2, 2026-08-22) | [`0x34be2264…`](https://chainscan.0g.ai/tx/0x34be22641171b57c197408461ded8e7bf8328771ca285292b2bfafe36f1d6403) |
 | Herald facilitator Exact (operator inbound 0.003, **not** session SKU 200) | [`0xee6a0c2b…`](https://chainscan.0g.ai/tx/0xee6a0c2bab9749c9d425d843b8308016d179067c9f13470d0698fd3bfb51b131) |
 
 Over-budget 5 0G vs policy: **BLOCKED, 0 moved**. `/verify` reconstructs the storage packet from the anchor tx. Job settle / refund proofs: [settle](https://chainscan.0g.ai/tx/0x50b1052fb6aa6b133d013f631f584867a6d14fdc685bc789f9ff9ba84666bbdc) · [refund](https://chainscan.0g.ai/tx/0x3695d0ffb906e4c3d82bd3a610276ba738bfca214113ce6b1f2b1117c6e60bad).
 
 ## Tests
 
-This session (2026-08-22 Work Desk pivot, local):
+This session (2026-08-22 Work Desk pivot, SHA `d205d0cef8469a2042f81a1ee60cb73d8845d161` then follow-up copy SHA):
 
 - Foundry **69/69** (unit + fuzz 256 + invariant 64×1280 + reentrancy)
 - API unit: compiler + mcp-auth + x402Herald.resource **13/13**
 - `web:build` **PASS**
-
-Production Chrome Work Desk (Investigate + Review + over-budget 5 0G + no MetaMask on READY Start) is recorded only after this SHA is live on Vercel + Render.
+- Production `/health` `{ok:true,chainId:"16661",simulate:false}`
+- Production `/v1/models/live` 29 models, AUTO spend `glm-5.2`, `needsProcurement=false`
+- Chrome Till 2 READY Autonomous Work Desk:
+  - Over-budget **5 0G requested · 0 moved** (vault still 0.019 0G)
+  - Investigate `0x8335…` → **CAUTION**, `glm-5.2 processResponse=true`, TEE VERIFIED, Storage+Proof, **no MetaMask**
+  - Review NaiveVault → **ISSUES** (`rescue()` drain), TEE VERIFIED, Storage+Proof, **no MetaMask**
+  - `/verify` reconstructs Investigate PacketAnchored + durable brief, `from` = session `0x06d47E…052f`, **no USDC.e**
+- Home hero is Work Desk. x402 labeled optional / not the product.
 
 F1 x402 session settlement remains **FAIL / NO-GO**. That is acceptable. Work Desk does not require it.
+
+Pause / resume / revoke / Till-switch fail-closed / Jobs lock were **not** re-run this hour. Do not claim them.
 
 ## Limitations
 

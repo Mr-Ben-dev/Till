@@ -231,11 +231,11 @@ export function HomePage() {
         <section id="layers" className="bg-paper px-5 py-28 text-ink md:px-10 md:py-40">
           <div className="mx-auto max-w-[1400px]">
             <h2 className="max-w-3xl text-[clamp(2rem,3.4vw,3.15rem)] font-bold leading-[1.08] tracking-tight">
-              A Till is a drawer of permissions, not a wallet you hand over.
+              A Till is a bounded work account, not a wallet you hand over.
             </h2>
             <p className="mt-5 max-w-[58ch] text-[17px] leading-relaxed text-ink/70">
-              You own the vault. TillPolicy gates native 0G. USDC.e missions use a per-mission session drawer.
-              0G Compute writes the private result. Procurement is optional.
+              You own the vault. TillPolicy gates native 0G. 0G Compute writes the private result. Storage proves the
+              packet. Optional x402 is not this product.
             </p>
             <div data-reveal className="mt-14">
               <LayerBoard />
