@@ -40,3 +40,14 @@ test('review with paste', () => {
   assert.equal(r.family, 'review')
   assert.equal(r.needsProcurement, false)
 })
+
+test('review infers artifact from solidity in the request', () => {
+  const r = compileMission({
+    family: 'review',
+    text: 'pragma solidity ^0.8.20; contract NaiveVault { mapping(address => uint256) public deposits; function deposit() external payable { deposits[msg.sender] += msg.value; } }',
+  })
+  assert.equal(r.ok, true)
+  assert.equal(r.family, 'review')
+  assert.equal(r.needsProcurement, false)
+  assert.ok(r.artifact)
+})

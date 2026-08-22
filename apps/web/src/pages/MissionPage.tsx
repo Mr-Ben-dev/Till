@@ -43,11 +43,12 @@ export function MissionPage({ till }: { till: TillState }) {
       setAsk(res.ask || res.refuse || '')
       setCompiled('')
       if (res.refuse) till.setError(res.refuse)
-      return
+      return res
     }
     setAsk('')
     setCompiled(res.familyLabel || res.goal || '')
     if (res.family) setFamily(res.family as typeof family)
+    return res
   }
 
   const start = async () => {
@@ -55,8 +56,12 @@ export function MissionPage({ till }: { till: TillState }) {
       till.setError('Finish setup first: protect, fund, then enable an agent.')
       return
     }
-    await compile()
-    void till.payX402(text.trim(), { family: family || undefined, artifact: artifact || undefined })
+    const res = await compile()
+    if (!res?.ok) return
+    void till.payX402(text.trim(), {
+      family: (res.family as typeof family) || family || undefined,
+      artifact: artifact || text.trim() || undefined,
+    })
   }
 
   return (

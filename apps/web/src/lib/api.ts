@@ -176,9 +176,10 @@ export async function compileMission(input: { text: string; family?: string; art
   }>
 }
 
-export async function discoverMission(subject: string, family?: string) {
+export async function discoverMission(subject: string, family?: string, artifact?: string) {
   const q = new URLSearchParams({ subject })
   if (family) q.set('family', family)
+  if (artifact) q.set('artifact', artifact.slice(0, 12_000))
   const res = await fetch(`${API}/v1/mission/discover?${q}`)
   return parse(res) as Promise<MissionDiscover>
 }

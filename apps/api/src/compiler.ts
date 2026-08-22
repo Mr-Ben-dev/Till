@@ -18,9 +18,17 @@ const ADDR = /0x[a-fA-F0-9]{40}/
 const REFUSE =
   /\b(poem|poems|haiku|joke|meme|memes|chat with me|girlfriend|roleplay|nsfw)\b/i
 
+function inferredArtifact(text: string, artifact: string): string {
+  if (artifact) return artifact
+  if (/\bpragma\s+solidity\b/i.test(text)) return text
+  if (/\bcontract\s+[A-Za-z_]/.test(text) && text.length > 40) return text
+  if (/\[\s*\{\s*"type"\s*:/.test(text)) return text
+  return ''
+}
+
 export function compileMission(input: { text?: string; family?: string; artifact?: string }): CompileResult {
   const text = String(input.text ?? '').trim()
-  const artifact = String(input.artifact ?? '').trim()
+  const artifact = inferredArtifact(text, String(input.artifact ?? '').trim())
   const forced = String(input.family ?? '').toLowerCase()
 
   if (REFUSE.test(text) && !ADDR.test(text) && !artifact) {

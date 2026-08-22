@@ -80,7 +80,7 @@ async function callTool(auth: Auth, name: string, params: unknown) {
       const subject = String(a.subject || '')
       if (!subject) throw new Error('subject required')
       const family = name === 'till_review' ? 'review' : undefined
-      return discoverMission(subject, family)
+      return discoverMission(subject, family, a.artifact ? String(a.artifact) : undefined)
     }
     case 'till_run_mission': {
       requireScope(auth, 'till.mission.execute')

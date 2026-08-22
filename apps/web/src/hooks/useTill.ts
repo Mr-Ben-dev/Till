@@ -762,7 +762,7 @@ export function useTill() {
       setMission(null)
       setPurchases([])
       setSteps(INITIAL_STEPS.map((s) => ({ ...s, state: s.key === 'plan' ? 'wait' : 'idle' })))
-      const found = await api.discoverMission(subject, extras?.family)
+      const found = await api.discoverMission(subject, extras?.family, extras?.artifact)
       setMission(found)
       if (found.compiled && found.compiled.ok === false) {
         throw new Error(found.compiled.ask || found.compiled.refuse || 'Mission needs more information')

@@ -398,10 +398,10 @@ app.post('/v1/mission/compile', async (req) => {
 })
 
 app.get('/v1/mission/discover', async (req, reply) => {
-  const q = req.query as { subject?: string; family?: string }
+  const q = req.query as { subject?: string; family?: string; artifact?: string }
   try {
     const family = q.family === 'pay' || q.family === 'trust' || q.family === 'research' || q.family === 'review' ? q.family : undefined
-    return jsonSafe(await discoverMission(String(q.subject ?? ''), family))
+    return jsonSafe(await discoverMission(String(q.subject ?? ''), family, q.artifact))
   } catch (e) {
     return reply.code(502).send({ error: (e as Error).message })
   }

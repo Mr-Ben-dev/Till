@@ -27,7 +27,11 @@ export async function fetchCatalog(force = false): Promise<Catalog> {
   return cache
 }
 
-function hasJson(m: CatalogModel): boolean {
+function isTextChat(m: CatalogModel): boolean {
+  const mods = m.architecture?.input_modalities
+  if (!mods?.length) return true
+  return mods.includes('text') && mods.every((x) => x === 'text')
+}
   return (m.supported_parameters ?? []).includes('response_format')
 }
 
@@ -57,6 +61,7 @@ export function selectModel(
   let candidates = catalog.data.filter(
     (m) =>
       (m.type === 'chatbot' || !m.type) &&
+      isTextChat(m) &&
       isTee(m) &&
       hasJson(m) &&
       (!req.tools || hasTools(m))
@@ -124,6 +129,7 @@ export function selectPreset(
     let candidates = catalog.data.filter(
       (m) =>
         (m.type === 'chatbot' || !m.type) &&
+        isTextChat(m) &&
         isTee(m) &&
         hasJson(m) &&
         (!req.tools || hasTools(m))

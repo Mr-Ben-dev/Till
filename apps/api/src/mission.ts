@@ -57,8 +57,8 @@ function settlementTx(settlement: unknown): { ogTx?: string; destTx?: string } {
   }
 }
 
-export async function discoverMission(subject: string, family?: MissionFamily) {
-  const compiled = compileMission({ text: subject, family })
+export async function discoverMission(subject: string, family?: MissionFamily, artifact?: string) {
+  const compiled = compileMission({ text: subject, family, artifact })
   if (!compiled.ok) {
     return {
       compiled,
@@ -257,7 +257,7 @@ export async function runMission(opts: {
     }
   }
   const family = compiled.family as MissionFamily
-  const discovery = await discoverMission(opts.subject, family)
+  const discovery = await discoverMission(opts.subject, family, opts.artifact)
   const total = BigInt(String(discovery.totalAtomic ?? '0'))
   const cap = BigInt(capAtomic)
   if (total > cap) {
