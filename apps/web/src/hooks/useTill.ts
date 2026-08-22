@@ -2,13 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
 import { saveTillName } from '../lib/tillMeta'
-import { BrowserProvider, Contract, JsonRpcProvider, Wallet, formatEther, id as keccakId, keccak256, parseEther, toUtf8Bytes, type Signer, type TransactionResponse } from 'ethers'
+import { BrowserProvider, Contract, JsonRpcProvider, Wallet, formatEther, id as keccakId, keccak256, parseEther, parseUnits, toUtf8Bytes, type Signer, type TransactionResponse } from 'ethers'
 import { ADDR, CHAIN_ID, DEFAULT_BRIEF_SUBJECT, HUB_SWAP, MINT_FROM_BLOCK, MISSION_CAP_USD, RESOURCE, RPC_URL, USDCE, ensureOgChain } from '../lib/chain'
 import { ESCROW_ABI, NFT_ABI, POLICY_ABI, VAULT_ABI, VERIFIER_ABI } from '../lib/abi'
 import { decodeErr } from '../lib/errors'
 import type { Denial } from '../components/app/DenialCard'
 import type { SignKind } from '../lib/signCopy'
 import * as api from '../lib/api'
+import { signExactEip3009 } from '../lib/eip3009'
 
 export type PipelineStep = {
   key: string
@@ -18,15 +19,17 @@ export type PipelineStep = {
 }
 
 const INITIAL_STEPS: PipelineStep[] = [
-  { key: 'plan', label: 'Planning', state: 'idle' },
-  { key: 'budget', label: '3 services selected', state: 'idle' },
-  { key: 'tee', label: 'TEE verified', state: 'idle' },
-  { key: 'buy1', label: 'Purchase 1', state: 'idle' },
-  { key: 'buy2', label: 'Purchase 2', state: 'idle' },
-  { key: 'buy3', label: 'Purchase 3', state: 'idle' },
-  { key: 'result', label: 'Private synthesis', state: 'idle' },
-  { key: 'storage', label: 'Storage anchored', state: 'idle' },
-  { key: 'proof', label: 'Verdict', state: 'idle' },
+  { key: 'plan', label: 'Compile', state: 'idle' },
+  { key: 'budget', label: 'Quote', state: 'idle' },
+  { key: 'drawer', label: 'Session drawer', state: 'idle' },
+  { key: 'tee', label: '0G Compute', state: 'idle' },
+  { key: 'buy1', label: 'Procurement', state: 'idle' },
+  { key: 'buy2', label: 'Procurement', state: 'idle' },
+  { key: 'buy3', label: 'Procurement', state: 'idle' },
+  { key: 'result', label: 'Result', state: 'idle' },
+  { key: 'storage', label: 'Storage', state: 'idle' },
+  { key: 'sweep', label: 'Sweep leftover USDC.e', state: 'idle' },
+  { key: 'proof', label: 'Proof', state: 'idle' },
 ]
 
 export type JobPhase = 'idle' | 'quote' | 'quoted' | 'lock' | 'working' | 'settle' | 'refunded' | 'failed'
@@ -158,6 +161,7 @@ export function useTill() {
   const [mission, setMission] = useState<api.MissionDiscover | null>(null)
   const [purchases, setPurchases] = useState<api.PurchaseRecord[]>([])
   const [usdceAtomic, setUsdceAtomic] = useState(0n)
+  const [drawerUsdceAtomic, setDrawerUsdceAtomic] = useState(0n)
   const [lastExecutor, setLastExecutor] = useState<'owner' | 'session' | ''>('')
   const [switching, setSwitching] = useState(false)
   const [hydrated, setHydrated] = useState(false)
@@ -407,8 +411,21 @@ export function useTill() {
           setWindowSpentWei(row.windowSpentWei)
           setSessionExpiresAt(row.sessionExpiresAt)
           const stored = loadAgent(useId.toString())
-          if (stored) setAgentGas(await provider.getBalance(stored.address))
-          else setAgentGas(0n)
+          if (stored) {
+            setAgentGas(await provider.getBalance(stored.address))
+            try {
+              const erc20 = new Contract(USDCE, ['function balanceOf(address) view returns (uint256)'], provider)
+              const dbal = await erc20.balanceOf(stored.address)
+              if (gen !== genRef.current) return
+              setDrawerUsdceAtomic(asBig(dbal))
+            } catch {
+              if (gen !== genRef.current) return
+              setDrawerUsdceAtomic(0n)
+            }
+          } else {
+            setAgentGas(0n)
+            setDrawerUsdceAtomic(0n)
+          }
           if (gen !== genRef.current) return
           if (row.ok) setLoadError('')
           else setLoadError(`Till #${useId} could not be fully loaded from Aristotle.`)
@@ -725,11 +742,17 @@ export function useTill() {
   const patchStep = (key: string, patch: Partial<PipelineStep>) =>
     setSteps((prev) => prev.map((s) => (s.key === key ? { ...s, ...patch } : s)))
 
-  const payX402 = (subject = DEFAULT_BRIEF_SUBJECT) =>
+  const payX402 = (subject = DEFAULT_BRIEF_SUBJECT, extras?: { family?: string; artifact?: string }) =>
     run('Running mission', async () => {
       if (tokenId == null) throw new Error('Create a Till first')
       if (backend !== 'ok') throw new Error('Payment and proof services are offline. You can still create, fund, and set policy.')
-      setSignKind(sessionWallet() ? 'auto' : 'owner')
+      const stored = tokenId != null ? loadAgent(tokenId.toString()) : null
+      const sessionOk =
+        stored && authorized.some((a) => a.toLowerCase() === stored.address.toLowerCase())
+      if (!sessionOk || !stored) {
+        throw new Error('Authorize a device-local session first. APP missions are signed by the session EOA, never the owner or operator key.')
+      }
+      setSignKind('auto')
       setLastWrite('mission')
       setLastDenial(null)
       setModelNote('')
@@ -739,9 +762,12 @@ export function useTill() {
       setMission(null)
       setPurchases([])
       setSteps(INITIAL_STEPS.map((s) => ({ ...s, state: s.key === 'plan' ? 'wait' : 'idle' })))
-      const found = await api.discoverMission(subject)
+      const found = await api.discoverMission(subject, extras?.family)
       setMission(found)
-      const buyLabels = found.quotes.slice(0, 3).map((q, i) => ({
+      if (found.compiled && found.compiled.ok === false) {
+        throw new Error(found.compiled.ask || found.compiled.refuse || 'Mission needs more information')
+      }
+      const buyLabels = (found.quotes ?? []).slice(0, 3).map((q, i) => ({
         key: `buy${i + 1}`,
         label: `${q.seller} ${q.sku}`,
       }))
@@ -751,26 +777,83 @@ export function useTill() {
           return named ? { ...s, label: named.label } : s
         })
       )
-      patchStep('plan', { state: 'ok', detail: found.plan[0] })
+      patchStep('plan', { state: 'ok', detail: found.familyLabel || found.plan[0] })
       patchStep('budget', {
         state: 'ok',
-        detail: `$${found.totalUsd.toFixed(3)} quoted · $${found.capUsd.toFixed(2)} cap`,
+        detail: `$${(found.totalUsd ?? 0).toFixed(3)} quoted · $${found.capUsd.toFixed(2)} drawer max`,
       })
-      if (found.totalUsd > found.capUsd) {
+      if ((found.totalUsd ?? 0) > found.capUsd) {
         setLastDenial({
           amount: `$${found.totalUsd} USDC.e`,
-          why: `Quote exceeds the $${found.capUsd} cap. $0 spent.`,
+          why: `Quote exceeds the $${found.capUsd} session-drawer cap. $0 spent.`,
           policy: false,
           tee: true,
           funds: true,
         })
         throw new Error(`Quote exceeds the $${found.capUsd} cap. $0 spent.`)
       }
+      const erc20 = new Contract(
+        USDCE,
+        ['function balanceOf(address) view returns (uint256)', 'function transfer(address,uint256) returns (bool)'],
+        new JsonRpcProvider(RPC_URL)
+      )
+      const quoteAtomic = BigInt(found.totalAtomic || '0')
+      let drawer = asBig(await erc20.balanceOf(stored.address))
+      const hardMax = parseUnits('0.5', 6)
+      if (drawer > hardMax) {
+        patchStep('drawer', { state: 'fail', detail: 'Drawer over $0.50. Sweep first.' })
+        throw new Error('Session drawer exceeds the $0.50 hard max. Sweep leftover USDC.e to the owner, then retry.')
+      }
+      const slack = quoteAtomic > 20_000n ? (quoteAtomic * 5n) / 100n : 20_000n
+      if (quoteAtomic > 0n && drawer > quoteAtomic + slack) {
+        patchStep('drawer', { state: 'wait', detail: 'Sweeping leftover USDC.e before this mission' })
+        const w0 = new Wallet(stored.privateKey, new JsonRpcProvider(RPC_URL))
+        const token0 = new Contract(USDCE, ['function transfer(address,uint256) returns (bool)'], w0)
+        const tx0 = await token0.transfer(address, drawer)
+        await tx0.wait()
+        drawer = 0n
+      }
+      if (quoteAtomic > 0n && drawer < quoteAtomic) {
+        patchStep('drawer', { state: 'wait', detail: 'Funding this mission\'s session drawer from your wallet' })
+        const need = quoteAtomic - drawer
+        await withSigner(async (s) => {
+          const token = new Contract(USDCE, ['function transfer(address,uint256) returns (bool)'], s)
+          await trackOwnerTx('fund-drawer', () => token.transfer(stored.address, need) as Promise<TransactionResponse>)
+        })
+        drawer = asBig(await erc20.balanceOf(stored.address))
+      }
+      if (quoteAtomic > 0n && drawer < quoteAtomic) {
+        throw new Error('Session drawer still underfunded after transfer.')
+      }
+      patchStep('drawer', {
+        state: 'ok',
+        detail: `Session drawer ${(Number(drawer) / 1e6).toFixed(3)} USDC.e · not TillPolicy`,
+      })
+      const payments = []
+      for (const acc of found.accepts ?? []) {
+        if (!acc.accept || !acc.resourceUrl) {
+          if (quoteAtomic > 0n) throw new Error(acc.error || 'Missing Herald accept for a quoted SKU')
+          continue
+        }
+        payments.push(
+          await signExactEip3009({
+            privateKey: stored.privateKey,
+            from: stored.address,
+            accept: acc.accept,
+            resourceUrl: acc.resourceUrl,
+          })
+        )
+      }
       patchStep('tee', { state: 'wait', detail: '0G is evaluating the purchase privately' })
       const result = await api.runMission({
         subject,
         tokenId: tokenId.toString(),
         owner: address,
+        family: extras?.family || found.family,
+        artifact: extras?.artifact,
+        session: stored.address,
+        payments,
+        rail: 'session',
       })
       if (!result.ok) {
         patchStep('tee', { state: 'fail', detail: result.over?.reason || result.error })
@@ -794,6 +877,8 @@ export function useTill() {
         chatId: ev?.chatId ?? '',
         digest: result.digest ?? '',
         spentUsd: String(result.spentUsd ?? found.totalUsd),
+        rail: result.rail ?? 'session',
+        signer: stored.address,
       })
       const teeOk = ev?.processResponse === true && ev?.teeVerifiedRouter === true
       patchStep('tee', {
@@ -806,12 +891,16 @@ export function useTill() {
         const p = bought[i]
         patchStep(`buy${i + 1}`, {
           state: p ? (p.status === 200 ? 'ok' : 'fail') : found.quotes[i] ? 'fail' : 'skip',
-          detail: p ? `$${p.quote.amountUsd} ${p.seller} ${p.ogTx ?? ''}` : found.quotes[i] ? 'missing' : 'not needed',
+          detail: p
+            ? `$${p.quote.amountUsd} ${p.seller} from ${p.payer ?? stored.address}`
+            : found.quotes[i]
+              ? 'missing'
+              : 'not needed',
         })
       })
       if (!result.brief?.title) {
-        patchStep('result', { state: 'fail', detail: 'No verdict' })
-        throw new Error('Purchases settled, but the verdict was not returned. Nothing extra was invented.')
+        patchStep('result', { state: 'fail', detail: 'No result' })
+        throw new Error('Mission finished without a result. Nothing extra was invented.')
       }
       setLastBrief(result.brief)
       setBriefModel(result.briefModel ?? '')
@@ -821,45 +910,89 @@ export function useTill() {
         detail: `${result.brief.verdict ?? 'HOLD'} · $${(result.spentUsd ?? found.totalUsd).toFixed(3)} spent`,
       })
       const proofTx = bought[0]?.ogTx
-      if (!proofTx) throw new Error('Missing 0G settlement hash')
-      setLastTx(proofTx)
       await withExecutor(async (s) => {
         const c = contractsOf(s)
         try {
-          patchStep('storage', { state: 'wait' })
-          const packet = await api.uploadPacket({
-            till: tokenId.toString(),
-            tx: proofTx,
-            model: result.briefModel || ev?.model?.id,
-            tee: result.briefProcessResponse === true || ev?.processResponse === true,
-            brief: result.brief,
-          })
-          const anc = await (await c.vault.anchorPacket(tokenId, packet.rootHash)).wait()
-          patchStep('storage', {
-            state: 'ok',
-            detail: `root ${packet.rootHash} flow ${packet.txHash} anchor ${anc?.hash ?? ''}`,
-          })
-          setTech((t) => ({
-            ...t,
-            storageRoot: packet.rootHash,
-            flowTx: packet.txHash,
-            anchorTx: anc?.hash ?? '',
-            briefModel: result.briefModel ?? '',
-            briefChatId: result.briefChatId ?? '',
-            briefTee: String(result.briefProcessResponse),
-            subject,
-            buy1: bought[0]?.ogTx ?? '',
-            buy2: bought[1]?.ogTx ?? '',
-            buy3: bought[2]?.ogTx ?? '',
-            remainingUsd: String(result.remainingUsd ?? ''),
-          }))
-          await api.storeReceipt(proofTx, { tokenId: tokenId.toString(), digest: result.digest, purchases: bought, brief: result.brief })
-          patchStep('proof', { state: 'ok', detail: proofTx })
+          if (proofTx) {
+            patchStep('storage', { state: 'wait' })
+            const packet = await api.uploadPacket({
+              till: tokenId.toString(),
+              tx: proofTx,
+              model: result.briefModel || ev?.model?.id,
+              tee: result.briefProcessResponse === true || ev?.processResponse === true,
+              brief: result.brief,
+            })
+            const anc = await (await c.vault.anchorPacket(tokenId, packet.rootHash)).wait()
+            patchStep('storage', {
+              state: 'ok',
+              detail: `root ${packet.rootHash} flow ${packet.txHash} anchor ${anc?.hash ?? ''}`,
+            })
+            setTech((t) => ({
+              ...t,
+              storageRoot: packet.rootHash,
+              flowTx: packet.txHash,
+              anchorTx: anc?.hash ?? '',
+              briefModel: result.briefModel ?? '',
+              briefChatId: result.briefChatId ?? '',
+              briefTee: String(result.briefProcessResponse),
+              subject,
+              buy1: bought[0]?.ogTx ?? '',
+              buy2: bought[1]?.ogTx ?? '',
+              buy3: bought[2]?.ogTx ?? '',
+              remainingUsd: String(result.remainingUsd ?? ''),
+            }))
+            await api.storeReceipt(proofTx, {
+              tokenId: tokenId.toString(),
+              digest: result.digest,
+              purchases: bought,
+              brief: result.brief,
+              family: result.family,
+              session: stored.address,
+              rail: 'session',
+            })
+            setLastTx(proofTx)
+            patchStep('proof', { state: 'ok', detail: proofTx })
+          } else {
+            patchStep('storage', { state: 'skip', detail: 'Compute-only mission — no x402 hash to anchor yet' })
+            patchStep('proof', { state: 'ok', detail: 'Compute attestation is the proof for this family' })
+          }
         } catch (e) {
           patchStep('storage', { state: 'fail', detail: decodeErr(e) })
           patchStep('proof', { state: 'fail', detail: decodeErr(e) })
         }
       })
+      try {
+        patchStep('sweep', { state: 'wait', detail: 'Sweep leftover USDC.e to owner before any revoke' })
+        const left = asBig(await erc20.balanceOf(stored.address))
+        if (left > 0n) {
+          const w = new Wallet(stored.privateKey, new JsonRpcProvider(RPC_URL))
+          const token = new Contract(USDCE, ['function transfer(address,uint256) returns (bool)'], w)
+          const tx = await token.transfer(address, left)
+          const rec = await tx.wait()
+          patchStep('sweep', { state: 'ok', detail: rec?.hash ?? tx.hash })
+          setTech((t) => ({ ...t, sweepTx: rec?.hash ?? tx.hash }))
+        } else {
+          patchStep('sweep', { state: 'ok', detail: 'Drawer empty' })
+        }
+      } catch (e) {
+        patchStep('sweep', { state: 'fail', detail: decodeErr(e) })
+        throw new Error(`Sweep failed. Do not revoke yet. ${decodeErr(e)}`)
+      }
+    })
+
+  const sweepDrawer = () =>
+    run('Sweeping session USDC.e', async () => {
+      if (tokenId == null) throw new Error('Create a Till first')
+      const stored = loadAgent(tokenId.toString())
+      if (!stored) throw new Error('No session on this device')
+      const provider = new JsonRpcProvider(RPC_URL)
+      const erc20 = new Contract(USDCE, ['function balanceOf(address) view returns (uint256)', 'function transfer(address,uint256) returns (bool)'], provider)
+      const left = asBig(await erc20.balanceOf(stored.address))
+      if (left === 0n) return
+      const w = new Wallet(stored.privateKey, provider)
+      const token = new Contract(USDCE, ['function transfer(address,uint256) returns (bool)'], w)
+      const tx = await token.transfer(address, left)
+      await tx.wait()
     })
 
   const tryOverBudget = () =>
@@ -1061,6 +1194,7 @@ export function useTill() {
     pause,
     withdraw,
     payX402,
+    sweepDrawer,
     tryOverBudget,
     quoteJob,
     registerJobTee,
@@ -1101,6 +1235,8 @@ export function useTill() {
     lastExecutor,
     usdceAtomic,
     usdceUsd: Number(usdceAtomic) / 1e6,
+    drawerUsdceAtomic,
+    drawerUsdceUsd: Number(drawerUsdceAtomic) / 1e6,
     missionCapUsd: MISSION_CAP_USD,
     hubSwap: HUB_SWAP,
   }

@@ -21,6 +21,6 @@ export function ownerWhy(write: string) {
 }
 
 export function autoWhy(write: string) {
-  if (write === 'mission') return 'A READY session signs approved purchases. MetaMask will not open.'
+  if (write === 'mission') return 'The authorized session EOA signs EIP-3009 for this mission. MetaMask does not sign the USDC.e payment. Operator key is never used on the APP path.'
   return 'Approved work runs on the device-local session. MetaMask will not open.'
 }

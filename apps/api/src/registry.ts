@@ -67,7 +67,7 @@ export const CANDIDATES: Candidate[] = [
     description: 'Token-safety verdict (CLEAR/CAUTION/AVOID)',
     url: (token) =>
       `https://onchainpulse.theaslangroupllc.com/api/evmtoken?address=${token}&chain=base`,
-    knownPayFail: 'Herald facilitator verify failed (CDP 400 paymentPayload). 0x7777 has no code on 16661.',
+    // Quoted 16661 Exact 2026-08-22. Not SETTLED until a new Aristotle tx is recorded.
   },
   {
     provider: 'PulseFeed',
@@ -84,6 +84,13 @@ export const CANDIDATES: Candidate[] = [
     description: 'Single token risk score',
     url: () => 'https://tnt-audit.com/api/v1/token-risk/x402',
     knownUnpayable: 'Herald mapped Solana USDC only. Till cannot settle Solana.',
+  },
+  {
+    provider: 'klymax',
+    service: 'token-holders',
+    fact: 'holders',
+    description: 'Token holder concentration (quoted 16661 Exact — not settled)',
+    url: (token) => `https://token-holders.api.klymax402.com/?address=${token}&chain=base`,
   },
 ]
 
@@ -252,7 +259,16 @@ export async function planProcurement(token: string): Promise<{
   const used = new Set<string>()
   for (const need of NEEDED) {
     const row = registry
-      .filter((r) => r.fact === need.fact && r.riskStatus === 'ok' && r.priceUsd != null && r.amount && r.payTo && r.asset)
+      .filter(
+        (r) =>
+          r.fact === need.fact &&
+          r.settlementStatus === 'settled' &&
+          r.riskStatus === 'ok' &&
+          r.priceUsd != null &&
+          r.amount &&
+          r.payTo &&
+          r.asset
+      )
       .filter((r) => !used.has(r.provider))
       .sort((a, b) => (a.priceUsd ?? 99) - (b.priceUsd ?? 99))[0]
     if (!row) continue
@@ -278,11 +294,11 @@ export async function planProcurement(token: string): Promise<{
     })
   }
   const skipped = registry
-    .filter((r) => r.riskStatus === 'unavailable')
+    .filter((r) => r.settlementStatus !== 'settled')
     .map((r) => ({
       seller: `${r.provider}/${r.service}`,
       status: r.settlementStatus,
-      detail: r.detail ?? 'unavailable',
+      detail: r.detail ?? (r.settlementStatus === 'quoted' ? 'Quoted on 16661 — not production until a settlement tx is recorded.' : 'unavailable'),
     }))
   return { registry, buys, skipped, facts: NEEDED, bazaar }
 }

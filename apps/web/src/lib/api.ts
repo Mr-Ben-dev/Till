@@ -66,20 +66,47 @@ export type MissionQuote = {
 }
 
 export type MissionDiscover = {
+  compiled?: {
+    ok?: boolean
+    family?: string
+    familyLabel?: string
+    refuse?: string
+    ask?: string
+    goal?: string
+    expectedOutput?: string
+  }
   subject: string
-  token: string
-  network: string
-  assetName: string
-  capAtomic: string
+  token?: string | null
+  network?: string
+  assetName?: string
+  capAtomic?: string
   capUsd: number
   facts?: { fact: string; why: string }[]
   registry?: RegistryRow[]
   quotes: MissionQuote[]
+  accepts?: {
+    url: string
+    resourceUrl?: string
+    accept?: {
+      scheme: string
+      network: string
+      amount: string
+      asset: string
+      payTo: string
+      extra?: { name?: string; version?: string }
+    }
+    error?: string
+  }[]
   totalAtomic: string
   totalUsd: number
   plan: string[]
   skipped: { seller: string; status: string; detail: string }[]
   bazaar?: { network: string; hits: number; note: string }
+  family?: string
+  familyLabel?: string
+  needsProcurement?: boolean
+  drawerNote?: string
+  fundUsd?: number
 }
 
 export type PurchaseRecord = {
@@ -93,11 +120,17 @@ export type PurchaseRecord = {
   body: unknown
   ogTx?: string
   destTx?: string
+  payer?: string
 }
 
 export type MissionRun = {
   ok: boolean
   blocked?: boolean
+  family?: string
+  familyLabel?: string
+  rail?: 'session' | 'operator'
+  signerLabel?: string
+  drawerNote?: string
   discovery?: MissionDiscover
   digest?: string
   eval?: {
@@ -124,12 +157,43 @@ export type MissionRun = {
   error?: string
 }
 
-export async function discoverMission(subject: string) {
-  const res = await fetch(`${API}/v1/mission/discover?subject=${encodeURIComponent(subject)}`)
+export async function compileMission(input: { text: string; family?: string; artifact?: string }) {
+  const res = await fetch(`${API}/v1/mission/compile`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+  return parse(res) as Promise<{
+    ok: boolean
+    family?: string
+    familyLabel?: string
+    refuse?: string
+    ask?: string
+    goal?: string
+    target?: string | null
+    expectedOutput?: string
+    needsProcurement: boolean
+  }>
+}
+
+export async function discoverMission(subject: string, family?: string) {
+  const q = new URLSearchParams({ subject })
+  if (family) q.set('family', family)
+  const res = await fetch(`${API}/v1/mission/discover?${q}`)
   return parse(res) as Promise<MissionDiscover>
 }
 
-export async function runMission(input: { subject: string; tokenId: string; maxAtomic?: string; owner?: string }) {
+export async function runMission(input: {
+  subject: string
+  tokenId: string
+  maxAtomic?: string
+  owner?: string
+  family?: string
+  artifact?: string
+  session?: string
+  payments?: unknown[]
+  rail?: 'session' | 'operator'
+}) {
   const res = await fetch(`${API}/v1/mission/run`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -138,6 +202,19 @@ export async function runMission(input: { subject: string; tokenId: string; maxA
   const body = (await res.json()) as MissionRun
   if (!res.ok) return { ...body, ok: false, error: body.error || body.over?.reason || `HTTP ${res.status}` }
   return body
+}
+
+export async function drawerBalance(session: string) {
+  const res = await fetch(`${API}/v1/drawer?session=${encodeURIComponent(session)}`)
+  return parse(res) as Promise<{ session: string; atomic: string; usd: number; hardMaxUsd: number; note: string }>
+}
+
+export async function activityReceipts(till: string) {
+  const res = await fetch(`${API}/v1/activity?till=${encodeURIComponent(till)}`)
+  return parse(res) as Promise<{
+    till: string
+    receipts: { tx?: string; family?: string; spentUsd?: number; verdict?: string; createdAt?: string }[]
+  }>
 }
 
 export async function overBudget(requestedUsd = 5, capAtomic?: string) {
@@ -237,10 +314,11 @@ export async function verifyTx(tx: string) {
 }
 
 export async function storeReceipt(tx: string, packet: unknown) {
+  const extra = packet && typeof packet === 'object' ? (packet as Record<string, unknown>) : {}
   const res = await fetch(`${API}/v1/receipts`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tx, packet }),
+    body: JSON.stringify({ tx, packet, tokenId: extra.tokenId, family: extra.family }),
   })
   return parse(res)
 }
@@ -252,7 +330,7 @@ export type BriefDoc = {
   risks: string[]
   next_action: string
   subject: string
-  verdict?: 'BUY' | 'HOLD' | 'AVOID'
+  verdict?: 'BUY' | 'HOLD' | 'AVOID' | 'TRUST' | 'CAUTION' | 'DONT' | 'CLEAR' | 'ISSUES'
   confidence?: 'low' | 'medium' | 'high'
 }
 

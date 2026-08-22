@@ -7,6 +7,7 @@ import { HomePage } from './pages/Home'
 import { TillsPage } from './pages/TillsPage'
 import { CreateTillPage } from './pages/CreateTillPage'
 import { TillPage } from './pages/TillPage'
+import { MissionPage } from './pages/MissionPage'
 import { PolicyPage } from './pages/PolicyPage'
 import { AgentsPage } from './pages/AgentsPage'
 import { JobsPage } from './pages/JobsPage'
@@ -46,6 +47,9 @@ function CreateTillRoute() {
 function TillRoute() {
   return <TillPage till={useTillCtx()} />
 }
+function MissionRoute() {
+  return <MissionPage till={useTillCtx()} />
+}
 function PolicyRoute() {
   return <PolicyPage till={useTillCtx()} />
 }
@@ -76,6 +80,7 @@ function RoutesTree() {
         <Route path="/tills" element={<TillsRoute />} />
         <Route path="/tills/new" element={<CreateTillRoute />} />
         <Route path="/till" element={<TillRoute />} />
+        <Route path="/till/mission" element={<MissionRoute />} />
         <Route path="/till/policy" element={<PolicyRoute />} />
         <Route path="/till/agent" element={<AgentsRoute />} />
         <Route path="/agents" element={<RedirectAgents />} />

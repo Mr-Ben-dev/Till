@@ -56,12 +56,12 @@ export function PolicyPanel({
       <p className="mod-lede">Your agent can spend within this boundary. It cannot withdraw or change the rules.</p>
       <dl className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="surf-inner">
-          <dt>Maximum per purchase</dt>
+          <dt>Vault cap (native 0G)</dt>
           <dd>{till.hasPolicy ? fmt0g(till.maxTxWei) : 'not set'}</dd>
         </div>
         <div className="surf-inner">
-          <dt>Mission budget</dt>
-          <dd>${till.missionCapUsd.toFixed(2)}</dd>
+          <dt>Session drawer max (USDC.e)</dt>
+          <dd>${till.missionCapUsd.toFixed(2)} application cap — not TillPolicy</dd>
         </div>
         <div className="surf-inner">
           <dt>Rolling spend</dt>

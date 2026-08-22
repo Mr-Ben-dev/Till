@@ -61,12 +61,11 @@ export function selectModel(
       hasJson(m) &&
       (!req.tools || hasTools(m))
   )
-  const forcePrivate =
-    process.env.OG_TRUST_MODE === 'private' || req.privatePreferred
+  const forcePrivate = req.privatePreferred || (req.moneyPath && process.env.OG_TRUST_MODE === 'private')
   if (forcePrivate) {
     const priv = candidates.filter(isTeeML)
     if (priv.length) candidates = priv
-    else if (process.env.OG_TRUST_MODE === 'private') {
+    else if (req.moneyPath && process.env.OG_TRUST_MODE === 'private') {
       throw new Error(`No TeeML model satisfies role ${role} (private trust mode)`)
     }
   }
@@ -94,4 +93,48 @@ export async function selectForRole(role: Role): Promise<CatalogModel> {
       ? process.env.OG_PREFERRED_POLICY_MODEL || '0gm-1.0-35b-a3b'
       : undefined
   return selectModel(catalog, role, preferred)
+}
+
+export type AutoPreset = 'auto' | 'cheap' | 'fast' | 'deep' | 'private' | 'custom'
+
+export function selectPreset(
+  catalog: Catalog,
+  preset: AutoPreset,
+  role: Role,
+  customId?: string
+): CatalogModel {
+  if (preset === 'custom' && customId) {
+    const hit = catalog.data.find((m) => m.id === customId)
+    if (!hit) throw new Error(`Model ${customId} is not in the live 0G catalog`)
+    const req = ROLE_REQUIREMENTS[role]
+    if (req.moneyPath) {
+      const v = (hit.verifiability ?? '').toLowerCase()
+      if (v !== 'teeml') throw new Error(`${customId} is not TeeML — blocked for spend/security decisions`)
+      if (!hasJson(hit) || (req.tools && !hasTools(hit))) {
+        throw new Error(`${customId} cannot satisfy JSON/tools for this role`)
+      }
+    }
+    return hit
+  }
+  if (preset === 'private' || preset === 'deep') {
+    return selectModel(catalog, role === 'compiler' ? 'highRisk' : role)
+  }
+  if (preset === 'cheap' || preset === 'fast') {
+    const req = ROLE_REQUIREMENTS[role]
+    let candidates = catalog.data.filter(
+      (m) =>
+        (m.type === 'chatbot' || !m.type) &&
+        isTee(m) &&
+        hasJson(m) &&
+        (!req.tools || hasTools(m))
+    )
+    if (!candidates.length) throw new Error('No 0G TEE+JSON model for this preset')
+    if (preset === 'fast') {
+      candidates.sort((a, b) => (b.provider_count ?? 0) - (a.provider_count ?? 0) || promptPrice(a) - promptPrice(b))
+    } else {
+      candidates.sort((a, b) => promptPrice(a) - promptPrice(b))
+    }
+    return candidates[0]
+  }
+  return selectModel(catalog, role)
 }

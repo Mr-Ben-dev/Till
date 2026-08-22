@@ -8,12 +8,16 @@ import {
   productionGuards,
   revokeGrant,
   selectForRole,
+  selectPreset,
   uploadEncryptedPacket,
   writeBrief,
 } from '@till/sdk'
 import { blockOverBudget, discoverMission, runMission } from './mission.js'
+import { compileMission } from './compiler.js'
 import { verifyRegistry } from './registry.js'
 import { USDCE_16661, HERALD_ROUTER, OG_CAIP } from './x402Herald.js'
+import { getReceipt, listReceipts, putReceipt } from './store.js'
+import { usdceBalance } from './gate.js'
 import {
   API_PUBLIC,
   MCP_RESOURCE,
@@ -50,7 +54,6 @@ function jsonSafe(v: unknown): unknown {
   return v
 }
 
-const receipts = new Map<string, unknown>()
 const app = Fastify({ logger: true, requestTimeout: 300_000, connectionTimeout: 300_000 })
 
 app.addHook('onRequest', async (req, reply) => {
@@ -106,12 +109,26 @@ app.get('/v1/public-config', async () => ({
 app.get('/v1/models/live', async () => {
   const catalog = await fetchCatalog(true)
   const roles = {
+    compiler: (await selectForRole('compiler')).id,
     fastPolicy: (await selectForRole('fastPolicy')).id,
     defaultPolicy: (await selectForRole('defaultPolicy')).id,
     highRisk: (await selectForRole('highRisk')).id,
     jobSemantic: (await selectForRole('jobSemantic')).id,
   }
-  return { count: catalog.data.length, roles, fetchedAt: catalog.fetchedAt }
+  const presets = {
+    autoPay: selectPreset(catalog, 'auto', 'fastPolicy').id,
+    cheap: selectPreset(catalog, 'cheap', 'compiler').id,
+    fast: selectPreset(catalog, 'fast', 'compiler').id,
+    deep: selectPreset(catalog, 'deep', 'highRisk').id,
+    private: selectPreset(catalog, 'private', 'highRisk').id,
+  }
+  return {
+    count: catalog.data.length,
+    roles,
+    presets,
+    fetchedAt: catalog.fetchedAt,
+    note: 'AUTO reads this live catalog. Models with verifiability=None cannot ALLOW spend.',
+  }
 })
 
 app.post('/v1/grants', async (req) => {
@@ -375,13 +392,39 @@ app.get('/v1/registry', async (req, reply) => {
   }
 })
 
+app.post('/v1/mission/compile', async (req) => {
+  const body = req.body as { text?: string; family?: string; artifact?: string }
+  return compileMission(body)
+})
+
 app.get('/v1/mission/discover', async (req, reply) => {
-  const q = req.query as { subject?: string }
+  const q = req.query as { subject?: string; family?: string }
   try {
-    return jsonSafe(await discoverMission(String(q.subject ?? '')))
+    const family = q.family === 'pay' || q.family === 'trust' || q.family === 'research' || q.family === 'review' ? q.family : undefined
+    return jsonSafe(await discoverMission(String(q.subject ?? ''), family))
   } catch (e) {
     return reply.code(502).send({ error: (e as Error).message })
   }
+})
+
+app.get('/v1/drawer', async (req, reply) => {
+  const q = req.query as { session?: string }
+  if (!q.session) return reply.code(400).send({ error: 'session required' })
+  const bal = await usdceBalance(q.session)
+  return {
+    session: q.session,
+    atomic: bal.atomic.toString(),
+    usd: bal.usd,
+    asset: 'USDC.e',
+    hardMaxUsd: 0.5,
+    note: 'USDC.e is limited by this mission\'s session drawer, not by TillPolicy.',
+  }
+})
+
+app.get('/v1/activity', async (req, reply) => {
+  const q = req.query as { till?: string }
+  if (!q.till) return reply.code(400).send({ error: 'till required' })
+  return { till: q.till, receipts: listReceipts(q.till) }
 })
 
 app.post('/v1/mission/overbudget', async (req) => {
@@ -390,19 +433,36 @@ app.post('/v1/mission/overbudget', async (req) => {
 })
 
 app.post('/v1/mission/run', async (req, reply) => {
-  const body = req.body as { subject?: string; tokenId?: string; maxAtomic?: string; owner?: string }
+  const body = req.body as {
+    subject?: string
+    tokenId?: string
+    maxAtomic?: string
+    owner?: string
+    family?: 'pay' | 'trust' | 'research' | 'review'
+    artifact?: string
+    session?: string
+    payments?: unknown[]
+    rail?: 'session' | 'operator'
+  }
   if (!body.tokenId) return reply.code(400).send({ error: 'tokenId required' })
   try {
     const result = await runMission({
-      subject: String(body.subject ?? '').slice(0, 280),
+      subject: String(body.subject ?? '').slice(0, 4000),
       tokenId: String(body.tokenId),
       maxAtomic: body.maxAtomic,
       owner: body.owner,
+      family: body.family,
+      artifact: body.artifact,
+      session: body.session,
+      payments: body.payments as never,
+      rail: body.rail,
     })
     if (!result.ok) return reply.code(403).send(jsonSafe(result))
     return jsonSafe(result)
   } catch (e) {
-    return reply.code(502).send({ error: (e as Error).message })
+    const msg = (e as Error).message
+    const failedHerald = /FAILED_HERALD/i.test(msg)
+    return reply.code(failedHerald ? 502 : 502).send({ error: msg, code: failedHerald ? 'FAILED_HERALD' : 'MISSION_FAIL' })
   }
 })
 
@@ -487,7 +547,7 @@ async function verifyHandler(req: { query: unknown }, reply: { code: (n: number)
   const q = req.query as { till?: string; tx?: string }
   if (!q.tx) return reply.code(400).send({ error: 'tx required' })
   const hash = String(q.tx)
-  const cached = receipts.get(hash.toLowerCase())
+  const cached = getReceipt(hash)
   const provider = new ethers.JsonRpcProvider(OG_RPC_URL)
   const receipt = await provider.getTransactionReceipt(hash)
   if (!receipt) return reply.code(404).send({ error: 'tx not found on Aristotle' })
@@ -540,7 +600,14 @@ async function verifyHandler(req: { query: unknown }, reply: { code: (n: number)
     storageRoot,
     released,
     sessionCache: cached ?? null,
-    note: 'On-chain fields are reconstructed from the Aristotle receipt. Session cache is optional operator evidence, not a substitute for the receipt.',
+    durable: Boolean(cached),
+    family: cached?.family ?? null,
+    signer: cached?.session ?? tx?.from ?? null,
+    model: cached?.model ?? null,
+    processResponse: cached?.processResponse ?? null,
+    verdict: cached?.verdict ?? null,
+    rail: cached?.rail ?? null,
+    note: 'On-chain fields are reconstructed from the Aristotle receipt. Durable receipts survive API restart. They are not a substitute for the receipt.',
   }
 }
 
@@ -548,9 +615,24 @@ app.get('/verify', verifyHandler)
 app.get('/v1/verify', verifyHandler)
 
 app.post('/v1/receipts', async (req) => {
-  const body = req.body as { tx: string; packet?: unknown }
-  receipts.set(body.tx.toLowerCase(), body)
-  return { stored: true }
+  const body = req.body as { tx: string; packet?: unknown; tokenId?: string; family?: string }
+  if (!body.tx) return { stored: false, error: 'tx required' }
+  putReceipt({
+    id: body.tx.toLowerCase(),
+    tx: body.tx,
+    tokenId: body.tokenId,
+    family: body.family,
+    packet: body.packet,
+    createdAt: new Date().toISOString(),
+  })
+  return { stored: true, durable: true }
+})
+
+app.get('/v1/receipts/:tx', async (req, reply) => {
+  const tx = (req.params as { tx: string }).tx
+  const row = getReceipt(tx)
+  if (!row) return reply.code(404).send({ error: 'not stored' })
+  return row
 })
 
 const port = Number(process.env.PORT ?? 3001)

@@ -62,10 +62,14 @@ export function SessionPanel({
         <li className="is-no">Change policy</li>
         <li className="is-no">Spend another Till</li>
       </ul>
+      <p className="mt-4 text-[13px] text-white/55">
+        Sweep leftover USDC.e to the owner before revoke. Revoke does not claw back USDC.e. USDC.e is limited by this
+        mission&apos;s session drawer, not by TillPolicy.
+      </p>
       <SignHint kind="owner" write={status === 'OWNER_MODE' || status === 'REVOKED' || status === 'EXPIRED' ? 'authorize' : 'revoke'} />
       <div className="mt-3 flex flex-wrap gap-3">
-        <CyanButton to="/till#mission" variant="ghost">
-          Run
+        <CyanButton to="/till/mission" variant="ghost">
+          Start a mission
         </CyanButton>
         {status === 'OWNER_MODE' || status === 'REVOKED' || status === 'EXPIRED' ? (
           <CyanButton disabled={till.writeLocked} onClick={till.attachAgent}>
@@ -77,9 +81,14 @@ export function SessionPanel({
           </CyanButton>
         )}
         {sessionAddr ? (
-          <CyanButton variant="ghost" disabled={till.writeLocked} onClick={() => till.revokeAgent(sessionAddr)}>
-            Revoke
-          </CyanButton>
+          <>
+            <CyanButton variant="ghost" disabled={till.writeLocked} onClick={() => till.sweepDrawer()}>
+              Sweep USDC.e
+            </CyanButton>
+            <CyanButton variant="ghost" disabled={till.writeLocked} onClick={() => till.revokeAgent(sessionAddr)}>
+              Revoke
+            </CyanButton>
+          </>
         ) : (
           <button type="button" className="text-[14px] text-white/50 underline" onClick={till.skipAgent}>
             Continue in owner mode

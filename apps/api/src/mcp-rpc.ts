@@ -1,4 +1,5 @@
 import { discoverMission, runMission } from './mission.js'
+import { getReceipt } from './store.js'
 import {
   ALL_SCOPES,
   MCP_RESOURCE,
@@ -17,8 +18,10 @@ const TOOLS = [
   { name: 'till_get', description: 'Get one Till: balance, policy summary, session status.', scopes: ['till.read'] },
   { name: 'till_get_policy', description: 'Read the protection policy in plain English plus on-chain fields.', scopes: ['till.policy.read'] },
   { name: 'till_create_mission', description: 'Draft a Before You Pay mission from a token/contract/protocol string. Does not pay.', scopes: ['till.mission.create'] },
-  { name: 'till_quote_mission', description: 'Quote live x402 checks. Does not execute.', scopes: ['till.mission.create'] },
-  { name: 'till_run_mission', description: 'Execute a quoted mission under policy when autonomous execution is enabled. Never uses an owner private key.', scopes: ['till.mission.execute'] },
+  { name: 'till_quote_mission', description: 'Compile and quote a mission. Does not execute. Does not pay.', scopes: ['till.mission.create'] },
+  { name: 'till_run_mission', description: 'Execute a mission. OPERATOR RAIL: uses the API operator signer for USDC.e, not the browser session. Labeled. Never uses an owner private key. Never accepts a session private key.', scopes: ['till.mission.execute'] },
+  { name: 'till_get_result', description: 'Return stored mission receipt by tx hash if the API persisted it.', scopes: ['till.proof.read'] },
+  { name: 'till_review', description: 'Compile a Review This mission. Does not pay unless a SETTLED bytecode SKU is quoted later.', scopes: ['till.mission.create'] },
   { name: 'till_get_mission', description: 'Return the last mission payload passed in, or re-quote.', scopes: ['till.proof.read'] },
   { name: 'till_get_activity', description: 'Show Till status and how to open on-chain activity.', scopes: ['till.activity.read'] },
   { name: 'till_get_proof', description: 'Explain how to verify a transaction hash on Aristotle. Pass tx.', scopes: ['till.proof.read'] },
@@ -71,41 +74,55 @@ async function callTool(auth: Auth, name: string, params: unknown) {
       requireScope(auth, 'till.policy.read')
       return getPolicy(auth.sub, tokenId)
     case 'till_create_mission':
-    case 'till_quote_mission': {
+    case 'till_quote_mission':
+    case 'till_review': {
       requireScope(auth, 'till.mission.create')
       const subject = String(a.subject || '')
       if (!subject) throw new Error('subject required')
-      return discoverMission(subject)
+      const family = name === 'till_review' ? 'review' : undefined
+      return discoverMission(subject, family)
     }
     case 'till_run_mission': {
       requireScope(auth, 'till.mission.execute')
       const session = await getSession(auth.sub, tokenId)
-      if (session.status !== 'READY') {
+      if (session.status !== 'READY' && session.status !== 'NOT_FUNDED') {
         return {
           ok: false,
           error:
             session.status === 'EXPIRED'
-              ? 'Autonomous session expired. Authorize a new session in the Till app.'
-              : 'Autonomous execution is not enabled for this Till.',
+              ? 'Session expired. Mission settlement is refused.'
+              : session.status === 'PAUSED'
+                ? 'Till is paused. Mission settlement is refused.'
+                : 'Autonomous execution is not enabled for this Till.',
           status: session.status,
-          enableUrl: `${WEB_PUBLIC}/agents`,
+          enableUrl: `${WEB_PUBLIC}/till/agent`,
         }
       }
       const subject = String(a.subject || '')
       if (!subject) throw new Error('subject required')
-      const result = await runMission({ subject, tokenId, owner: auth.sub })
+      const result = await runMission({
+        subject,
+        tokenId,
+        owner: auth.sub,
+        rail: 'operator',
+      })
       return {
         ...result,
+        signerLabel:
+          'OPERATOR RAIL. MCP execute uses the configured operator signer for USDC.e EIP-3009. It does not use the browser session key. APP missions must use the session EOA.',
         storage: {
           anchored: false,
           reason: 'MCP never holds the session private key. Storage proof is anchored in the Till app by the device-local session.',
         },
       }
     }
-    case 'till_get_mission':
+    case 'till_get_result':
+    case 'till_get_mission': {
       requireScope(auth, 'till.proof.read')
-      if (!a.subject) return { error: 'pass subject to re-quote, or use till_quote_mission' }
+      if (a.tx) return getReceipt(a.tx) ?? { error: 'not stored', verify: `${WEB_PUBLIC}/verify?tx=${a.tx}` }
+      if (!a.subject) return { error: 'pass subject to re-quote, or tx for a stored result' }
       return discoverMission(String(a.subject))
+    }
     case 'till_get_activity':
       requireScope(auth, 'till.activity.read')
       return {
@@ -153,7 +170,7 @@ export async function handleMcpRpc(auth: Auth | null, body: Rpc) {
           capabilities: { tools: {} },
           serverInfo: { name: 'till', version: '0.1.0' },
           instructions:
-            'Till MCP never accepts private keys. Default scopes are read/quote. till.mission.execute requires an on-chain autonomous session. High-risk scopes never withdraw.',
+            'Till MCP never accepts private keys. Default scopes are read/quote. till.mission.execute is the OPERATOR rail (not the browser session). High-risk scopes never withdraw.',
         },
       }
     }

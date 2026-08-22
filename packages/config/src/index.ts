@@ -16,18 +16,27 @@ export const ROLES = {
   defaultPolicy: 'defaultPolicy',
   highRisk: 'highRisk',
   jobSemantic: 'jobSemantic',
+  compiler: 'compiler',
 } as const
 
 export type Role = (typeof ROLES)[keyof typeof ROLES]
 
 export const ROLE_REQUIREMENTS: Record<
   Role,
-  { json: true; tools: boolean; tee: true; privatePreferred: boolean; reasoning: boolean }
+  {
+    json: true
+    tools: boolean
+    tee: true
+    privatePreferred: boolean
+    reasoning: boolean
+    moneyPath: boolean
+  }
 > = {
-  fastPolicy: { json: true, tools: true, tee: true, privatePreferred: false, reasoning: false },
-  defaultPolicy: { json: true, tools: true, tee: true, privatePreferred: true, reasoning: false },
-  highRisk: { json: true, tools: true, tee: true, privatePreferred: true, reasoning: true },
-  jobSemantic: { json: true, tools: true, tee: true, privatePreferred: false, reasoning: true },
+  fastPolicy: { json: true, tools: true, tee: true, privatePreferred: false, reasoning: false, moneyPath: true },
+  defaultPolicy: { json: true, tools: true, tee: true, privatePreferred: true, reasoning: false, moneyPath: true },
+  highRisk: { json: true, tools: true, tee: true, privatePreferred: true, reasoning: true, moneyPath: true },
+  jobSemantic: { json: true, tools: true, tee: true, privatePreferred: false, reasoning: true, moneyPath: true },
+  compiler: { json: true, tools: true, tee: true, privatePreferred: false, reasoning: false, moneyPath: false },
 }
 
 export const NFT_ABI = [

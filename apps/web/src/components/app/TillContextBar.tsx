@@ -7,18 +7,17 @@ import type { TillState } from '../../hooks/useTill'
 export function TillContextBar({ till }: { till: TillState }) {
   const loc = useLocation()
   const path = loc.pathname
-  const hash = loc.hash
+  const sub = path !== '/till'
   if (!till.authenticated) return null
   const name = till.tokenId != null ? loadTillName(till.tokenId) : 'No Till'
   const switching = !till.loadError && (till.switching || (till.tokenId != null && !till.tillReady))
-  const sub = path !== '/till' || hash === '#mission'
   const links = [
-    { to: '/till', label: 'Overview', on: path === '/till' && hash !== '#mission' },
+    { to: '/till', label: 'Overview', on: path === '/till' },
     { to: '/till/policy', label: 'Policy', on: path === '/till/policy' },
     { to: '/till/agent', label: 'Agent', on: path === '/till/agent' || path === '/agents' },
-    { to: '/till#mission', label: 'Mission', on: path === '/till' && hash === '#mission' },
-    { to: '/jobs', label: 'Jobs', on: path === '/jobs' },
+    { to: '/till/mission', label: 'Mission', on: path === '/till/mission' },
     { to: '/activity', label: 'Activity', on: path === '/activity' },
+    { to: '/verify', label: 'Proof', on: path === '/verify' },
   ]
   const here = links.find((l) => l.on)?.label ?? 'Overview'
   return (

@@ -22,6 +22,13 @@ type VerifyBody = {
   storageRoot?: string | null
   released?: { event?: string; args?: Record<string, unknown> } | null
   sessionCache?: { packet?: { model?: string; till?: string; brief?: { verdict?: string } } } | null
+  family?: string | null
+  signer?: string | null
+  model?: string | null
+  processResponse?: boolean | null
+  verdict?: string | null
+  rail?: string | null
+  durable?: boolean
   note?: string
 }
 
@@ -113,8 +120,18 @@ export function VerifyPage() {
               <strong className="font-mono text-[12px]">{agent ? `${agent.slice(0, 8)}…${agent.slice(-4)}` : 'n/a'}</strong>
             </li>
             <li>
-              <span>TEE</span>
-              <strong>{data.sessionCache?.packet?.model || 'see packet'}</strong>
+              <span>Family</span>
+              <strong>{data.family || 'see packet'}</strong>
+            </li>
+            <li>
+              <span>USDC.e from</span>
+              <strong className="font-mono text-[12px]">
+                {data.usdceTransfers?.[0]?.from ? `${data.usdceTransfers[0].from.slice(0, 8)}…` : 'none on this tx'}
+              </strong>
+            </li>
+            <li>
+              <span>processResponse</span>
+              <strong>{String(data.processResponse ?? data.sessionCache?.packet?.model ?? 'see packet')}</strong>
             </li>
             <li>
               <span>Storage</span>

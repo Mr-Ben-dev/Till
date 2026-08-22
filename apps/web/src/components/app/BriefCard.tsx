@@ -6,6 +6,11 @@ const TONE: Record<string, string> = {
   BUY: 'border-cyan/50 bg-cyan/10 text-cyan',
   HOLD: 'border-white/25 bg-white/5 text-white',
   AVOID: 'border-danger/50 bg-danger/10 text-danger',
+  TRUST: 'border-cyan/50 bg-cyan/10 text-cyan',
+  CAUTION: 'border-white/25 bg-white/5 text-white',
+  DONT: 'border-danger/50 bg-danger/10 text-danger',
+  CLEAR: 'border-cyan/50 bg-cyan/10 text-cyan',
+  ISSUES: 'border-danger/50 bg-danger/10 text-danger',
 }
 
 export function BriefCard({

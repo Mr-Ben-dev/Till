@@ -9,13 +9,14 @@ export function MissionCard({
   mission: MissionDiscover
   purchases?: PurchaseRecord[]
 }) {
-  const rows = purchases?.length ? purchases : mission.quotes
+  const rows = purchases?.length ? purchases : mission.quotes ?? []
   return (
     <article className="mt-6 grid gap-5">
       <p className="text-[15px] text-white">
-        {mission.quotes.length} independent checks selected · quote ${mission.totalUsd.toFixed(3)} · cap $
+        {(mission.quotes ?? []).length} independent checks selected · quote ${(mission.totalUsd ?? 0).toFixed(3)} · drawer max $
         {mission.capUsd.toFixed(2)}
       </p>
+      {mission.drawerNote ? <p className="text-[13px] text-white/55">{mission.drawerNote}</p> : null}
       <ul className="grid gap-3">
         {rows.map((row) => {
           const sku = 'sku' in row ? row.sku : ''
@@ -40,7 +41,7 @@ export function MissionCard({
           )
         })}
       </ul>
-      {mission.skipped.map((s) => (
+      {mission.skipped?.map((s) => (
         <p key={s.seller} className="text-[13px] text-white/50">
           {s.seller} UNAVAILABLE: {s.detail}
         </p>

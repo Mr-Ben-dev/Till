@@ -8,6 +8,16 @@ export const HERALD_ROUTER = 'https://router.heraldprotocol.xyz/route/x402'
 export const USDCE_16661 = '0x1f3aa82227281ca364bfb3d253b0f1af1da6473e'
 export const OG_CAIP = 'eip155:16661'
 
+export type HeraldAccept = {
+  scheme: string
+  network: string
+  amount: string
+  asset: string
+  payTo: string
+  maxTimeoutSeconds?: number
+  extra?: { name?: string; version?: string; verifyingContract?: string }
+}
+
 export type HeraldQuote = {
   destination: string
   seller: string
@@ -19,6 +29,9 @@ export type HeraldQuote = {
   amountUsd: number
   payTo: string
   router: string
+  extraName?: string
+  extraVersion?: string
+  scheme?: string
 }
 
 function routerUrl(destination: string) {
@@ -44,14 +57,19 @@ export async function quoteHerald(destination: string, seller: string): Promise<
       amount?: string
       asset?: string
       payTo?: string
-      extra?: { name?: string }
+      extra?: { name?: string; version?: string; verifyingContract?: string }
     }[]
   }
-  const pick =
-    parsed.accepts?.find((a) => a.network === OG_CAIP && a.asset?.toLowerCase() === USDCE_16661.toLowerCase()) ??
-    parsed.accepts?.find((a) => a.network === OG_CAIP)
+  const og =
+    parsed.accepts?.filter(
+      (a) =>
+        a.network === OG_CAIP &&
+        a.asset?.toLowerCase() === USDCE_16661.toLowerCase() &&
+        !a.extra?.verifyingContract
+    ) ?? []
+  const pick = og[0] ?? parsed.accepts?.find((a) => a.network === OG_CAIP && !a.extra?.verifyingContract)
   if (!pick?.amount || !pick.payTo || !pick.asset) {
-    throw new Error(`No eip155:16661 USDC.e option in Herald accepts for ${destination}`)
+    throw new Error(`No eip155:16661 USDC.e Exact option in Herald accepts for ${destination}`)
   }
   return {
     destination,
@@ -64,7 +82,90 @@ export async function quoteHerald(destination: string, seller: string): Promise<
     amountUsd: amountUsd(pick.amount),
     payTo: pick.payTo,
     router: url,
+    extraName: pick.extra?.name,
+    extraVersion: pick.extra?.version,
+    scheme: pick.scheme ?? 'exact',
   }
+}
+
+export async function quoteAccept(destination: string): Promise<{ resourceUrl: string; accept: HeraldAccept; description: string }> {
+  const url = routerUrl(destination)
+  const res = await fetch(url, { headers: { Accept: 'application/json' } })
+  const hdr = res.headers.get('PAYMENT-REQUIRED') ?? res.headers.get('payment-required') ?? ''
+  if (res.status !== 402 || !hdr) {
+    throw new Error(`FAILED_HERALD: expected 402 PAYMENT-REQUIRED for ${destination}, got ${res.status}`)
+  }
+  const parsed = JSON.parse(Buffer.from(hdr, 'base64').toString('utf8')) as {
+    resource?: { description?: string; url?: string }
+    accepts?: HeraldAccept[]
+  }
+  const pick =
+    parsed.accepts?.find(
+      (a) =>
+        a.network === OG_CAIP &&
+        a.asset?.toLowerCase() === USDCE_16661.toLowerCase() &&
+        !a.extra?.verifyingContract
+    )
+  if (!pick) throw new Error(`FAILED_HERALD: no 16661 USDC.e Exact accept for ${destination}`)
+  return { resourceUrl: url, accept: pick, description: parsed.resource?.description ?? '' }
+}
+
+export type PaymentPayload = {
+  x402Version?: number
+  resource?: { url?: string }
+  accepted?: HeraldAccept
+  payload?: {
+    signature?: string
+    authorization?: {
+      from?: string
+      to?: string
+      value?: string
+      validAfter?: string
+      validBefore?: string
+      nonce?: string
+    }
+  }
+}
+
+export async function settleWithPaymentPayload(
+  destination: string,
+  payment: PaymentPayload
+): Promise<{ status: number; body: unknown; settlement: unknown }> {
+  const from = payment.payload?.authorization?.from
+  if (!from) throw new Error('PAYMENT-SIGNATURE missing authorization.from')
+  const url = routerUrl(destination)
+  const encoded = Buffer.from(JSON.stringify(payment)).toString('base64')
+  const res = await fetch(url, {
+    headers: {
+      Accept: 'application/json',
+      'PAYMENT-SIGNATURE': encoded,
+      'User-Agent': 'Mozilla/5.0 Till/1.0',
+    },
+  })
+  const text = await res.text()
+  let body: unknown = text
+  try {
+    body = text ? JSON.parse(text) : null
+  } catch {
+    /* keep text */
+  }
+  const settleHdr = res.headers.get('PAYMENT-RESPONSE') ?? res.headers.get('payment-response')
+  let settlement: unknown = settleHdr
+    ? (() => {
+        try {
+          return JSON.parse(Buffer.from(settleHdr, 'base64').toString('utf8'))
+        } catch {
+          return { paymentResponse: settleHdr }
+        }
+      })()
+    : null
+  if (res.status === 402) {
+    throw new Error(`FAILED_HERALD: still 402 after session payment for ${destination}: ${text.slice(0, 240)}`)
+  }
+  if (!res.ok) {
+    throw new Error(`FAILED_HERALD: HTTP ${res.status} for ${destination}: ${text.slice(0, 400)}`)
+  }
+  return { status: res.status, body, settlement }
 }
 
 export async function payHerald(destination: string, maxAtomic = process.env.TILL_USDCE_MAX_ATOMIC ?? '500000'): Promise<{

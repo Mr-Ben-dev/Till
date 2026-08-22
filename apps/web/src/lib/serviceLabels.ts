@@ -27,19 +27,19 @@ export const CHECKS = [
 
 export const USES = [
   {
-    label: 'Before I deposit',
-    body: 'Analyze a token or protocol before sending funds.',
+    label: 'Before You Pay',
+    body: 'Safety, oracle freshness, and contract risk before you send funds.',
     value: 'Should I deposit into this protocol? 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
   },
   {
-    label: 'Before I buy',
-    body: 'Buy independent safety, market, and contract intelligence.',
-    value: 'Is this token safe to buy? 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    label: 'Before You Trust',
+    body: 'Public on-chain facts before you grant authority. Paid SKUs only when SETTLED.',
+    value: 'Should I trust this address? 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
   },
   {
-    label: 'Before I interact',
-    body: 'Check privileged functions and upgradeability.',
-    value: 'Is this contract too risky to interact with? 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    label: 'Research For Me',
+    body: 'A private structured brief from 0G Compute. Not a chatbot.',
+    value: 'Research this protocol for me. 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
   },
 ] as const
 

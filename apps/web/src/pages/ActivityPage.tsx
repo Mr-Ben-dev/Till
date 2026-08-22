@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Contract, JsonRpcProvider } from 'ethers'
 import { ADDR, EXPLORER, MINT_FROM_BLOCK, RPC_URL } from '../lib/chain'
-import { NFT_ABI, VAULT_ABI } from '../lib/abi'
+import { NFT_ABI, POLICY_ABI, VAULT_ABI } from '../lib/abi'
+import { activityReceipts } from '../lib/api'
 import type { TillState } from '../hooks/useTill'
 import { CyanButton } from '../components/CyanButton'
 import { Notice } from '../components/app/Notice'
@@ -31,10 +32,17 @@ export function ActivityPage({ till }: { till: TillState }) {
         const provider = new JsonRpcProvider(RPC_URL)
         const vault = new Contract(ADDR.vault, VAULT_ABI, provider)
         const nft = new Contract(ADDR.nft, NFT_ABI, provider)
-        const [rel, dep, mint] = await Promise.all([
+        const policy = new Contract(ADDR.policy, POLICY_ABI, provider)
+        const [rel, dep, mint, pause, authG, authR, stored] = await Promise.all([
           vault.queryFilter(vault.filters.Released(id), MINT_FROM_BLOCK).catch(() => []),
           vault.queryFilter(vault.filters.Deposited(id), MINT_FROM_BLOCK).catch(() => []),
           nft.queryFilter(nft.filters.TillMinted(till.address), MINT_FROM_BLOCK).catch(() => []),
+          policy.queryFilter(policy.filters.PauseSet(id), MINT_FROM_BLOCK).catch(() => []),
+          nft.queryFilter(nft.filters.AuthorizationGranted(undefined, undefined, id), MINT_FROM_BLOCK).catch(() => []),
+          nft.queryFilter(nft.filters.AuthorizationRevoked(undefined, undefined, id), MINT_FROM_BLOCK).catch(() => []),
+          activityReceipts(id.toString()).catch(() => ({
+            receipts: [] as { tx?: string; family?: string; spentUsd?: number; verdict?: string; createdAt?: string }[],
+          })),
         ])
         if (cancelled) return
         const out: Row[] = []
@@ -49,8 +57,21 @@ export function ActivityPage({ till }: { till: TillState }) {
             })
           }
         }
-        for (const l of dep) out.push({ title: 'Funded', hash: l.transactionHash, extra: '', at: Number(l.blockNumber) })
-        for (const l of rel) out.push({ title: 'Paid from Till', hash: l.transactionHash, extra: '', at: Number(l.blockNumber) })
+        for (const l of dep) out.push({ title: 'Funded', hash: l.transactionHash, extra: 'native 0G', at: Number(l.blockNumber) })
+        for (const l of rel) out.push({ title: 'Paid from Till', hash: l.transactionHash, extra: 'native 0G vault', at: Number(l.blockNumber) })
+        for (const l of pause) out.push({ title: 'Pause changed', hash: l.transactionHash, extra: '', at: Number(l.blockNumber) })
+        for (const l of authG) out.push({ title: 'Session authorized', hash: l.transactionHash, extra: '', at: Number(l.blockNumber) })
+        for (const l of authR) out.push({ title: 'Session revoked', hash: l.transactionHash, extra: 'Revoke does not claw back USDC.e', at: Number(l.blockNumber) })
+        for (const rec of stored.receipts ?? []) {
+          if (rec.tx) {
+            out.push({
+              title: `Mission ${rec.family ?? ''} ${rec.verdict ?? ''}`.trim(),
+              hash: rec.tx,
+              extra: rec.spentUsd != null ? `$${rec.spentUsd} USDC.e` : '',
+              at: rec.createdAt ? Date.parse(rec.createdAt) : Date.now(),
+            })
+          }
+        }
         if (till.purchases.length) {
           till.purchases.forEach((p) => {
             if (p.ogTx) out.push({ title: `${p.seller} purchased`, hash: p.ogTx, extra: `$${p.quote.amountUsd.toFixed(3)} USDC.e`, at: Date.now() })

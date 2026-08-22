@@ -4,7 +4,7 @@ import { CaretRight } from '@phosphor-icons/react'
 const ITEMS = [
   {
     title: 'Hard policy, not a prompt',
-    body: 'Caps, allowlists, and expiry live on TillPolicy. The model proposes. The vault decides. Preview() is the same math the chain will run.',
+    body: 'Caps, allowlists, and expiry live on TillPolicy for native 0G. USDC.e missions are limited by the session drawer, not by TillPolicy.',
   },
   {
     title: 'TEE-bound release',
@@ -12,7 +12,7 @@ const ITEMS = [
   },
   {
     title: 'x402 buys the work',
-    body: 'The agent picks three different providers — token safety, oracle freshness, and bytecode privileges — pays USDC.e on 16661 through Herald, and never holds the owner key.',
+    body: 'It discovers live x402 quotes. Only SETTLED SKUs execute. USDC.e is paid from the session EOA via EIP-3009 on Aristotle through Herald.',
   },
   {
     title: 'Storage + ERC-8004 receipt',

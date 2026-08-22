@@ -76,10 +76,16 @@ export function DocsOverview() {
         spend account on 0G Aristotle ({CHAIN_ID}): you fund it, you set the policy, you authorize a device-local session.
         The agent can buy approved work. It cannot withdraw, change policy, or spend another Till.
       </p>
-      <h2>Flagship: Before You Pay</h2>
+      <h2>Four mission families</h2>
       <p>
-        Paste a token, contract, or protocol. The agent selects live x402 checks, 0G Compute reasons privately, and you
-        get BUY / HOLD / AVOID with on-chain proof. Mission USDC.e cap is ${MISSION_CAP_USD.toFixed(2)}.
+        Before You Pay, Before You Trust, Research For Me, and Review This. Compute is the work. x402 is optional
+        procurement. Only SETTLED SKUs execute. Quoted SKUs stay in Developers until a real Aristotle settlement tx
+        exists.
+      </p>
+      <h2>Money rails</h2>
+      <p>
+        TillPolicy controls native 0G in the vault. USDC.e x402 uses a per-mission session drawer and EIP-3009. The APP
+        path never uses the operator key. MCP execute is a labeled operator rail. USDC.e is not TillPolicy-controlled.
       </p>
       <MoneyFlow />
       <h2>Security boundaries</h2>
@@ -139,14 +145,16 @@ export function DocsCore() {
       <h2>Protection policy</h2>
       <p>
         On-chain: max per purchase and rolling cap in native 0G, session expiry, pause. Application: ${MISSION_CAP_USD.toFixed(2)}{' '}
+        USDC.e session-drawer cap (not TillPolicy).
         USDC.e mission cap for Before You Pay. Allowed services (Safety · Market · Contract) are selected by the agent
         from live x402 quotes, not stored as an on-chain enum.
       </p>
       <h2>Owner vs autonomous</h2>
       <p>
-        Owner signs connect, mint, fund, policy, authorizeUsage, gas, revoke, withdraw, pause, setTillTeeSigner. After a
-        READY session (authorized + gas), the device-local session key signs vault.anchorPacket. x402 USDC.e settlement
-        uses the API Herald rail, not the session key. If gas is zero, the app does not label the run autonomous.
+        Owner signs connect, mint, fund vault 0G, policy, authorizeUsage, gas, revoke, withdraw, pause, setTillTeeSigner,
+        and funding the session drawer with USDC.e. APP mission payments are EIP-3009 signed by the authorized session EOA.
+        The operator key is never used on that path. MCP <code>till_run_mission</code> is a labeled operator rail.
+        Storage <code>anchorPacket</code> is signed by the device-local session when gas is available.
       </p>
       <h2>Grants</h2>
       <p>ERC-7857 authorizeUsage on that Till. Cross-Till isolation is enforced on-chain. MCP uses a JWT grant, not a key.</p>

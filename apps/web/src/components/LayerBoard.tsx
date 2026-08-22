@@ -29,7 +29,7 @@ export const LAYERS = [
   {
     name: 'Investigation',
     title: 'The agent buys the intel it can pay for.',
-    body: 'It discovers live x402 quotes, buys three independent checks in USDC.e on Aristotle, then returns BUY / HOLD / AVOID. Storage proves the packet. The agent never holds your wallet.',
+    body: '0G Compute writes the private result. AUTO selects from the live catalog. x402 procurement is optional. Storage proves the packet.',
     scene: 'receipt',
   },
 ] as const

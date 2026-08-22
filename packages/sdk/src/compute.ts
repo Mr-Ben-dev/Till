@@ -184,7 +184,7 @@ export type BriefDoc = {
   risks: string[]
   next_action: string
   subject: string
-  verdict?: 'BUY' | 'HOLD' | 'AVOID'
+  verdict?: 'BUY' | 'HOLD' | 'AVOID' | 'TRUST' | 'CAUTION' | 'DONT' | 'CLEAR' | 'ISSUES'
   confidence?: 'low' | 'medium' | 'high'
 }
 
@@ -196,6 +196,20 @@ export type BriefResult = {
   teeVerifiedRouter: boolean
   provider: string
   chatId: string
+}
+
+function briefSystem(facts: Record<string, unknown>): string {
+  const family = String(facts.missionFamily ?? facts.mission ?? 'pay')
+  if (family === 'review') {
+    return 'You write an AI-assisted code/security review. Reply JSON only: {"verdict":"CLEAR"|"ISSUES"|"HOLD","confidence":"low"|"medium"|"high","title":string,"summary":string,"findings":string[],"risks":string[],"next_action":string,"subject":string}. First finding MUST say this is not a certified audit. Cite only provided artifact and paid facts. Do not invent bytecode you did not see. English. Max 90 words in summary.'
+  }
+  if (family === 'trust') {
+    return 'You write a Before You Trust brief. Reply JSON only: {"verdict":"TRUST"|"CAUTION"|"DONT","confidence":"low"|"medium"|"high","title":string,"summary":string,"findings":string[],"risks":string[],"next_action":string,"subject":string}. Use only on-chain facts and paid JSON. Do not invent wallet-risk scores. English. Max 70 words in summary.'
+  }
+  if (family === 'research') {
+    return 'You write a private research brief. Reply JSON only: {"verdict":"HOLD","confidence":"low"|"medium"|"high","title":string,"summary":string,"findings":string[],"risks":string[],"next_action":string,"subject":string}. Cite only provided facts. No companionship. English. Max 90 words in summary.'
+  }
+  return 'You write a BEFORE YOU PAY verdict. Reply JSON only: {"verdict":"BUY"|"HOLD"|"AVOID","confidence":"low"|"medium"|"high","title":string,"summary":string,"findings":string[],"risks":string[],"next_action":string,"subject":string}. Cite ONLY paid JSON in facts.purchases. Name provider, service, and 0G tx. If facts.skipped exists, one finding MUST say that seller was not paid and why. Do not invent unpaid data. verdict BUY only if paid checks show no material admin/honeypot/stale-oracle failure. HOLD if mixed or missing liquidity/oracle. AVOID if paid checks show honeypot, malicious owner, or high bytecode risk that is not explained. Not financial advice. English. Max 70 words in summary. Max 5 findings. Max 4 risks.'
 }
 
 export async function writeBrief(opts: {
@@ -215,7 +229,7 @@ export async function writeBrief(opts: {
         {
           role: 'system',
           content:
-            'You write a BEFORE YOU PAY verdict. Reply JSON only: {"verdict":"BUY"|"HOLD"|"AVOID","confidence":"low"|"medium"|"high","title":string,"summary":string,"findings":string[],"risks":string[],"next_action":string,"subject":string}. Cite ONLY paid JSON in facts.purchases. Name provider, service, and 0G tx. If facts.skipped exists, one finding MUST say that seller was not paid and why. Do not invent unpaid data. verdict BUY only if paid checks show no material admin/honeypot/stale-oracle failure. HOLD if mixed or missing liquidity/oracle. AVOID if paid checks show honeypot, malicious owner, or high bytecode risk that is not explained. Not financial advice. English. Max 70 words in summary. Max 5 findings. Max 4 risks.',
+            briefSystem(opts.facts),
         },
         {
           role: 'user',
@@ -257,9 +271,13 @@ export async function writeBrief(opts: {
     const end = content.lastIndexOf('}')
     if (start < 0 || end <= start) throw new Error('Brief model did not return JSON')
     const parsed = JSON.parse(content.slice(start, end + 1)) as Partial<BriefDoc>
-    const verdictRaw = String(parsed.verdict ?? '').toUpperCase()
-    const verdict: BriefDoc['verdict'] =
-      verdictRaw === 'BUY' || verdictRaw === 'HOLD' || verdictRaw === 'AVOID' ? verdictRaw : 'HOLD'
+    const verdictRaw = String(parsed.verdict ?? '')
+      .toUpperCase()
+      .replace(/[^A-Z]/g, '')
+    const allowed = ['BUY', 'HOLD', 'AVOID', 'TRUST', 'CAUTION', 'DONT', 'CLEAR', 'ISSUES'] as const
+    const verdict: BriefDoc['verdict'] = (allowed as readonly string[]).includes(verdictRaw)
+      ? (verdictRaw as BriefDoc['verdict'])
+      : 'HOLD'
     const confRaw = String(parsed.confidence ?? '').toLowerCase()
     const brief: BriefDoc = {
       title: String(parsed.title ?? 'Before you pay'),

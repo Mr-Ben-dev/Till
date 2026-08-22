@@ -14,7 +14,8 @@
     "web": "npm run dev -w @till/web",
     "web:build": "npm run build -w @till/web",
     "sdk:build": "npm run build -w till-0g-sdk",
-    "test:mcp": "npm run test:mcp -w @till/api"
+    "test:mcp": "npm run test:mcp -w @till/api",
+    "test:unit": "npm run test:unit -w @till/api"
   },
   "engines": {
     "node": ">=22"

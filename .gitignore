@@ -26,7 +26,7 @@ packages/contracts/deployments/31337.json
 packages/contracts/deployments/16661.v1.json
 packages/contracts/deployments/16661-v2-pre-official-7857.json
 
-# Operator notes stay on disk. Public repo ships README.md only.
+data/
 *.md
 !README.md
 /docs/

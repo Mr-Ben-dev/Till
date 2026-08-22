@@ -22,6 +22,8 @@ export const POLICY_ABI = [
   'function policyOf(uint256) view returns (tuple(uint128 maxSpendPerTx,uint128 rollingWindowBudget,uint64 rollingWindowSeconds,uint64 sessionExpiresAt,uint64 windowStart,uint128 windowSpent,bool paused,bool requireTee,bool requireEvidence,bool targetAllowlistEnabled,bool resourceAllowlistEnabled,bool selectorAllowlistEnabled))',
   'function allowedTargets(uint256,address) view returns (bool)',
   'function allowedResourceHashes(uint256,bytes32) view returns (bool)',
+  'event PolicySet(uint256 indexed tokenId,uint128,uint128,uint64,uint64,bool,bool)',
+  'event PauseSet(uint256 indexed tokenId,bool paused)',
   'error NotOwner()',
   'error OnlyVault()',
   'error BadWindow()',

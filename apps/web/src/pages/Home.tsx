@@ -15,16 +15,16 @@ gsap.registerPlugin(ScrollTrigger)
 
 const MARQUEE = [
   'Aristotle 16661',
-  'Hard policy',
-  'TEE glm-5.2',
-  'Before you pay',
-  'Storage proof',
-  'ERC-8004',
+  'Two money rails',
+  'Session EIP-3009',
+  'Four mission families',
+  '0G Compute',
+  'Private result',
   'Cannot empty you',
 ]
 
 const WORDS =
-  'The model proposes. The vault decides. Spend is capped, TEE-bound, and proven on Aristotle, not described in a dashboard.'
+  'Tell your agent what you need done. It buys the work it needs. You get the result. You never hand it your wallet.'
 
 const PROOFS = [
   {
@@ -126,8 +126,8 @@ export function HomePage() {
             It cannot empty you.
           </h1>
           <p data-hero className="hero-sub mx-auto mt-4 max-w-[661px] text-white">
-            Before You Pay: the agent buys independent intelligence, 0G verifies the reasoning, you get BUY / HOLD /
-            AVOID and proof. The agent never receives your wallet.
+            Tell your agent what you need done. It buys the work it needs. You get the result. You never hand it your
+            wallet.
           </p>
           <div data-hero className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <CyanButton to="/tills">Open a Till</CyanButton>
@@ -135,7 +135,7 @@ export function HomePage() {
               Developers
             </CyanButton>
             <CyanButton href="#before" variant="ghost">
-              Before You Pay
+              Mission families
             </CyanButton>
           </div>
           <figure data-hero className="hero-visual relative mt-6 flex min-h-0 w-full max-w-[1400px] flex-1 flex-col">
@@ -158,12 +158,13 @@ export function HomePage() {
 
         <section id="before" className="bg-paper px-5 py-24 text-ink md:px-10 md:py-32">
           <div className="mx-auto max-w-[1400px]">
-            <p className="font-mono text-[11px] tracking-[0.18em] text-ink/45">Before You Pay</p>
+            <p className="font-mono text-[11px] tracking-[0.18em] text-ink/45">Mission Desk</p>
             <h2 className="mt-3 max-w-3xl text-[clamp(2rem,3.4vw,3.15rem)] font-bold leading-[1.08] tracking-tight">
-              User asks → agent buys intelligence → 0G verifies → result → proof.
+              Ask for a result. The agent buys facts only when it must.
             </h2>
             <p className="mt-4 max-w-[58ch] text-[16px] text-ink/70">
-              Recorded Aristotle mission, 2026-08-20. Not a simulated dashboard.
+              Recorded Aristotle procurement, 2026-08-20. Those USDC.e transfers were from the owner coinciding as
+              operator — not the V5 session rail. Session EIP-3009 is the APP path now.
             </p>
             <dl className="mission-strip">
               <div>
@@ -222,15 +223,15 @@ export function HomePage() {
                 </li>
               ))}
               <li>
-                <a className="block rounded-[4.27px] border border-ink/10 p-5 hover:border-cyan" href="/till/agent">
-                  <p className="font-semibold">For an autonomous agent</p>
-                  <p className="mt-1 text-[14px] text-ink/60">Bounded budget. No owner wallet.</p>
+                <a className="block rounded-[4.27px] border border-ink/10 p-5 hover:border-cyan" href="/till/mission">
+                  <p className="font-semibold">Review this</p>
+                  <p className="mt-1 text-[14px] text-ink/60">AI-assisted review. Not a certified audit.</p>
                 </a>
               </li>
               <li>
-                <a className="block rounded-[4.27px] border border-ink/10 p-5 hover:border-cyan" href="/jobs">
-                  <p className="font-semibold">For paid work</p>
-                  <p className="mt-1 text-[14px] text-ink/60">Lock, settle, or refund the same Till.</p>
+                <a className="block rounded-[4.27px] border border-ink/10 p-5 hover:border-cyan" href="/till/agent">
+                  <p className="font-semibold">For an autonomous agent</p>
+                  <p className="mt-1 text-[14px] text-ink/60">Bounded session. No owner wallet.</p>
                 </a>
               </li>
             </ul>
@@ -243,8 +244,8 @@ export function HomePage() {
               A Till is a drawer of permissions, not a wallet you hand over.
             </h2>
             <p className="mt-5 max-w-[58ch] text-[17px] leading-relaxed text-ink/70">
-              You own the vault. Policy gates the spend. 0G Compute binds the digest. The agent
-              never holds the key.
+              You own the vault. TillPolicy gates native 0G. USDC.e missions use a per-mission session drawer.
+              0G Compute writes the private result. Procurement is optional.
             </p>
             <div data-reveal className="mt-14">
               <LayerBoard />
