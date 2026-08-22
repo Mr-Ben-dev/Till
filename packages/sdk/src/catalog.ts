@@ -32,6 +32,8 @@ function isTextChat(m: CatalogModel): boolean {
   if (!mods?.length) return true
   return mods.includes('text') && mods.every((x) => x === 'text')
 }
+
+function hasJson(m: CatalogModel): boolean {
   return (m.supported_parameters ?? []).includes('response_format')
 }
 

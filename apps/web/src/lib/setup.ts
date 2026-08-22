@@ -14,9 +14,9 @@ export function setupItems(till: TillState): SetupItem[] {
   return [
     { id: 'created', label: 'Till created', done: till.tokenId != null, to: '/till' },
     { id: 'policy', label: 'Set protection', done: till.hasPolicy, to: '/till/policy' },
-    { id: 'fund', label: 'Add funds', done: till.available > 0n, to: '/till#fund' },
+    { id: 'fund', label: 'Add funds', done: till.available > 0n, to: '/till/policy' },
     { id: 'agent', label: 'Enable agent', done: agentDone, to: '/till/agent' },
-    { id: 'mission', label: 'Run first mission', done: Boolean(till.lastBrief), to: '/till#mission' },
+    { id: 'mission', label: 'Run first mission', done: Boolean(till.lastBrief), to: '/till/mission' },
   ]
 }
 

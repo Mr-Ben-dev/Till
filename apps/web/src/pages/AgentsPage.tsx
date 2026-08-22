@@ -35,7 +35,7 @@ export function AgentsPage({ till }: { till: TillState }) {
           <p className="mt-3 text-[13px] text-white/50">Revoke is an owner action.</p>
           <SignHint kind="owner" write="revoke" />
           <div className="mt-3 flex flex-wrap gap-3">
-            <CyanButton to="/till#mission">Run a mission</CyanButton>
+            <CyanButton to="/till/mission">Run a mission</CyanButton>
             <CyanButton to="/till" variant="ghost">
               View Till
             </CyanButton>
@@ -87,7 +87,7 @@ export function AgentsPage({ till }: { till: TillState }) {
       ) : (
         <div className="mt-10 grid gap-6">
           <SessionPanel till={till} gasAmt={gasAmt} setGasAmt={setGasAmt} />
-          <JourneyFooter backLabel="Till Overview" nextTo="/till#mission" nextLabel="Run first mission" />
+          <JourneyFooter backLabel="Till Overview" nextTo="/till/mission" nextLabel="Run first mission" />
         </div>
       )}
     </main>
