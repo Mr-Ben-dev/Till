@@ -1,7 +1,7 @@
 {
   "name": "till-0g-sdk",
-  "version": "0.1.0",
-  "description": "Till public client. Bounded agent spend on 0G. Never pass a private key.",
+  "version": "0.1.1",
+  "description": "Till public client. Bounded agent work on 0G. Never pass a private key.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -14,7 +14,7 @@
   "files": ["dist", "README.md"],
   "license": "MIT",
   "homepage": "https://till-0g.vercel.app/developers",
-  "keywords": ["till", "0g", "x402", "mcp", "agent"],
+  "keywords": ["till", "0g", "mcp", "agent", "erc-7857"],
   "publishConfig": { "access": "public" },
   "repository": {
     "type": "git",

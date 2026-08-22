@@ -53,6 +53,5 @@ export const OG_BADGES = [
   { label: 'TEE', href: 'https://docs.0g.ai/developer-hub/building-on-0g/compute-network/inference' },
   { label: '0G Storage', href: 'https://docs.0g.ai/developer-hub/building-on-0g/storage/overview' },
   { label: 'ERC-7857', href: 'https://github.com/0gfoundation/0g-agentic-id' },
-  { label: 'ERC-8004', href: 'https://github.com/0gfoundation/erc-8004-contracts' },
-  { label: 'Optional x402', href: 'https://x402.org/' },
+  { label: 'ERC-8004 Identity + Reputation', href: 'https://github.com/0gfoundation/erc-8004-contracts' },
 ]

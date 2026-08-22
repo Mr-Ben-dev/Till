@@ -15,7 +15,6 @@ import {
   GITHUB,
   INTERFACES,
   MCP_URL,
-  MISSION_CAP_USD,
   NPM_MCP,
   NPM_MCP_VER,
   NPM_SDK,
@@ -77,15 +76,13 @@ export function DocsOverview() {
       </p>
       <h2>Work Desk</h2>
       <p>
-        Investigate, Review, Research, and Compare. Compute is the work. AUTO selects a live TeeML model. x402 is optional
-        external work, not this product. No live seller currently accepts <code>eip155:16661</code> natively; Herald
-        router dest-settlement of Base SKUs is blocked. Till does not fake sellers.
+        Investigate, Review, Research, and Compare. Compute is the work. AUTO selects a live TeeML model. The session
+        anchors Storage proof. The owner never hands over their wallet.
       </p>
       <h2>Money rails</h2>
       <p>
         TillPolicy controls native 0G in the vault. Work Desk Compute tokens are billed to the operator Payment Layer, not
-        TillVault. Session gas pays Storage and PacketAnchored. Optional USDC.e x402 uses a session drawer and EIP-3009
-        and is not TillPolicy-controlled. MCP execute is a labeled operator Compute rail.
+        TillVault. Session gas pays Storage and PacketAnchored. MCP execute is a labeled operator Compute rail.
       </p>
       <MoneyFlow />
       <h2>Security boundaries</h2>
@@ -144,8 +141,7 @@ export function DocsCore() {
       <h2>Protection policy</h2>
       <p>
         On-chain: max per task and rolling cap in native 0G, session expiry, pause. Work types are Investigate, Review,
-        Research, and Compare. Optional USDC.e x402 has a ${MISSION_CAP_USD.toFixed(2)} session-drawer application cap
-        (not TillPolicy) and currently has no live Aristotle-payable seller.
+        Research, and Compare.
       </p>
       <h2>Owner vs autonomous</h2>
       <p>
@@ -156,12 +152,10 @@ export function DocsCore() {
       </p>
       <h2>Grants</h2>
       <p>ERC-7857 authorizeUsage on that Till. Cross-Till isolation is enforced on-chain. MCP uses a JWT grant, not a key.</p>
-      <h2>Compute / Storage / 8004 / optional x402</h2>
+      <h2>Compute / Storage / 8004</h2>
       <p>
         Policy TEE {ROLES.fastPolicy} with processResponse. Brief writer {ROLES.defaultPolicy} TeeML. Encrypted packet on
         0G Storage, vault-anchored. ERC-8004 Identity and Reputation are live. Validation Registry is not claimed.
-        Optional x402: Herald facilitator Exact on 16661 USDC.e works; the Herald router dest-proxy currently blocks SKU
-        200. Not the product.
       </p>
     </Page>
   )
@@ -395,13 +389,22 @@ export function DocsSecurity() {
               </td>
             </tr>
             <tr>
-              <td>x402</td>
-              <td>FACILITATOR LIVE / ROUTER BLOCKED</td>
+              <td>Work Desk Investigate</td>
+              <td>LIVE</td>
               <td>
-                Facilitator Exact on 16661 works.{' '}
-                <a href={txUrl('0xee6a0c2bab9749c9d425d843b8308016d179067c9f13470d0698fd3bfb51b131')}>inbound settle</a>
-                . Router dest-settlement of Base SKUs does not. No live eip155:16661 seller 200. Session SKU settlement is
-                not live.
+                <a href={txUrl(PROOFS.workInvestigateFlow)}>storage flow</a>
+                {' · '}
+                <a href={txUrl(PROOFS.workInvestigateAnchor)}>PacketAnchored Till 2</a>
+              </td>
+            </tr>
+            <tr>
+              <td>Work Desk Review</td>
+              <td>LIVE</td>
+              <td>
+                <a href={txUrl(PROOFS.workReviewFlow)}>storage flow</a>
+                {' · '}
+                <a href={txUrl(PROOFS.workReviewAnchor)}>PacketAnchored</a>
+                {' · AI-assisted, not a certified audit'}
               </td>
             </tr>
             <tr>

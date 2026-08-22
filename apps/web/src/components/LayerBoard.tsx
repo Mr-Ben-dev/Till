@@ -29,7 +29,7 @@ export const LAYERS = [
   {
     name: 'Investigation',
     title: 'The agent finishes the work it is allowed to finish.',
-    body: '0G Compute writes the private result. AUTO selects from the live catalog. Storage proves the packet. x402 is optional and not required.',
+    body: '0G Compute writes the private result. AUTO selects from the live catalog. Storage proves the packet.',
     scene: 'receipt',
   },
 ] as const

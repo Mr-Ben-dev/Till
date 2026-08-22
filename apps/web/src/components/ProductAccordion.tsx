@@ -12,7 +12,7 @@ const ITEMS = [
   },
   {
     title: 'Private intelligence',
-    body: 'AUTO selects a live TeeML model. The result is private Compute plus public RPC facts. x402 is optional external work and currently has no Aristotle-payable seller.',
+    body: 'AUTO selects a live TeeML model. The result is private Compute plus public RPC facts. Proof is Storage + PacketAnchored.',
   },
   {
     title: 'Storage + proof',

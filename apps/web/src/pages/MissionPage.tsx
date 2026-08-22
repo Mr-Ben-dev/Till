@@ -98,6 +98,11 @@ export function MissionPage({ till }: { till: TillState }) {
             </p>
           </header>
           <ProductNotices till={till} hideDenial />
+          {till.paused ? (
+            <p className="mt-4 rounded-[4.27px] border border-danger/40 px-4 py-3 text-[14px] text-danger">
+              This Till is paused. Resume on Policy before starting work.
+            </p>
+          ) : null}
           <section className="surf mt-8">
             <label className="block">
               <span className="text-[13px] text-white/55">Request</span>
@@ -123,6 +128,12 @@ export function MissionPage({ till }: { till: TillState }) {
                 </button>
               ))}
             </div>
+            {family === 'compare' ? (
+              <p className="mt-4 text-[13px] text-white/55">Paste two 0x addresses in the request. Compare needs both targets.</p>
+            ) : null}
+            {family === 'research' ? (
+              <p className="mt-4 text-[13px] text-white/55">Research produces a private structured brief. It is not a chatbot.</p>
+            ) : null}
             {family === 'review' ? (
               <label className="mt-4 block">
                 <span className="text-[13px] text-white/55">Artifact (Solidity, ABI, diff)</span>

@@ -26,24 +26,32 @@ const MARQUEE = [
 const WORDS =
   'Tell your agent what you need done. Give it a bounded Till. It finishes the work. You get the result and proof.'
 
+const HOW = ['Owner', 'Till', 'Policy', 'Session', '0G Compute', 'Result', '0G Storage', 'Proof']
+
 const PROOFS = [
   {
-    tag: 'Compute',
+    tag: 'Investigate',
     date: '08.22.26',
-    title: 'F4 Review This — glm-5.2 processResponse on Aristotle',
-    href: 'https://till-0g.vercel.app/till/mission',
+    title: 'PacketAnchored Till 2 — session signer, glm-5.2 TEE',
+    href: `https://chainscan.0g.ai/tx/${DOC_PROOFS.workInvestigateAnchor}`,
+  },
+  {
+    tag: 'Review',
+    date: '08.22.26',
+    title: 'AI-assisted review stored on Aristotle — not a certified audit',
+    href: `https://chainscan.0g.ai/tx/${DOC_PROOFS.workReviewAnchor}`,
   },
   {
     tag: 'Storage',
-    date: '08.20.26',
-    title: 'v3 mission packet anchored on Aristotle',
-    href: 'https://chainscan.0g.ai/tx/0xefbe1b3d29564f19bed969d4737f9182fd80f30553f80acc09adb5617a0a5415',
+    date: '08.22.26',
+    title: '0G Storage flow for Investigate packet',
+    href: `https://chainscan.0g.ai/tx/${DOC_PROOFS.workInvestigateFlow}`,
   },
   {
-    tag: 'Optional x402',
+    tag: 'Verify',
     date: '08.22.26',
-    title: 'Herald facilitator Exact works; no live 16661 seller — not the product',
-    href: 'https://docs.heraldprotocol.xyz',
+    title: 'Reconstruct proof from the hash — on-chain wins',
+    href: `https://till-0g.vercel.app/verify?tx=${DOC_PROOFS.workInvestigateAnchor}`,
   },
 ]
 
@@ -132,6 +140,15 @@ export function HomePage() {
               Work Desk
             </CyanButton>
           </div>
+          <ol data-hero className="og-rail mx-auto mt-8 max-w-[1400px]" aria-label="How Till works">
+            {HOW.map((n, i) => (
+              <li key={n} className="og-rail__node is-ok">
+                <span className="og-rail__dot" />
+                <span className="og-rail__label">{n}</span>
+                {i < HOW.length - 1 ? <span className="og-rail__line" aria-hidden /> : null}
+              </li>
+            ))}
+          </ol>
           <figure data-hero className="hero-visual relative mt-6 flex min-h-0 w-full max-w-[1400px] flex-1 flex-col">
             <FlowDiagram />
           </figure>
@@ -157,8 +174,8 @@ export function HomePage() {
               Ask for a result. The agent finishes it inside your policy.
             </h2>
             <p className="mt-4 max-w-[58ch] text-[16px] text-ink/70">
-              Investigate, review, research, or compare. AUTO picks a live TeeML model. x402 is optional external work
-              — not this product. No live Aristotle-payable seller exists today.
+              Investigate, review, research, or compare. AUTO picks a live TeeML model. The agent finishes the work
+              inside your native-0G policy. You keep the vault.
             </p>
             <dl className="mission-strip">
               <div>
@@ -171,7 +188,7 @@ export function HomePage() {
               </div>
               <div>
                 <dt>Work</dt>
-                <dd>Investigate · Review</dd>
+                <dd>Investigate · Review · Research · Compare</dd>
               </div>
               <div>
                 <dt>TEE</dt>
@@ -180,7 +197,7 @@ export function HomePage() {
               <div>
                 <dt>Storage</dt>
                 <dd>
-                  <a className="text-cyan" href={`https://chainscan.0g.ai/tx/${DOC_PROOFS.storageAnchor}`}>
+                  <a className="text-cyan" href={`https://chainscan.0g.ai/tx/${DOC_PROOFS.workInvestigateAnchor}`}>
                     Anchor ↗
                   </a>
                 </dd>
@@ -188,7 +205,7 @@ export function HomePage() {
               <div>
                 <dt>Session</dt>
                 <dd>
-                  <a className="text-cyan" href={`https://chainscan.0g.ai/tx/${DOC_PROOFS.sessionAnchor}`}>
+                  <a className="text-cyan" href={`https://chainscan.0g.ai/tx/${DOC_PROOFS.workInvestigateAnchor}`}>
                     Proof ↗
                   </a>
                 </dd>
@@ -235,7 +252,7 @@ export function HomePage() {
             </h2>
             <p className="mt-5 max-w-[58ch] text-[17px] leading-relaxed text-ink/70">
               You own the vault. TillPolicy gates native 0G. 0G Compute writes the private result. Storage proves the
-              packet. Optional x402 is not this product.
+              packet. The session cannot withdraw, change policy, or spend another Till.
             </p>
             <div data-reveal className="mt-14">
               <LayerBoard />

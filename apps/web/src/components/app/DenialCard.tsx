@@ -36,7 +36,7 @@ export function DenialCard({ denial }: { denial: Denial }) {
       <p className="mt-4 text-[14px] text-white/60">
         {inVault
           ? 'The system protected you. Nothing left the vault.'
-          : 'USDC.e for missions sits in the session drawer, not the Till vault.'}
+          : 'Nothing left this Till.'}
       </p>
     </section>
   )

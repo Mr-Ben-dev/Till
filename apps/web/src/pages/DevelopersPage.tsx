@@ -35,6 +35,7 @@ export function DevelopersPage({ till }: { till: TillState }) {
   const [token, setToken] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  const [copied, setCopied] = useState('')
   const nonce = useMemo(() => crypto.randomUUID(), [])
   const exp = Math.floor(Date.now() / 1000) + 86400
   const allScopes = [...scopes, ...(high ? RISK : [])]
@@ -109,12 +110,44 @@ export function DevelopersPage({ till }: { till: TillState }) {
       )
     : JSON.stringify({ mcpServers: { till: { url: MCP_URL } } }, null, 2)
 
+  const setupPrompt = token
+    ? `Install Till MCP. Never ask for or store a private key.
+
+1) Cursor — write this exact JSON to .cursor/mcp.json (project) or ~/.cursor/mcp.json (user):
+
+${cursorJson}
+
+2) Claude Code:
+
+claude mcp add --transport http till ${MCP_URL} --header "Authorization: Bearer ${token}"
+
+3) Generic MCP HTTP client:
+
+POST ${MCP_URL}
+Authorization: Bearer ${token}
+Then JSON-RPC initialize (protocolVersion 2025-11-25) and tools/call till_list.
+
+4) Local stdio:
+
+npx -y till-0g-mcp
+TILL_ACCESS_TOKEN=${token}
+TILL_API_URL=https://till-api.onrender.com
+
+Then run initialize, till_list, till_get_session, and till_quote_mission with subject "Investigate 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913". Report success or the exact error. Do not execute till_run_mission unless I ask.`
+    : ''
+
+  const copyText = async (label: string, value: string) => {
+    await navigator.clipboard.writeText(value)
+    setCopied(label)
+  }
+
   return (
     <main className="app-page">
       <p className="font-mono text-[11px] tracking-[0.18em] text-muted">Developers</p>
       <h1 className="mt-3 max-w-3xl text-[clamp(1.8rem,3.2vw,2.8rem)] font-bold leading-tight">Give your agents a Till.</h1>
       <p className="mt-3 max-w-[54ch] text-[16px] text-white/65">
-        Let agents use bounded money, buy paid services, and execute on 0G without receiving the owner&apos;s wallet.
+        Let agents finish Investigate / Review / Research / Compare inside a bounded Till. MCP and the SDK receive a
+        scoped token. They never receive the owner key, the deployer key, or the session key.
       </p>
       <div className="mt-6 flex flex-wrap gap-2">
         {OG_BADGES.map((b) => (
@@ -167,7 +200,21 @@ export function DevelopersPage({ till }: { till: TillState }) {
           </CyanButton>
         </div>
         {token ? (
-          <pre className="mt-4 overflow-x-auto rounded-[4.27px] bg-black/40 p-4 text-[11px] text-cyan/90">{token}</pre>
+          <>
+            <pre className="mt-4 overflow-x-auto rounded-[4.27px] bg-black/40 p-4 text-[11px] text-cyan/90">{token}</pre>
+            <div className="mt-3 flex flex-wrap gap-3">
+              <CyanButton variant="ghost" onClick={() => void copyText('token', token)}>
+                {copied === 'token' ? 'Token copied' : 'Copy token'}
+              </CyanButton>
+              <CyanButton onClick={() => void copyText('setup', setupPrompt)}>
+                {copied === 'setup' ? 'Setup prompt copied' : 'Copy-all setup prompt'}
+              </CyanButton>
+            </div>
+            <p className="mt-3 text-[13px] text-white/55">
+              Give the copied prompt to Cursor, Claude Code, or any MCP client. The agent installs and tests. You only
+              approve the token here.
+            </p>
+          </>
         ) : null}
       </section>
 
@@ -195,7 +242,7 @@ npx -y till-0g-mcp`}</pre>
         </article>
         <article>
           <h2 className="text-[1.2rem] font-bold">6. Run a mission</h2>
-          <p className="mt-2 max-w-[60ch] text-[14px] text-white/60">Paste a contract. The agent selects Safety, Market, and Contract checks under the cap. Quote first if you only want a price.</p>
+          <p className="mt-2 max-w-[60ch] text-[14px] text-white/60">Open Work Desk. Investigate, review, research, or compare. A READY session anchors proof without MetaMask.</p>
         </article>
         <article>
           <h2 className="text-[1.2rem] font-bold">7. Read proof</h2>
@@ -223,15 +270,20 @@ npx -y till-0g-mcp`}</pre>
   }
 }`}</pre>
           <h3 className="mt-4 text-[15px] font-semibold">Claude Code</h3>
-          <pre className="mt-2 overflow-x-auto rounded-[4.27px] bg-black/40 p-4 text-[12px]">{`claude mcp add --transport http till ${MCP_URL}
+          <pre className="mt-2 overflow-x-auto rounded-[4.27px] bg-black/40 p-4 text-[12px]">{token
+            ? `claude mcp add --transport http till ${MCP_URL} --header "Authorization: Bearer ${token}"
+claude mcp add --transport stdio till --env TILL_ACCESS_TOKEN=${token} -- npx -y till-0g-mcp`
+            : `claude mcp add --transport http till ${MCP_URL}
 claude mcp add --transport http till ${MCP_URL} --header "Authorization: Bearer YOUR_TOKEN"
 claude mcp add --transport stdio till --env TILL_ACCESS_TOKEN=YOUR_TOKEN -- npx -y till-0g-mcp`}</pre>
+          <h3 className="mt-4 text-[15px] font-semibold">Copy-all prompt</h3>
+          <p className="mt-2 text-[13px] text-white/50">Create a token above, then Copy-all. No manual JSON editing after that.</p>
         </article>
         <article>
           <h2 className="text-[1.2rem] font-bold">9. SDK</h2>
           <pre className="mt-3 overflow-x-auto rounded-[4.27px] bg-black/40 p-4 text-[12px]">{`import { createClient } from 'till-0g-sdk'
 const till = createClient({ apiUrl: 'https://till-api.onrender.com', token: process.env.TILL_ACCESS_TOKEN })
-const quote = await till.quoteMission('Should I deposit into this protocol? 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913')`}</pre>
+const quote = await till.quoteMission('Investigate this contract. 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913')`}</pre>
         </article>
         <article>
           <h2 className="text-[1.2rem] font-bold">10. Examples</h2>

@@ -64,7 +64,7 @@ export function SessionPanel({
       </ul>
       <p className="mt-4 text-[13px] text-white/55">
         Work Desk spends session gas for Storage + PacketAnchored. Compute tokens are billed to the operator Payment
-        Layer, not TillVault. Optional USDC.e leftover (external x402) should be swept before revoke.
+        Layer, not TillVault.
       </p>
       <SignHint kind="owner" write={status === 'OWNER_MODE' || status === 'REVOKED' || status === 'EXPIRED' ? 'authorize' : 'revoke'} />
       <div className="mt-3 flex flex-wrap gap-3">
@@ -82,12 +82,18 @@ export function SessionPanel({
         )}
         {sessionAddr ? (
           <>
-            <CyanButton variant="ghost" disabled={till.writeLocked} onClick={() => till.sweepDrawer()}>
-              Sweep USDC.e
-            </CyanButton>
             <CyanButton variant="ghost" disabled={till.writeLocked} onClick={() => till.revokeAgent(sessionAddr)}>
               Revoke
             </CyanButton>
+            <details className="w-full text-[13px] text-white/50">
+              <summary className="cursor-pointer">Advanced cleanup</summary>
+              <p className="mt-2">Only needed if this session still holds leftover USDC.e from optional external work. Work Desk does not use that drawer.</p>
+              <div className="mt-2">
+                <CyanButton variant="ghost" disabled={till.writeLocked} onClick={() => till.sweepDrawer()}>
+                  Sweep leftover USDC.e
+                </CyanButton>
+              </div>
+            </details>
           </>
         ) : (
           <button type="button" className="text-[14px] text-white/50 underline" onClick={till.skipAgent}>
@@ -125,8 +131,6 @@ export function SessionPanel({
 }
 
 export function PaymentsPanel({ till }: { till: TillState }) {
-  const required = till.mission?.totalUsd
-  const needsUsdce = (required ?? 0) > 0
   return (
     <section className="surf">
       <p className="mod-kicker">Funding</p>
@@ -141,15 +145,12 @@ export function PaymentsPanel({ till }: { till: TillState }) {
           <dd>Native 0G · Compute on Payment Layer</dd>
         </div>
         <div className="surf-inner">
-          <dt>Optional x402</dt>
-          <dd className="font-mono">
-            {needsUsdce ? `$${required!.toFixed(3)} USDC.e` : 'No live Aristotle seller'}
-          </dd>
+          <dt>Proof rail</dt>
+          <dd>Session signs Storage + PacketAnchored</dd>
         </div>
       </dl>
       <p className="mt-4 max-w-[54ch] text-[13px] text-white/55">
-        Work Desk does not debit TillVault for model tokens. Session gas pays Storage + PacketAnchored. Optional
-        external x402 currently has no live eip155:16661 seller.
+        Work Desk does not debit TillVault for model tokens. Session gas pays Storage + PacketAnchored.
       </p>
       <a className="mt-3 inline-block text-[14px] text-cyan underline-offset-4 hover:underline" href={HUB_SWAP} target="_blank" rel="noreferrer">
         Get 0G

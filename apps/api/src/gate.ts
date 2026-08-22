@@ -48,26 +48,26 @@ export async function assertMissionGate(opts: {
   if (opts.session) {
     const ok = await n.isUsageAuthorized(tokenId, opts.session)
     if (!ok) throw new GateError('REVOKED', 'Session is not authorized. Mission settlement is refused.')
-    const drawer = await usdceBalance(opts.session)
-    if (drawer.atomic > CAP) {
-      throw new GateError(
-        'DRAWER_OVER',
-        `Session drawer holds ${drawer.usd} USDC.e which exceeds the $0.50 hard max. Sweep before execute.`
-      )
-    }
     if (opts.quoteAtomic != null && opts.quoteAtomic > 0n) {
+      const drawer = await usdceBalance(opts.session)
+      if (drawer.atomic > CAP) {
+        throw new GateError(
+          'DRAWER_OVER',
+          `Session drawer holds ${drawer.usd} USDC.e which exceeds the $0.50 hard max. Sweep before execute.`,
+        )
+      }
       const slack = opts.quoteAtomic > 20_000n ? (opts.quoteAtomic * 5n) / 100n : 20_000n
       const allowedIdle = opts.quoteAtomic + slack
       if (drawer.atomic > allowedIdle) {
         throw new GateError(
           'DRAWER_IDLE',
-          `Session drawer leftover ${drawer.usd} USDC.e is above this mission quote. Sweep, then fund the quote.`
+          `Session drawer leftover ${drawer.usd} USDC.e is above this mission quote. Sweep, then fund the quote.`,
         )
       }
       if (drawer.atomic < opts.quoteAtomic) {
         throw new GateError(
           'UNDERFUNDED_DRAWER',
-          `Session drawer has ${drawer.usd} USDC.e; this mission needs ${(Number(opts.quoteAtomic) / 1e6).toFixed(3)}.`
+          `Session drawer has ${drawer.usd} USDC.e; this mission needs ${(Number(opts.quoteAtomic) / 1e6).toFixed(3)}.`,
         )
       }
     }

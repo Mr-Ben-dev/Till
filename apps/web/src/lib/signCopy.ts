@@ -13,8 +13,7 @@ const OWNER: Record<string, string> = {
   'job-lock': 'Locking job funds into escrow uses the owner wallet.',
   'job-finish': 'Settle and refund are owner actions. The session cannot move job escrow.',
   network: 'Switching to 0G Aristotle uses your wallet.',
-  mission: 'No READY session. This mission will ask for your wallet.',
-  'fund-drawer': 'This mission’s USDC.e drawer is funded from your wallet. The session then signs EIP-3009 — not this wallet, and not TillPolicy.',
+  mission: 'No READY session. Enable an agent first. Work Desk is not autonomous in owner mode.',
 }
 
 export function ownerWhy(write: string) {

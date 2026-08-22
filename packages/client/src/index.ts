@@ -78,7 +78,7 @@ export function createClient(opts: TillClientOptions) {
       return mcp('till_get_activity', {})
     },
     async getProof(tx: string) {
-      return mcp('till_get_proof', { tx })
+      return req(apiUrl, token, `/v1/verify?tx=${encodeURIComponent(tx)}`)
     },
     async getSession() {
       return mcp('till_get_session', {})

@@ -61,13 +61,13 @@ export function ActivityPage({ till }: { till: TillState }) {
         for (const l of rel) out.push({ title: 'Paid from Till', hash: l.transactionHash, extra: 'native 0G vault', at: Number(l.blockNumber) })
         for (const l of pause) out.push({ title: 'Pause changed', hash: l.transactionHash, extra: '', at: Number(l.blockNumber) })
         for (const l of authG) out.push({ title: 'Session authorized', hash: l.transactionHash, extra: '', at: Number(l.blockNumber) })
-        for (const l of authR) out.push({ title: 'Session revoked', hash: l.transactionHash, extra: 'Revoke does not claw back USDC.e', at: Number(l.blockNumber) })
+        for (const l of authR) out.push({ title: 'Session revoked', hash: l.transactionHash, extra: 'Session cannot work this Till', at: Number(l.blockNumber) })
         for (const rec of stored.receipts ?? []) {
           if (rec.tx) {
             out.push({
               title: `Mission ${rec.family ?? ''} ${rec.verdict ?? ''}`.trim(),
               hash: rec.tx,
-              extra: rec.spentUsd != null ? `$${rec.spentUsd} USDC.e` : '',
+              extra: rec.spentUsd && rec.spentUsd > 0 ? `optional external $${rec.spentUsd}` : rec.family ?? '',
               at: rec.createdAt ? Date.parse(rec.createdAt) : Date.now(),
             })
           }

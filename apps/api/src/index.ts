@@ -18,6 +18,7 @@ import { compileMission } from './compiler.js'
 import { verifyRegistry } from './registry.js'
 import { USDCE_16661, HERALD_ROUTER, OG_CAIP } from './x402Herald.js'
 import { getReceipt, listReceipts, putReceipt } from './store.js'
+import { reconstructVerify } from './verifyReceipt.js'
 import { usdceBalance } from './gate.js'
 import {
   API_PUBLIC,
@@ -568,82 +569,36 @@ app.post('/v1/storage/packet', async (req, reply) => {
 async function verifyHandler(req: { query: unknown }, reply: { code: (n: number) => { send: (b: unknown) => unknown } }) {
   const q = req.query as { till?: string; tx?: string }
   if (!q.tx) return reply.code(400).send({ error: 'tx required' })
-  const hash = String(q.tx)
-  const cached = getReceipt(hash)
-  const provider = new ethers.JsonRpcProvider(OG_RPC_URL)
-  const receipt = await provider.getTransactionReceipt(hash)
-  if (!receipt) return reply.code(404).send({ error: 'tx not found on Aristotle' })
-  const tx = await provider.getTransaction(hash)
-  const vaultAddr = process.env.TILL_VAULT
-  const usdce = USDCE_16661
-  const transferTopic = ethers.id('Transfer(address,address,uint256)')
-  const vaultEvents: { event: string; args: unknown }[] = []
-  const usdceTransfers: { from: string; to: string; amount: string; amountUsd: number }[] = []
-  let storageRoot: string | null = null
-  if (vaultAddr) {
-    const vault = new ethers.Contract(vaultAddr, VAULT_ABI, provider)
-    for (const log of receipt.logs) {
-      try {
-        const parsed = vault.interface.parseLog({ topics: log.topics as string[], data: log.data })
-        if (!parsed) continue
-        const args = jsonSafe(parsed.args.toObject ? parsed.args.toObject() : parsed.args)
-        vaultEvents.push({ event: parsed.name, args })
-        if (parsed.name === 'PacketAnchored') {
-          const obj = args as { rootHash?: string }
-          storageRoot = obj.rootHash ?? (Array.isArray(parsed.args) ? String(parsed.args[1]) : null)
-        }
-      } catch {
-        /* not a vault log */
-      }
-    }
-  }
-  for (const log of receipt.logs) {
-    if (log.address.toLowerCase() !== usdce.toLowerCase()) continue
-    if (log.topics[0] !== transferTopic) continue
-    const from = ethers.getAddress(ethers.dataSlice(log.topics[1], 12))
-    const to = ethers.getAddress(ethers.dataSlice(log.topics[2], 12))
-    const amount = ethers.toBigInt(log.data).toString()
-    usdceTransfers.push({ from, to, amount, amountUsd: Number(amount) / 1e6 })
-  }
-  const released = vaultEvents.find((e) => e.event === 'Released') ?? null
-  return {
-    chain: '0G Aristotle',
-    chainId: 16661,
-    till: q.till ?? null,
-    tx: hash,
-    explorer: `${OG_EXPLORER_URL}/tx/${hash}`,
-    status: receipt.status,
-    blockNumber: receipt.blockNumber,
-    from: tx?.from ?? null,
-    to: tx?.to ?? null,
-    nativeValue0G: tx ? ethers.formatEther(tx.value) : '0',
-    vaultEvents,
-    usdceTransfers,
-    storageRoot,
-    released,
-    sessionCache: cached ?? null,
-    durable: Boolean(cached),
-    family: cached?.family ?? null,
-    signer: cached?.session ?? tx?.from ?? null,
-    model: cached?.model ?? null,
-    processResponse: cached?.processResponse ?? null,
-    verdict: cached?.verdict ?? null,
-    rail: cached?.rail ?? null,
-    note: 'On-chain fields are reconstructed from the Aristotle receipt. Durable receipts survive API restart. They are not a substitute for the receipt.',
-  }
+  const body = await reconstructVerify(String(q.tx), q.till)
+  if (!body) return reply.code(404).send({ error: 'tx not found on Aristotle' })
+  return body
 }
 
 app.get('/verify', verifyHandler)
 app.get('/v1/verify', verifyHandler)
 
 app.post('/v1/receipts', async (req) => {
-  const body = req.body as { tx: string; packet?: unknown; tokenId?: string; family?: string }
+  const body = req.body as {
+    tx: string
+    packet?: Record<string, unknown>
+    tokenId?: string
+    family?: string
+    session?: string
+    rail?: 'session' | 'operator'
+  }
   if (!body.tx) return { stored: false, error: 'tx required' }
+  const packet = body.packet && typeof body.packet === 'object' ? body.packet : {}
+  const brief = packet.brief && typeof packet.brief === 'object' ? (packet.brief as Record<string, unknown>) : {}
   putReceipt({
     id: body.tx.toLowerCase(),
     tx: body.tx,
-    tokenId: body.tokenId,
-    family: body.family,
+    tokenId: body.tokenId ?? (packet.tokenId != null ? String(packet.tokenId) : undefined),
+    family: body.family ?? (packet.family != null ? String(packet.family) : undefined),
+    session: body.session ?? (packet.session != null ? String(packet.session) : undefined),
+    rail: body.rail ?? (packet.rail === 'operator' ? 'operator' : packet.rail === 'session' ? 'session' : undefined),
+    verdict: typeof brief.verdict === 'string' ? brief.verdict : undefined,
+    model: packet.model != null ? String(packet.model) : undefined,
+    processResponse: packet.tee === true || packet.processResponse === true,
     packet: body.packet,
     createdAt: new Date().toISOString(),
   })

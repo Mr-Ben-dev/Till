@@ -60,8 +60,8 @@ export function PolicyPanel({
           <dd>{till.hasPolicy ? fmt0g(till.maxTxWei) : 'not set'}</dd>
         </div>
         <div className="surf-inner">
-          <dt>Optional USDC.e drawer</dt>
-          <dd>${till.missionCapUsd.toFixed(2)} application cap — not TillPolicy · not Work Desk</dd>
+          <dt>Session expiry</dt>
+          <dd>{exp}</dd>
         </div>
         <div className="surf-inner">
           <dt>Rolling spend</dt>
@@ -128,7 +128,7 @@ export function PolicyPanel({
           {step === 0 && (
             <div className="mt-5">
               <p className="text-[15px] text-white/80">You can spend up to {max} 0G on a single purchase.</p>
-              <p className="mt-2 text-[14px] text-white/55">Rolling window {window} 0G. Mission checks cap at ${till.missionCapUsd.toFixed(2)} USDC.e.</p>
+              <p className="mt-2 text-[14px] text-white/55">Rolling window {window} 0G. Caps are on-chain TillPolicy, not a prompt.</p>
               <ul className="mt-4 grid gap-2 md:grid-cols-3">
                 {POLICY_TEMPLATES.map((t) => (
                   <li key={t.id}>
@@ -164,7 +164,7 @@ export function PolicyPanel({
           {step === 1 && (
             <div className="mt-5">
               <p className="text-[15px] text-white/80">This Till may run Investigate, Review, Research, and Compare work.</p>
-              <p className="mt-2 text-[14px] text-white/55">Work uses 0G Compute. Optional external x402 is not this product and currently has no Aristotle-payable seller.</p>
+              <p className="mt-2 text-[14px] text-white/55">Work uses 0G Compute. The session cannot withdraw or change these rules.</p>
             </div>
           )}
           {step === 2 && (

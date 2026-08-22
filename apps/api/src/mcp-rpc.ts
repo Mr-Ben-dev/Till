@@ -1,5 +1,6 @@
 import { discoverMission, runMission } from './mission.js'
 import { getReceipt } from './store.js'
+import { reconstructVerify } from './verifyReceipt.js'
 import {
   ALL_SCOPES,
   MCP_RESOURCE,
@@ -133,10 +134,14 @@ async function callTool(auth: Auth, name: string, params: unknown) {
     case 'till_get_proof':
       requireScope(auth, 'till.proof.read')
       if (!a.tx) return { error: 'tx required', verify: `${WEB_PUBLIC}/verify` }
-      return {
-        tx: a.tx,
-        verifyApi: `${process.env.TILL_API_PUBLIC_URL || 'https://till-api.onrender.com'}/v1/verify?tx=${a.tx}`,
-        app: `${WEB_PUBLIC}/verify?tx=${a.tx}`,
+      {
+        const reconstructed = await reconstructVerify(a.tx)
+        if (!reconstructed) return { error: 'tx not found on Aristotle', verify: `${WEB_PUBLIC}/verify?tx=${a.tx}` }
+        return {
+          ...reconstructed,
+          verifyApi: `${process.env.TILL_API_PUBLIC_URL || 'https://till-api.onrender.com'}/v1/verify?tx=${a.tx}`,
+          app: `${WEB_PUBLIC}/verify?tx=${a.tx}`,
+        }
       }
     case 'till_get_session':
       requireScope(auth, 'till.session.read')
@@ -146,7 +151,7 @@ async function callTool(auth: Auth, name: string, params: unknown) {
       return {
         ok: false,
         error: 'MCP cannot revoke on-chain. The owner wallet must sign revoke.',
-        url: `${WEB_PUBLIC}/agents`,
+        url: `${WEB_PUBLIC}/till/agent`,
         note: 'This scope only authorizes requesting a revoke. It does not grant the owner key.',
       }
     default:

@@ -739,6 +739,10 @@ export function useTill() {
   const payX402 = (subject = DEFAULT_BRIEF_SUBJECT, extras?: { family?: string; artifact?: string; preset?: 'auto' | 'cheap' | 'fast' | 'deep' | 'private' }) =>
     run('Running mission', async () => {
       if (tokenId == null) throw new Error('Create a Till first')
+      if (paused) throw new Error('This Till is paused. Resume it before work.')
+      if (sessionExpiresAt > 0n && sessionExpiresAt < BigInt(Math.floor(Date.now() / 1000))) {
+        throw new Error('This session has expired. Authorize a new session before work.')
+      }
       if (backend !== 'ok') throw new Error('Work and proof services are offline. You can still create, fund, and set policy.')
       const stored = tokenId != null ? loadAgent(tokenId.toString()) : null
       const sessionOk =

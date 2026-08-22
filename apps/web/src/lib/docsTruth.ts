@@ -3,7 +3,7 @@ export const API = 'https://till-api.onrender.com'
 export const MCP_URL = `${API}/mcp`
 export const NPM_SDK = 'till-0g-sdk'
 export const NPM_MCP = 'till-0g-mcp'
-export const NPM_SDK_VER = '0.1.0'
+export const NPM_SDK_VER = '0.1.1'
 export const NPM_MCP_VER = '0.1.0'
 export const CHAIN_ID = 16661
 export const EXPLORER = 'https://chainscan.0g.ai'
@@ -45,11 +45,13 @@ export const PROOFS = {
   mint2: '0x02b138362ded4b4930a55c3ab96eee9521b0eec009c90824cb0beb22326472d6',
   fund: '0x8fb641a85bdfe99a222399fbe25843c0bbdd2ad69b8f3063428997aabe3073d5',
   agentToll: '0x58731e432ae12ba2ed3d428fe834d40c28c838cf599ea87aa254d4091b1a37a1',
-  api402x: '0x3994a707a4c370a45fa98f39261c3ce1560af62656b45eda4ec64959b52315e3',
-  tokenRisk: '0x637d9ca7d4ecf39bb256ee0aae0d62be9ea4cb4e4ca857499e9e3da916c4679f',
   storageFlow: '0x4ea0b7938003b35dfa13f4865289da130a36686ae6f56acebcbd8939d05bccd0',
   storageAnchor: '0xefbe1b3d29564f19bed969d4737f9182fd80f30553f80acc09adb5617a0a5415',
   sessionAnchor: '0x3ed197be21fd587954821f1e36c9387e53833e9108ab2ec0ebcca3a7c0380fd1',
+  workInvestigateFlow: '0x913cae3a6aaaea0949bac9f27427bd338ac2ad21479427b9c62d5dfb7f05c860',
+  workInvestigateAnchor: '0x494a23418750b795ef8070240f0d8bb416b29f7f2f8ffd7613265101f5cbeb50',
+  workReviewFlow: '0x18365995d04d825c204ccf1a56a52452fb3548779f59f73d6babc500f0b22d88',
+  workReviewAnchor: '0x34be22641171b57c197408461ded8e7bf8328771ca285292b2bfafe36f1d6403',
   erc8004Identity: '0x6446a6c24a28b23088ef36d92309a3aefbe58b7264da88ae691cb374358ff33a',
   jobSettle: '0x50b1052fb6aa6b133d013f631f584867a6d14fdc685bc789f9ff9ba84666bbdc',
   jobRefund: '0x3695d0ffb906e4c3d82bd3a610276ba738bfca214113ce6b1f2b1117c6e60bad',

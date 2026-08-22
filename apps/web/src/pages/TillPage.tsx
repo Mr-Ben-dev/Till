@@ -162,8 +162,7 @@ function FundBlock({
       <p className="mod-kicker">Funding</p>
       <h2>Fund your Till</h2>
       <p className="mod-lede">
-        Native 0G goes in the vault under TillPolicy. USDC.e for missions is funded into the session drawer per mission —
-        not this vault.
+        Native 0G goes in the vault under TillPolicy. Work Desk does not require a second token.
       </p>
       <dl className="mt-5 grid gap-3 sm:grid-cols-2 text-[14px]">
         <div className="surf-inner">
@@ -171,8 +170,8 @@ function FundBlock({
           <dd className="font-mono text-cyan">{fmt0g(till.available)}</dd>
         </div>
         <div className="surf-inner">
-          <dt>Owner USDC.e</dt>
-          <dd className="font-mono text-cyan">${till.usdceUsd.toFixed(3)}</dd>
+          <dt>Policy max / tx</dt>
+          <dd className="font-mono text-cyan">{fmt0g(till.maxTxWei)}</dd>
         </div>
       </dl>
       <SignHint kind="owner" write="fund" />
