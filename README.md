@@ -234,6 +234,10 @@ JSON: `packages/contracts/deployments/16661.json`
 | Investigate PacketAnchored Till 2 (session `0x06d47E…052f`) | [`0x494a2341…`](https://chainscan.0g.ai/tx/0x494a23418750b795ef8070240f0d8bb416b29f7f2f8ffd7613265101f5cbeb50) |
 | Review storage flow | [`0x18365995…`](https://chainscan.0g.ai/tx/0x18365995d04d825c204ccf1a56a52452fb3548779f59f73d6babc500f0b22d88) |
 | Review PacketAnchored | [`0x34be2264…`](https://chainscan.0g.ai/tx/0x34be22641171b57c197408461ded8e7bf8328771ca285292b2bfafe36f1d6403) |
+| Research storage flow | [`0x4707bf70…`](https://chainscan.0g.ai/tx/0x4707bf70d38290b59bce2001fa4acb764df1a46a5fae3b08c45db6833bca9989) |
+| Research PacketAnchored | [`0xb9539236…`](https://chainscan.0g.ai/tx/0xb953923663552262965ab0d745cdd0fe496b71f963fd19f8b3d6cf70be4983d4) |
+| Compare storage flow | [`0xbae0b808…`](https://chainscan.0g.ai/tx/0xbae0b8083de50838d409e833ddfc5b8ed8711c294d27cbe5b1b26c857f4a98bc) |
+| Compare PacketAnchored | [`0x8d8dfce5…`](https://chainscan.0g.ai/tx/0x8d8dfce597bccccd506e933264cf8d5c111471399c0dc01a5f4c788dc3cd1f12) |
 | Till #2 mint | [`0x02b13836…`](https://chainscan.0g.ai/tx/0x02b138362ded4b4930a55c3ab96eee9521b0eec009c90824cb0beb22326472d6) |
 | Fund 0.02 0G | [`0x8fb641a8…`](https://chainscan.0g.ai/tx/0x8fb641a85bdfe99a222399fbe25843c0bbdd2ad69b8f3063428997aabe3073d5) |
 | ERC-8004 Identity register | [`0x6446a6c2…`](https://chainscan.0g.ai/tx/0x6446a6c24a28b23088ef36d92309a3aefbe58b7264da88ae691cb374358ff33a) |
@@ -250,7 +254,7 @@ Recorded 2026-08-22:
 - API unit: compiler + mcp-auth + x402 resource **13/13**
 - `web:build` **PASS**
 - Live `supportsInterface` as tabled above
-- Chrome Till 2 READY: Investigate + Review, no MetaMask, TEE + Storage + PacketAnchored
+- Chrome Till 2 READY: Investigate + Review + Research + Compare, no MetaMask, TEE + Storage + PacketAnchored
 - Over-budget UI test: **5 0G requested · 0 moved**
 
 Research / Compare fresh mainnet, Chrome pause / revoke, and clean-dir npm install are re-run after each production SHA. See `history.md` locally (not in GitHub).

@@ -857,6 +857,8 @@ export function useTill() {
             subject,
           }))
           if (anchor) {
+            setLastTx(anchor)
+            patchStep('proof', { state: 'ok', detail: anchor })
             await api.storeReceipt(anchor, {
               tokenId: tokenId.toString(),
               digest: result.digest,
@@ -866,8 +868,6 @@ export function useTill() {
               rail: 'session',
               chatId: proofId,
             })
-            setLastTx(anchor)
-            patchStep('proof', { state: 'ok', detail: anchor })
           } else {
             patchStep('proof', { state: 'fail', detail: 'No PacketAnchored hash' })
           }

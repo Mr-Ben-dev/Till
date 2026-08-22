@@ -63,7 +63,7 @@ export async function discoverMission(subject: string, family?: MissionFamily, a
     ? await publicFactsFor(subject, [compiled.target, compiled.targetB].filter(Boolean) as string[])
     : null
   const moneyNote =
-    'Work Desk uses native 0G Compute (Payment Layer bills the operator key). TillPolicy caps vault 0G. x402 is optional external work, not this path.'
+    'Work Desk uses native 0G Compute (Payment Layer bills the operator key). TillPolicy caps vault 0G. Session gas pays Storage and PacketAnchored.'
   if (!compiled.ok) {
     return {
       compiled,
