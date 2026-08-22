@@ -1,7 +1,7 @@
 import { x402Client, x402HTTPClient } from '@x402/core/client'
 import { ExactEvmScheme } from '@x402/evm/exact/client'
 import { wrapFetchWithPayment } from '@x402/fetch'
-import { getAddress } from 'viem'
+import { encodeFunctionData, getAddress, parseSignature } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { requireEnv } from '@till/sdk'
 
@@ -182,6 +182,72 @@ function ecdsaV27(signature: string): string {
   return `0x${body}${v.toString(16).padStart(2, '0')}`
 }
 
+const TWA_VRS_ABI = [
+  {
+    type: 'function',
+    name: 'transferWithAuthorization',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'from', type: 'address' },
+      { name: 'to', type: 'address' },
+      { name: 'value', type: 'uint256' },
+      { name: 'validAfter', type: 'uint256' },
+      { name: 'validBefore', type: 'uint256' },
+      { name: 'nonce', type: 'bytes32' },
+      { name: 'v', type: 'uint8' },
+      { name: 'r', type: 'bytes32' },
+      { name: 's', type: 'bytes32' },
+    ],
+    outputs: [],
+  },
+] as const
+
+async function rpcCall(data: string): Promise<{ result?: string; error?: { message?: string } }> {
+  const r = await fetch(requireEnv('OG_RPC_URL'), {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'eth_call',
+      params: [{ to: USDCE_16661, data, from: '0x686Ca1f3BAf7F7Df3334f2f1A65AE314ee9CDb29' }, 'latest'],
+    }),
+  })
+  return (await r.json()) as { result?: string; error?: { message?: string } }
+}
+
+async function usdceBalance(address: string): Promise<bigint> {
+  const data = `0x70a08231${address.slice(2).toLowerCase().padStart(64, '0')}`
+  const j = await rpcCall(data)
+  return j.result ? BigInt(j.result) : 0n
+}
+
+async function simulateSessionTwa(payment: PaymentPayload): Promise<string> {
+  const auth = payment.payload?.authorization
+  const signature = payment.payload?.signature
+  if (!auth?.from || !auth.to || !auth.value || !auth.nonce || !signature) return 'missing-payload'
+  const parsed = parseSignature(ecdsaV27(signature) as `0x${string}`)
+  const v = Number(parsed.v ?? 27n + BigInt(parsed.yParity ?? 0))
+  const data = encodeFunctionData({
+    abi: TWA_VRS_ABI,
+    functionName: 'transferWithAuthorization',
+    args: [
+      getAddress(auth.from),
+      getAddress(auth.to),
+      BigInt(auth.value),
+      BigInt(auth.validAfter ?? '0'),
+      BigInt(auth.validBefore ?? '0'),
+      auth.nonce as `0x${string}`,
+      v,
+      parsed.r,
+      parsed.s,
+    ],
+  })
+  const j = await rpcCall(data)
+  if (j.result === '0x' || j.result === '0x0') return 'ok'
+  return j.error?.message || j.result || 'unknown'
+}
+
 export async function settleWithPaymentPayload(
   destination: string,
   payment: PaymentPayload
@@ -232,13 +298,39 @@ export async function settleWithPaymentPayload(
       }
     },
   } as never)
+  const need = BigInt(payment.payload?.authorization?.value ?? '0')
+  let localBal = 0n
+  const waitUntil = Date.now() + 20_000
+  while (Date.now() < waitUntil) {
+    localBal = await usdceBalance(from)
+    if (localBal >= need) break
+    await new Promise((r) => setTimeout(r, 1500))
+  }
+  const localSim = await simulateSessionTwa(payment)
+  if (localSim !== 'ok' && !/exceeds balance/i.test(localSim)) {
+    throw new Error(
+      `FAILED_HERALD: local transferWithAuthorization reverted before Herald (${localSim}); drawer=${localBal} need=${need}`
+    )
+  }
+  if (localBal < need) {
+    throw new Error(`FAILED_HERALD: session drawer ${localBal} < ${need} at settle for ${from}`)
+  }
   const paidFetch = wrapFetchWithPayment(fetch, client)
-  const res = await paidFetch(url, {
+  let res = await paidFetch(url, {
     headers: {
       Accept: 'application/json',
       'User-Agent': 'Mozilla/5.0 Till/1.0',
     },
   })
+  if (res.status === 402 && localSim === 'ok') {
+    await new Promise((r) => setTimeout(r, 2000))
+    res = await paidFetch(url, {
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'Mozilla/5.0 Till/1.0',
+      },
+    })
+  }
   const text = await res.text()
   let body: unknown = text
   try {
@@ -250,7 +342,9 @@ export async function settleWithPaymentPayload(
   if (res.status === 402) {
     const required = decodeX402Header(res, 'PAYMENT-REQUIRED')
     const reason = JSON.stringify(required ?? settlement ?? body).slice(0, 400)
-    throw new Error(`FAILED_HERALD: still 402 after session payment for ${destination}: ${reason}`)
+    throw new Error(
+      `FAILED_HERALD: still 402 after session payment for ${destination}: ${reason} localSim=${localSim} drawer=${localBal}`
+    )
   }
   if (!res.ok) {
     throw new Error(`FAILED_HERALD: HTTP ${res.status} for ${destination}: ${text.slice(0, 400)}`)
