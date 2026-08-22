@@ -30,7 +30,7 @@ A new Till: CREATE → PROTECT → FUND → ENABLE AGENT → FIRST MISSION. A LI
 
 ## Four mission families
 
-1. **Before You Pay** — token/protocol/contract. SETTLED SKUs: AgentToll safety, api402x oracle freshness, token-risk bytecode.
+1. **Before You Pay** — token/protocol/contract. **No live Aristotle-payable x402 SKU** as of 2026-08-22 (227 x402-list services scanned; zero `eip155:16661` accepts). Herald facilitator Exact on 16661 works. Herald router dest-settlement of Base sellers does not. Till fail-closes.
 2. **Before You Trust** — public on-chain facts + Compute. Paid wallet-risk SKUs stay quoted until a new settlement tx exists.
 3. **Research For Me** — 0G Compute private brief. x402 optional and only if SETTLED.
 4. **Review This** — Solidity/ABI/diff/on-chain target. AI-assisted review — **not a certified audit**.
@@ -223,9 +223,8 @@ JSON: `packages/contracts/deployments/16661.json`
 |---|---|
 | Till #2 mint | [`0x02b13836…`](https://chainscan.0g.ai/tx/0x02b138362ded4b4930a55c3ab96eee9521b0eec009c90824cb0beb22326472d6) |
 | Fund 0.02 0G | [`0x8fb641a8…`](https://chainscan.0g.ai/tx/0x8fb641a85bdfe99a222399fbe25843c0bbdd2ad69b8f3063428997aabe3073d5) |
-| AgentToll $0.003 | [`0x58731e43…`](https://chainscan.0g.ai/tx/0x58731e432ae12ba2ed3d428fe834d40c28c838cf599ea87aa254d4091b1a37a1) |
-| api402x $0.003 | [`0x3994a707…`](https://chainscan.0g.ai/tx/0x3994a707a4c370a45fa98f39261c3ce1560af62656b45eda4ec64959b52315e3) |
-| token-risk $0.010 | [`0x637d9ca7…`](https://chainscan.0g.ai/tx/0x637d9ca7d4ecf39bb256ee0aae0d62be9ea4cb4e4ca857499e9e3da916c4679f) |
+| Herald facilitator Exact (operator inbound 0.003, **not** session SKU 200) | [`0xee6a0c2b…`](https://chainscan.0g.ai/tx/0xee6a0c2bab9749c9d425d843b8308016d179067c9f13470d0698fd3bfb51b131) |
+| AgentToll / api402x / token-risk (operator coincidence, not session proof) | [`0x58731e43…`](https://chainscan.0g.ai/tx/0x58731e432ae12ba2ed3d428fe834d40c28c838cf599ea87aa254d4091b1a37a1) · [`0x3994a707…`](https://chainscan.0g.ai/tx/0x3994a707a4c370a45fa98f39261c3ce1560af62656b45eda4ec64959b52315e3) · [`0x637d9ca7…`](https://chainscan.0g.ai/tx/0x637d9ca7d4ecf39bb256ee0aae0d62be9ea4cb4e4ca857499e9e3da916c4679f) |
 | Storage flow | [`0x4ea0b793…`](https://chainscan.0g.ai/tx/0x4ea0b7938003b35dfa13f4865289da130a36686ae6f56acebcbd8939d05bccd0) |
 | Vault anchor | [`0xefbe1b3d…`](https://chainscan.0g.ai/tx/0xefbe1b3d29564f19bed969d4737f9182fd80f30553f80acc09adb5617a0a5415) |
 | Session-key anchor | [`0x3ed197be…`](https://chainscan.0g.ai/tx/0x3ed197be21fd587954821f1e36c9387e53833e9108ab2ec0ebcca3a7c0380fd1) |
@@ -234,11 +233,14 @@ Over-budget $5 vs $0.50: **BLOCKED, $0 spent**. `/verify` reconstructs USDC.e an
 
 ## Tests
 
-This session (2026-08-22):
+This session (2026-08-22 execution pass):
 
-- Foundry **69/69** (unit + fuzz 256 + invariant 64×1280 + reentrancy) via local `forge test`
-- API unit: `compiler.test.ts` + `mcp-auth.test.ts` **6/6**
+- Foundry **69/69** (unit + fuzz 256 + invariant 64×1280 + reentrancy) via `%USERPROFILE%\.foundry\bin\forge.exe`
+- API unit: compiler + mcp-auth + x402Herald.resource **10/10**
 - `web:build` **PASS**
+- Chrome: Till switch, policy/agent/activity/verify/jobs/over-budget/home/deep-link ran on production. Policy edit / revoke / F1 seller 200 were not claimed.
+- MCP HTTP: 19/20 tool/auth cases (`till_get_proof` wrapper returned empty in the probe). Token created in the real UI.
+- SDK: fresh `npm install till-0g-sdk till-0g-mcp` in a temp directory. Imports, `createClient`, empty-token and private-key rejection **PASS**. npm `0.1.0` matches `packages/client`.
 
 Playwright production browser E2E and a new session-signed USDC.e ChainScan `from==session` hash are **not** claimed in this README until they are actually run after deploy.
 

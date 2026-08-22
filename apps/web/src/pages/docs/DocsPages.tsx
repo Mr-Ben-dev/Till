@@ -58,7 +58,7 @@ export function DocsOverview() {
         <CyanButton to="/developers/mcp" variant="ghost">
           Connect with MCP
         </CyanButton>
-        <CyanButton href={txUrl(PROOFS.agentToll)} variant="ghost">
+        <CyanButton href={txUrl('0xee6a0c2bab9749c9d425d843b8308016d179067c9f13470d0698fd3bfb51b131')} variant="ghost">
           View Mainnet proof
         </CyanButton>
       </div>
@@ -79,8 +79,9 @@ export function DocsOverview() {
       <h2>Four mission families</h2>
       <p>
         Before You Pay, Before You Trust, Research For Me, and Review This. Compute is the work. x402 is optional
-        procurement. Only SETTLED SKUs execute. Quoted SKUs stay in Developers until a real Aristotle settlement tx
-        exists.
+        procurement. Only a seller HTTP 200 plus Aristotle <code>Transfer.from == session</code> is SETTLED. No live
+        seller currently accepts <code>eip155:16661</code> natively; Herald router dest-settlement of Base SKUs is
+        blocked. Till fail-closes.
       </p>
       <h2>Money rails</h2>
       <p>
@@ -398,10 +399,12 @@ export function DocsSecurity() {
             </tr>
             <tr>
               <td>x402</td>
-              <td>LIVE</td>
+              <td>FACILITATOR LIVE / ROUTER BLOCKED</td>
               <td>
-                <a href={txUrl(PROOFS.agentToll)}>AgentToll</a> · <a href={txUrl(PROOFS.api402x)}>api402x</a> ·{' '}
-                <a href={txUrl(PROOFS.tokenRisk)}>token-risk</a>
+                Facilitator Exact on 16661 works.{' '}
+                <a href={txUrl('0xee6a0c2bab9749c9d425d843b8308016d179067c9f13470d0698fd3bfb51b131')}>inbound settle</a>
+                . Router dest-settlement of Base SKUs does not. No live eip155:16661 seller 200. Session SKU settlement is
+                not live.
               </td>
             </tr>
             <tr>
@@ -491,14 +494,11 @@ export function DocsProof() {
     <Page kicker="Proof" title="Mainnet receipts" lede="Paste a hash on Verify. These are recorded production transactions, not placeholders.">
       <ul>
         <li>
-          <a href={txUrl(PROOFS.agentToll)}>AgentToll x402</a>
+          <a href={txUrl('0xee6a0c2bab9749c9d425d843b8308016d179067c9f13470d0698fd3bfb51b131')}>
+            Herald facilitator Exact inbound (operator — not session SKU 200)
+          </a>
         </li>
-        <li>
-          <a href={txUrl(PROOFS.api402x)}>api402x x402</a>
-        </li>
-        <li>
-          <a href={txUrl(PROOFS.tokenRisk)}>token-risk x402</a>
-        </li>
+        <li>AgentToll / api402x / token-risk operator hashes are not session-drawer proof and did not produce a seller 200 via the router.</li>
         <li>
           <a href={txUrl(PROOFS.storageAnchor)}>Storage anchor</a>
         </li>

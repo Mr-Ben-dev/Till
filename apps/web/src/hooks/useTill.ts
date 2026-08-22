@@ -794,6 +794,22 @@ export function useTill() {
         })
         throw new Error(`Quote exceeds the $${found.capUsd} cap. $0 spent.`)
       }
+      if (found.needsProcurement && !(found.quotes?.length)) {
+        const why =
+          found.blockReason ||
+          'FAILED_HERALD_ROUTER: no Aristotle-payable x402 specialist is live. $0 spent.'
+        patchStep('plan', { state: 'fail', detail: why })
+        setLastDenial({
+          amount: '$0',
+          why,
+          policy: true,
+          tee: true,
+          funds: true,
+          kind: 'mission',
+          vault: false,
+        })
+        throw new Error(why)
+      }
       const erc20 = new Contract(
         USDCE,
         ['function balanceOf(address) view returns (uint256)', 'function transfer(address,uint256) returns (bool)'],
@@ -870,7 +886,7 @@ export function useTill() {
       if (!result.ok) {
         patchStep('tee', { state: 'fail', detail: result.over?.reason || result.error })
         setLastDenial({
-          amount: `$${found.totalUsd} USDC.e`,
+          amount: '$0',
           why: result.over?.reason || result.error || 'Mission blocked',
           policy: false,
           tee: true,

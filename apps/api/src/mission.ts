@@ -150,6 +150,11 @@ export async function discoverMission(subject: string, family?: MissionFamily, a
     skipped: planned.skipped,
     bazaar: planned.bazaar,
     needsProcurement: true,
+    payable: planned.buys.length > 0,
+    blockReason:
+      planned.buys.length === 0
+        ? 'FAILED_HERALD_ROUTER: no live x402 seller currently accepts eip155:16661 natively. Herald facilitator Exact on Aristotle works; the cross-chain router cannot dest-settle Base SKUs. $0 spent.'
+        : undefined,
     family: compiled.family,
     familyLabel: compiled.familyLabel,
     expectedOutput: compiled.expectedOutput,
@@ -263,6 +268,22 @@ export async function runMission(opts: {
   if (total > cap) {
     const over = await blockOverBudget(Number(discovery.totalUsd), capAtomic)
     return { ok: false as const, blocked: true, discovery, over, purchases: [] as PurchaseRecord[] }
+  }
+  if (compiled.needsProcurement && discovery.quotes.length === 0) {
+    return {
+      ok: false as const,
+      blocked: true,
+      discovery,
+      over: {
+        blocked: true,
+        spentUsd: 0,
+        reason:
+          'FAILED_HERALD_ROUTER: no live x402 seller currently accepts eip155:16661 natively. ' +
+          'Herald facilitator Exact on Aristotle works; the cross-chain router cannot dest-settle Base SKUs. ' +
+          '$0 spent. Till will not invent unpaid specialist facts.',
+      },
+      purchases: [] as PurchaseRecord[],
+    }
   }
 
   const rail = opts.rail ?? (opts.payments?.length ? 'session' : opts.session ? 'session' : 'operator')

@@ -107,6 +107,8 @@ export type MissionDiscover = {
   family?: string
   familyLabel?: string
   needsProcurement?: boolean
+  payable?: boolean
+  blockReason?: string
   drawerNote?: string
   fundUsd?: number
 }

@@ -120,10 +120,14 @@ export function MissionPage({ till }: { till: TillState }) {
             ) : null}
             {ask ? <p className="mt-4 text-cyan">{ask}</p> : null}
             {compiled ? <p className="mt-4 text-white/80">{compiled}</p> : null}
-            {till.signKind === 'owner' ? (
-              <SignHint kind="owner" write={till.lastWrite} />
-            ) : (
+            {till.authorized.length > 0 ? (
               <SignHint kind="auto" write="mission" />
+            ) : (
+              <SignHint
+                kind="owner"
+                write="mission"
+                why="This Till has no READY session. Enable an agent first. APP missions are not autonomous in owner mode."
+              />
             )}
             <div className="mt-5 flex flex-wrap gap-3">
               <CyanButton disabled={till.writeLocked || !text.trim()} onClick={() => void compile()}>

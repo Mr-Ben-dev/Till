@@ -30,6 +30,23 @@ test('dest-native 8453 402 is classified as Herald router dest-proxy failure', (
     ],
   })
   assert.ok(msg && msg.includes('FAILED_HERALD_ROUTER'))
+  assert.ok(
+    describeHerald402Failure({
+      error: 'invalid_exact_evm_insufficient_balance',
+      accepts: [
+        {
+          network: 'eip155:8453',
+          payTo: '0xE606AE66542D4F1A56AA551841db41e3ECd26816',
+        },
+      ],
+    })?.includes('FAILED_HERALD_ROUTER')
+  )
+  assert.ok(
+    describeHerald402Failure({
+      error: 'invalid_payload: contract call failed: unable to call contract: execution reverted',
+      resource: { url: DEST },
+    })?.includes('FAILED_HERALD_ROUTER')
+  )
   assert.equal(
     describeHerald402Failure({
       error: 'execution reverted',

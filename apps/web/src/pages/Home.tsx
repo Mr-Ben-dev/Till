@@ -30,20 +30,14 @@ const PROOFS = [
   {
     tag: 'x402',
     date: '08.20.26',
-    title: 'v3 AgentToll safety paid in USDC.e on 16661',
-    href: 'https://chainscan.0g.ai/tx/0x58731e432ae12ba2ed3d428fe834d40c28c838cf599ea87aa254d4091b1a37a1',
+    title: 'Herald facilitator Exact on 16661 (operator inbound — not a session SKU 200)',
+    href: 'https://chainscan.0g.ai/tx/0xee6a0c2bab9749c9d425d843b8308016d179067c9f13470d0698fd3bfb51b131',
   },
   {
     tag: 'x402',
-    date: '08.20.26',
-    title: 'v3 api402x oracle-staleness paid on 16661',
-    href: 'https://chainscan.0g.ai/tx/0x3994a707a4c370a45fa98f39261c3ce1560af62656b45eda4ec64959b52315e3',
-  },
-  {
-    tag: 'x402',
-    date: '08.20.26',
-    title: 'v3 token-risk bytecode paid on 16661',
-    href: 'https://chainscan.0g.ai/tx/0x637d9ca7d4ecf39bb256ee0aae0d62be9ea4cb4e4ca857499e9e3da916c4679f',
+    date: '08.22.26',
+    title: 'Herald router dest-settlement of Base sellers is blocked',
+    href: 'https://docs.heraldprotocol.xyz/router/quickstart-x402',
   },
   {
     tag: 'Storage',
@@ -163,13 +157,13 @@ export function HomePage() {
               Ask for a result. The agent buys facts only when it must.
             </h2>
             <p className="mt-4 max-w-[58ch] text-[16px] text-ink/70">
-              Recorded Aristotle procurement, 2026-08-20. Those USDC.e transfers were from the owner coinciding as
-              operator — not the V5 session rail. Session EIP-3009 is the APP path now.
+              Herald facilitator Exact on Aristotle works. No live seller currently accepts eip155:16661, and the Herald
+              router cannot dest-settle Base SKUs. Session APP path fail-closes. Old operator hashes are not session proof.
             </p>
             <dl className="mission-strip">
               <div>
                 <dt>Spent</dt>
-                <dd>$0.016</dd>
+                <dd>$0 session SKU</dd>
               </div>
               <div>
                 <dt>Cap</dt>
@@ -177,7 +171,7 @@ export function HomePage() {
               </div>
               <div>
                 <dt>Checks</dt>
-                <dd>3 paid x402</dd>
+                <dd>0 live 16661 SKUs</dd>
               </div>
               <div>
                 <dt>Verdict</dt>
@@ -206,8 +200,11 @@ export function HomePage() {
               <div>
                 <dt>x402</dt>
                 <dd>
-                  <a className="text-cyan" href={`https://chainscan.0g.ai/tx/${DOC_PROOFS.agentToll}`}>
-                    AgentToll ↗
+                  <a
+                    className="text-cyan"
+                    href="https://chainscan.0g.ai/tx/0xee6a0c2bab9749c9d425d843b8308016d179067c9f13470d0698fd3bfb51b131"
+                  >
+                    Facilitator Exact ↗
                   </a>
                 </dd>
               </div>

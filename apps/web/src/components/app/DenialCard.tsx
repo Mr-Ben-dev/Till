@@ -14,7 +14,11 @@ export function DenialCard({ denial }: { denial: Denial }) {
     <section className="rounded-[4.27px] border border-danger/35 bg-danger/10 p-6">
       <p className="font-mono text-[11px] tracking-[0.18em] text-danger">BLOCKED</p>
       <h3 className="mt-3 text-[1.4rem] font-bold leading-tight text-white">
-        This spend of {denial.amount} was blocked.
+        {denial.kind === 'overbudget'
+          ? `This spend of ${denial.amount} was blocked.`
+          : denial.kind === 'mission'
+            ? 'This mission was blocked.'
+            : `This action was blocked.`}
       </h3>
       <p className="mt-3 max-w-[50ch] text-[15px] leading-relaxed text-white/75">Why: {denial.why}</p>
       <ul className="mt-5 grid gap-2 text-[14px] text-white/80">

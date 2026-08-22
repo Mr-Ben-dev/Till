@@ -99,10 +99,18 @@ export function sellerResourceUrl(destination: string, resource?: { url?: string
 
 export const HERALD_PAYTO = '0x686Ca1f3BAf7F7Df3334f2f1A65AE314ee9CDb29'
 
+export const HERALD_ROUTER_BLOCKER =
+  'FAILED_HERALD_ROUTER: Herald router did not dest-settle this seller from Aristotle. ' +
+  'Live Base sellers either try to execute the 16661 PAYMENT-SIGNATURE as Base USDC, or the router dest-wallet cannot complete outbound USDC. ' +
+  'No public x402 seller currently advertises eip155:16661 natively. ' +
+  'Herald facilitator POST /verify and /settle on 16661 succeed independently. ' +
+  'Till will not self-settle inbound USDC.e without a seller 200 (funds would sit at Herald payTo with no SKU).'
+
 export function describeHerald402Failure(required: unknown): string | null {
   const parsed = required as {
     error?: string
     accepts?: { network?: string; payTo?: string }[]
+    resource?: { url?: string }
   } | null
   if (!parsed || typeof parsed !== 'object') return null
   const accepts = parsed.accepts ?? []
@@ -112,17 +120,16 @@ export function describeHerald402Failure(required: unknown): string | null {
       a.payTo &&
       a.payTo.toLowerCase() !== HERALD_PAYTO.toLowerCase()
   )
-  const noOgAccept = !accepts.some(
-    (a) =>
-      a.network === OG_CAIP && a.payTo?.toLowerCase() === HERALD_PAYTO.toLowerCase()
+  const ogHerald = accepts.some(
+    (a) => a.network === OG_CAIP && a.payTo?.toLowerCase() === HERALD_PAYTO.toLowerCase()
   )
-  if (destNative && noOgAccept && /execution reverted/i.test(parsed.error || '')) {
-    return (
-      'FAILED_HERALD_ROUTER: Herald router forwarded the 16661 PAYMENT-SIGNATURE to the destination seller. ' +
-      'The seller attempted Base USDC settlement and reverted. ' +
-      'Herald facilitator POST /verify and /settle on eip155:16661 succeed independently. ' +
-      'Till will not self-settle inbound USDC.e without a seller 200 (funds would sit at Herald payTo with no SKU).'
-    )
+  const destResource = /https?:\/\//i.test(parsed.resource?.url || '') &&
+    !/router\.heraldprotocol\.xyz/i.test(parsed.resource?.url || '')
+  const destHopFail = /execution reverted|invalid_payload|insufficient_balance|facilitator_error/i.test(
+    parsed.error || ''
+  )
+  if ((destNative && !ogHerald) || (destHopFail && (destNative || destResource))) {
+    return HERALD_ROUTER_BLOCKER
   }
   return null
 }

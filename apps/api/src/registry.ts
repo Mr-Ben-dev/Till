@@ -42,7 +42,8 @@ export const CANDIDATES: Candidate[] = [
     fact: 'token-safety',
     description: 'Honeypot simulation, taxes, owner powers, holder concentration',
     url: (token) => `https://agenttoll.app/api/base/safety/${token}`,
-    settledOnce: true,
+    knownPayFail:
+      'Base-only 402 (eip155:8453). Herald router dest-proxy forwards the 16661 PAYMENT-SIGNATURE; seller TWA reverts. No seller 200.',
   },
   {
     provider: 'api402x',
@@ -50,7 +51,8 @@ export const CANDIDATES: Candidate[] = [
     fact: 'market',
     description: 'Chainlink/Pyth freshness and peg for ETH/BTC/USDC on Base',
     url: () => 'https://api402x.com/oracle-staleness',
-    settledOnce: true,
+    knownPayFail:
+      'Base-only 402. Router paid retry returns dest-native 8453 insufficient_balance. No seller 200.',
   },
   {
     provider: 'token-risk',
@@ -58,7 +60,8 @@ export const CANDIDATES: Candidate[] = [
     fact: 'contract',
     description: 'Static bytecode heuristics: proxy, mint, pause, blacklist, owner',
     url: (token) => `https://5-9-107-124.nip.io/token-risk?address=${token}`,
-    settledOnce: true,
+    knownPayFail:
+      'Base-only 402. Herald router dest-proxy reverts on the forwarded 16661 signature. No seller 200.',
   },
   {
     provider: 'OnchainPulse',
@@ -67,7 +70,8 @@ export const CANDIDATES: Candidate[] = [
     description: 'Token-safety verdict (CLEAR/CAUTION/AVOID)',
     url: (token) =>
       `https://onchainpulse.theaslangroupllc.com/api/evmtoken?address=${token}&chain=base`,
-    // Quoted 16661 Exact 2026-08-22. Not SETTLED until a new Aristotle tx is recorded.
+    knownPayFail:
+      'Direct 402 has no eip155:16661 accept. Router quote is not a seller 200. Not payable from Aristotle.',
   },
   {
     provider: 'PulseFeed',
