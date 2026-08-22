@@ -88,7 +88,33 @@ export async function quoteHerald(destination: string, seller: string): Promise<
   }
 }
 
-export async function quoteAccept(destination: string): Promise<{ resourceUrl: string; accept: HeraldAccept; description: string }> {
+export type X402Resource = { url: string; description?: string; mimeType?: string }
+
+export function sellerResourceUrl(destination: string, resource?: { url?: string } | null): string {
+  const url = resource?.url?.trim() || destination
+  if (/router\.heraldprotocol\.xyz/i.test(url)) return destination
+  return url
+}
+
+export function withDestinationResource(payment: PaymentPayload, destination: string): PaymentPayload {
+  const url = sellerResourceUrl(destination, payment.resource)
+  return {
+    ...payment,
+    x402Version: payment.x402Version ?? 2,
+    resource: {
+      url,
+      description: payment.resource?.description,
+      mimeType: payment.resource?.mimeType,
+    },
+  }
+}
+
+export async function quoteAccept(destination: string): Promise<{
+  resourceUrl: string
+  resource: X402Resource
+  accept: HeraldAccept
+  description: string
+}> {
   const url = routerUrl(destination)
   const res = await fetch(url, { headers: { Accept: 'application/json' } })
   const hdr = res.headers.get('PAYMENT-REQUIRED') ?? res.headers.get('payment-required') ?? ''
@@ -96,7 +122,7 @@ export async function quoteAccept(destination: string): Promise<{ resourceUrl: s
     throw new Error(`FAILED_HERALD: expected 402 PAYMENT-REQUIRED for ${destination}, got ${res.status}`)
   }
   const parsed = JSON.parse(Buffer.from(hdr, 'base64').toString('utf8')) as {
-    resource?: { description?: string; url?: string }
+    resource?: X402Resource
     accepts?: HeraldAccept[]
   }
   const pick =
@@ -107,12 +133,22 @@ export async function quoteAccept(destination: string): Promise<{ resourceUrl: s
         !a.extra?.verifyingContract
     )
   if (!pick) throw new Error(`FAILED_HERALD: no 16661 USDC.e Exact accept for ${destination}`)
-  return { resourceUrl: url, accept: pick, description: parsed.resource?.description ?? '' }
+  const resourceUrl = sellerResourceUrl(destination, parsed.resource)
+  return {
+    resourceUrl,
+    resource: {
+      url: resourceUrl,
+      description: parsed.resource?.description ?? '',
+      mimeType: parsed.resource?.mimeType ?? '',
+    },
+    accept: pick,
+    description: parsed.resource?.description ?? '',
+  }
 }
 
 export type PaymentPayload = {
   x402Version?: number
-  resource?: { url?: string }
+  resource?: { url?: string; description?: string; mimeType?: string }
   accepted?: HeraldAccept
   payload?: {
     signature?: string
@@ -134,7 +170,8 @@ export async function settleWithPaymentPayload(
   const from = payment.payload?.authorization?.from
   if (!from) throw new Error('PAYMENT-SIGNATURE missing authorization.from')
   const url = routerUrl(destination)
-  const encoded = Buffer.from(JSON.stringify(payment)).toString('base64')
+  const normalized = withDestinationResource(payment, destination)
+  const encoded = Buffer.from(JSON.stringify(normalized)).toString('base64')
   const res = await fetch(url, {
     headers: {
       Accept: 'application/json',
@@ -160,7 +197,11 @@ export async function settleWithPaymentPayload(
       })()
     : null
   if (res.status === 402) {
-    throw new Error(`FAILED_HERALD: still 402 after session payment for ${destination}: ${text.slice(0, 240)}`)
+    const reason =
+      settlement && typeof settlement === 'object'
+        ? JSON.stringify(settlement).slice(0, 400)
+        : text.slice(0, 240)
+    throw new Error(`FAILED_HERALD: still 402 after session payment for ${destination}: ${reason}`)
   }
   if (!res.ok) {
     throw new Error(`FAILED_HERALD: HTTP ${res.status} for ${destination}: ${text.slice(0, 400)}`)

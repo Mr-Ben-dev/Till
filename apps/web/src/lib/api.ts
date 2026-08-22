@@ -87,6 +87,7 @@ export type MissionDiscover = {
   accepts?: {
     url: string
     resourceUrl?: string
+    resource?: { url?: string; description?: string; mimeType?: string }
     accept?: {
       scheme: string
       network: string
@@ -94,6 +95,7 @@ export type MissionDiscover = {
       asset: string
       payTo: string
       extra?: { name?: string; version?: string }
+      maxTimeoutSeconds?: number
     }
     error?: string
   }[]

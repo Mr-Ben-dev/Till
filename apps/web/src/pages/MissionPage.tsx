@@ -80,7 +80,7 @@ export function MissionPage({ till }: { till: TillState }) {
               USDC.e is limited by this mission&apos;s session drawer, not by TillPolicy. Native 0G policy is a separate vault rail.
             </p>
           </header>
-          <ProductNotices till={till} />
+          <ProductNotices till={till} hideDenial />
           <section className="surf mt-8">
             <p className="mod-kicker">Family</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -120,7 +120,11 @@ export function MissionPage({ till }: { till: TillState }) {
             ) : null}
             {ask ? <p className="mt-4 text-cyan">{ask}</p> : null}
             {compiled ? <p className="mt-4 text-white/80">{compiled}</p> : null}
-            <SignHint kind="auto" write="mission" />
+            {till.signKind === 'owner' ? (
+              <SignHint kind="owner" write={till.lastWrite} />
+            ) : (
+              <SignHint kind="auto" write="mission" />
+            )}
             <div className="mt-5 flex flex-wrap gap-3">
               <CyanButton disabled={till.writeLocked || !text.trim()} onClick={() => void compile()}>
                 Compile
@@ -137,7 +141,7 @@ export function MissionPage({ till }: { till: TillState }) {
               hard max $0.50
             </p>
           </section>
-          {till.lastDenial ? (
+          {till.lastDenial?.kind === 'overbudget' ? (
             <section className="surf surf-accent mt-8" id="blocked">
               <p className="mod-kicker">Test over-budget spend</p>
               <h2>BLOCKED</h2>
@@ -145,13 +149,37 @@ export function MissionPage({ till }: { till: TillState }) {
               <p className="mt-3 text-white/70">{till.lastDenial.why}</p>
               <p className="mt-2 text-[13px] text-white/45">This is an intentional security test, not a real purchase.</p>
             </section>
+          ) : till.lastDenial ? (
+            <section className="surf surf-accent mt-8" id="blocked">
+              <p className="mod-kicker">Mission blocked</p>
+              <h2>BLOCKED</h2>
+              <p className="mt-3 text-white/70">{till.lastDenial.why}</p>
+              <p className="mt-2 text-[13px] text-white/45">
+                {till.lastDenial.vault === false
+                  ? 'USDC.e for this mission sits in the session drawer, not the Till vault. Leftover is swept back to the owner.'
+                  : 'Nothing left the vault.'}
+              </p>
+            </section>
           ) : null}
           <section className="mt-8">
             <Pipeline steps={till.steps} tech={till.tech} />
           </section>
           {till.lastBrief ? (
             <section className="mt-8">
-              <BriefCard brief={till.lastBrief} />
+              <BriefCard
+                brief={till.lastBrief}
+                model={till.briefModel}
+                trust={till.briefTrust}
+                tee={till.tech.tee === 'true' || till.tech.processResponse === 'true'}
+                storageTx={till.tech.anchorTx}
+                spentUsd={till.purchases.reduce((n, p) => n + p.quote.amountUsd, 0)}
+                sources={till.purchases.map((p) => ({
+                  seller: p.seller,
+                  sku: p.sku,
+                  usd: p.quote.amountUsd,
+                  tx: p.ogTx,
+                }))}
+              />
               <details className="mt-4 rounded-[4.27px] border border-white/10 p-4">
                 <summary className="cursor-pointer text-white/70">Proof</summary>
                 <ul className="mt-3 space-y-2 font-mono text-[12px] text-white/60">

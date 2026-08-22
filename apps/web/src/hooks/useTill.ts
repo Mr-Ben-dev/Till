@@ -789,6 +789,8 @@ export function useTill() {
           policy: false,
           tee: true,
           funds: true,
+          kind: 'overbudget',
+          vault: true,
         })
         throw new Error(`Quote exceeds the $${found.capUsd} cap. $0 spent.`)
       }
@@ -798,6 +800,8 @@ export function useTill() {
         new JsonRpcProvider(RPC_URL)
       )
       const quoteAtomic = BigInt(found.totalAtomic || '0')
+      let missionError: unknown = null
+      try {
       let drawer = asBig(await erc20.balanceOf(stored.address))
       const hardMax = parseUnits('0.5', 6)
       if (drawer > hardMax) {
@@ -820,6 +824,8 @@ export function useTill() {
           const token = new Contract(USDCE, ['function transfer(address,uint256) returns (bool)'], s)
           await trackOwnerTx('fund-drawer', () => token.transfer(stored.address, need) as Promise<TransactionResponse>)
         })
+        setSignKind('auto')
+        setLastWrite('mission')
         drawer = asBig(await erc20.balanceOf(stored.address))
       }
       if (quoteAtomic > 0n && drawer < quoteAtomic) {
@@ -831,16 +837,22 @@ export function useTill() {
       })
       const payments = []
       for (const acc of found.accepts ?? []) {
-        if (!acc.accept || !acc.resourceUrl) {
+        if (!acc.accept) {
           if (quoteAtomic > 0n) throw new Error(acc.error || 'Missing Herald accept for a quoted SKU')
           continue
         }
+        const dest = acc.url
         payments.push(
           await signExactEip3009({
             privateKey: stored.privateKey,
             from: stored.address,
             accept: acc.accept,
-            resourceUrl: acc.resourceUrl,
+            resourceUrl: dest,
+            resource: {
+              url: dest,
+              description: acc.resource?.description ?? '',
+              mimeType: acc.resource?.mimeType ?? '',
+            },
           })
         )
       }
@@ -860,9 +872,11 @@ export function useTill() {
         setLastDenial({
           amount: `$${found.totalUsd} USDC.e`,
           why: result.over?.reason || result.error || 'Mission blocked',
-          policy: true,
-          tee: false,
+          policy: false,
+          tee: true,
           funds: true,
+          kind: 'mission',
+          vault: false,
         })
         throw new Error(result.over?.reason || result.error || 'Mission blocked')
       }
@@ -961,22 +975,29 @@ export function useTill() {
           patchStep('proof', { state: 'fail', detail: decodeErr(e) })
         }
       })
-      try {
-        patchStep('sweep', { state: 'wait', detail: 'Sweep leftover USDC.e to owner before any revoke' })
-        const left = asBig(await erc20.balanceOf(stored.address))
-        if (left > 0n) {
-          const w = new Wallet(stored.privateKey, new JsonRpcProvider(RPC_URL))
-          const token = new Contract(USDCE, ['function transfer(address,uint256) returns (bool)'], w)
-          const tx = await token.transfer(address, left)
-          const rec = await tx.wait()
-          patchStep('sweep', { state: 'ok', detail: rec?.hash ?? tx.hash })
-          setTech((t) => ({ ...t, sweepTx: rec?.hash ?? tx.hash }))
-        } else {
-          patchStep('sweep', { state: 'ok', detail: 'Drawer empty' })
-        }
       } catch (e) {
-        patchStep('sweep', { state: 'fail', detail: decodeErr(e) })
-        throw new Error(`Sweep failed. Do not revoke yet. ${decodeErr(e)}`)
+        missionError = e
+        throw e
+      } finally {
+        if (quoteAtomic > 0n) {
+          try {
+            patchStep('sweep', { state: 'wait', detail: 'Sweep leftover USDC.e to owner before any revoke' })
+            const left = asBig(await erc20.balanceOf(stored.address))
+            if (left > 0n) {
+              const w = new Wallet(stored.privateKey, new JsonRpcProvider(RPC_URL))
+              const token = new Contract(USDCE, ['function transfer(address,uint256) returns (bool)'], w)
+              const tx = await token.transfer(address, left)
+              const rec = await tx.wait()
+              patchStep('sweep', { state: 'ok', detail: rec?.hash ?? tx.hash })
+              setTech((t) => ({ ...t, sweepTx: rec?.hash ?? tx.hash }))
+            } else {
+              patchStep('sweep', { state: 'ok', detail: 'Drawer empty' })
+            }
+          } catch (e) {
+            patchStep('sweep', { state: 'fail', detail: decodeErr(e) })
+            if (!missionError) throw new Error(`Sweep failed. Do not revoke yet. ${decodeErr(e)}`)
+          }
+        }
       }
     })
 
@@ -1004,6 +1025,8 @@ export function useTill() {
         policy: false,
         tee: true,
         funds: true,
+        kind: 'overbudget',
+        vault: true,
       })
     })
 

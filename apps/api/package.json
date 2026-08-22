@@ -9,7 +9,7 @@
     "e2e:compute": "tsx src/e2e-compute.ts",
     "e2e:settle": "tsx src/e2e-settle.ts",
     "test:mcp": "tsx src/mcp-auth.test.ts",
-    "test:unit": "tsx --test src/compiler.test.ts src/mcp-auth.test.ts"
+    "test:unit": "tsx --test src/compiler.test.ts src/mcp-auth.test.ts src/x402Herald.resource.test.ts"
   },
   "dependencies": {
     "@till/config": "0.1.0",

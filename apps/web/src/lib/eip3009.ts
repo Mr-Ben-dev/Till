@@ -1,4 +1,5 @@
-import { Wallet, getBytes, hexlify, randomBytes } from 'ethers'
+import { getAddress, toHex } from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
 import { USDCE } from './chain'
 
 export type HeraldAccept = {
@@ -11,9 +12,11 @@ export type HeraldAccept = {
   extra?: { name?: string; version?: string }
 }
 
+export type X402Resource = { url: string; description?: string; mimeType?: string }
+
 export type PaymentPayload = {
   x402Version: 2
-  resource: { url: string }
+  resource: X402Resource
   accepted: HeraldAccept
   payload: {
     signature: string
@@ -28,54 +31,72 @@ export type PaymentPayload = {
   }
 }
 
+const TRANSFER_WITH_AUTHORIZATION = [
+  { name: 'from', type: 'address' },
+  { name: 'to', type: 'address' },
+  { name: 'value', type: 'uint256' },
+  { name: 'validAfter', type: 'uint256' },
+  { name: 'validBefore', type: 'uint256' },
+  { name: 'nonce', type: 'bytes32' },
+] as const
+
 export async function signExactEip3009(opts: {
   privateKey: string
   from: string
   accept: HeraldAccept
   resourceUrl: string
+  resource?: X402Resource
 }): Promise<PaymentPayload> {
-  const wallet = new Wallet(opts.privateKey)
-  if (wallet.address.toLowerCase() !== opts.from.toLowerCase()) {
+  const account = privateKeyToAccount(opts.privateKey as `0x${string}`)
+  if (account.address.toLowerCase() !== opts.from.toLowerCase()) {
     throw new Error('Session key does not match authorized session address')
   }
-  const nonce = hexlify(randomBytes(32))
+  const name = opts.accept.extra?.name
+  const version = opts.accept.extra?.version
+  if (!name || !version) {
+    throw new Error('Herald accept is missing EIP-712 name/version for Bridged USDC')
+  }
+  const resourceUrl = opts.resource?.url || opts.resourceUrl
+  if (!resourceUrl || /router\.heraldprotocol\.xyz/i.test(resourceUrl)) {
+    throw new Error('Payment resource.url must be the seller destination, not the Herald router')
+  }
+  const nonce = toHex(crypto.getRandomValues(new Uint8Array(32)))
   const validAfter = '0'
-  const validBefore = String(Math.floor(Date.now() / 1000) + 300)
-  const domain = {
-    name: opts.accept.extra?.name || 'Bridged USDC',
-    version: opts.accept.extra?.version || '2',
-    chainId: 16661,
-    verifyingContract: opts.accept.asset || USDCE,
-  }
-  const types = {
-    TransferWithAuthorization: [
-      { name: 'from', type: 'address' },
-      { name: 'to', type: 'address' },
-      { name: 'value', type: 'uint256' },
-      { name: 'validAfter', type: 'uint256' },
-      { name: 'validBefore', type: 'uint256' },
-      { name: 'nonce', type: 'bytes32' },
-    ],
-  }
-  const message = {
-    from: opts.from,
-    to: opts.accept.payTo,
-    value: opts.accept.amount,
-    validAfter,
-    validBefore,
-    nonce,
-  }
-  const signature = await wallet.signTypedData(domain, types, message)
-  void getBytes(signature)
+  const validBefore = String(Math.floor(Date.now() / 1000) + (opts.accept.maxTimeoutSeconds ?? 300))
+  const from = getAddress(opts.from)
+  const to = getAddress(opts.accept.payTo)
+  const verifyingContract = getAddress(opts.accept.asset || USDCE)
+  const signature = await account.signTypedData({
+    domain: {
+      name,
+      version,
+      chainId: 16661,
+      verifyingContract,
+    },
+    types: { TransferWithAuthorization: TRANSFER_WITH_AUTHORIZATION },
+    primaryType: 'TransferWithAuthorization',
+    message: {
+      from,
+      to,
+      value: BigInt(opts.accept.amount),
+      validAfter: BigInt(validAfter),
+      validBefore: BigInt(validBefore),
+      nonce,
+    },
+  })
   return {
     x402Version: 2,
-    resource: { url: opts.resourceUrl },
+    resource: {
+      url: resourceUrl,
+      description: opts.resource?.description ?? '',
+      mimeType: opts.resource?.mimeType ?? '',
+    },
     accepted: opts.accept,
     payload: {
       signature,
       authorization: {
-        from: opts.from,
-        to: opts.accept.payTo,
+        from,
+        to,
         value: opts.accept.amount,
         validAfter,
         validBefore,

@@ -14,6 +14,7 @@ const OWNER: Record<string, string> = {
   'job-finish': 'Settle and refund are owner actions. The session cannot move job escrow.',
   network: 'Switching to 0G Aristotle uses your wallet.',
   mission: 'No READY session. This mission will ask for your wallet.',
+  'fund-drawer': 'This mission’s USDC.e drawer is funded from your wallet. The session then signs EIP-3009 — not this wallet, and not TillPolicy.',
 }
 
 export function ownerWhy(write: string) {
