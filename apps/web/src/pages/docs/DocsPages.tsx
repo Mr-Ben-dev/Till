@@ -160,9 +160,10 @@ export function DocsCore() {
       <p>ERC-7857 authorizeUsage on that Till. Cross-Till isolation is enforced on-chain. MCP uses a JWT grant, not a key.</p>
       <h2>x402 / Compute / Storage / 8004</h2>
       <p>
-        Discovery and quote against live sellers. Settlement in USDC.e on Aristotle via Herald. Policy TEE {ROLES.fastPolicy}{' '}
-        with processResponse. Brief writer {ROLES.defaultPolicy} TeeML. Encrypted packet on 0G Storage, vault-anchored.
-        ERC-8004 Identity and Reputation are live. Validation Registry is not claimed.
+        Discovery and quote against live sellers. Herald facilitator Exact on 16661 USDC.e works; the Herald router
+        dest-proxy currently blocks SKU 200. Policy TEE {ROLES.fastPolicy} with processResponse. Brief writer{' '}
+        {ROLES.defaultPolicy} TeeML. Encrypted packet on 0G Storage, vault-anchored. ERC-8004 Identity and Reputation are
+        live. Validation Registry is not claimed.
       </p>
     </Page>
   )
@@ -455,7 +456,11 @@ export function DocsSecurity() {
         <li>DAEntrance has no code on Aristotle 16661. Not used. Not faked.</li>
         <li>Foundation sealed iTransfer / AgenticID attestor not claimed. IERC7857Cloneable ID is implemented; sealed iTransferFrom is blocked on-chain.</li>
         <li>ERC-8004 Validation Registry is absent on 0G. Identity + Reputation only.</li>
-        <li>x402 Before You Pay settles USDC.e on 16661 via Herald. Foreign-network 402s are skipped, not paid.</li>
+        <li>
+          Herald facilitator Exact on 16661 works. The Herald router currently proxies the 16661 PAYMENT-SIGNATURE to Base
+          sellers, which revert. Before You Pay SKU 200 is blocked. Till fail-closes and sweeps. Old operator hashes are
+          not session proof.
+        </li>
         <li>MCP cannot upload the session private key, so it cannot Storage-anchor. Revoke is owner-wallet only.</li>
         <li>Hosted OAuth DCR clients are in-memory on Render. Prefer a signed token from this docs site after a dyno restart.</li>
         <li>MetaMask Blockaid currently BLOCKs till-0g.vercel.app. Confirm the URL, then connect. Custom domain is the durable fix.</li>

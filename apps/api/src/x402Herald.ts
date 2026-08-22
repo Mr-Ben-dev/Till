@@ -97,6 +97,36 @@ export function sellerResourceUrl(destination: string, resource?: { url?: string
   return url
 }
 
+export const HERALD_PAYTO = '0x686Ca1f3BAf7F7Df3334f2f1A65AE314ee9CDb29'
+
+export function describeHerald402Failure(required: unknown): string | null {
+  const parsed = required as {
+    error?: string
+    accepts?: { network?: string; payTo?: string }[]
+  } | null
+  if (!parsed || typeof parsed !== 'object') return null
+  const accepts = parsed.accepts ?? []
+  const destNative = accepts.some(
+    (a) =>
+      a.network === 'eip155:8453' &&
+      a.payTo &&
+      a.payTo.toLowerCase() !== HERALD_PAYTO.toLowerCase()
+  )
+  const noOgAccept = !accepts.some(
+    (a) =>
+      a.network === OG_CAIP && a.payTo?.toLowerCase() === HERALD_PAYTO.toLowerCase()
+  )
+  if (destNative && noOgAccept && /execution reverted/i.test(parsed.error || '')) {
+    return (
+      'FAILED_HERALD_ROUTER: Herald router forwarded the 16661 PAYMENT-SIGNATURE to the destination seller. ' +
+      'The seller attempted Base USDC settlement and reverted. ' +
+      'Herald facilitator POST /verify and /settle on eip155:16661 succeed independently. ' +
+      'Till will not self-settle inbound USDC.e without a seller 200 (funds would sit at Herald payTo with no SKU).'
+    )
+  }
+  return null
+}
+
 export function withDestinationResource(payment: PaymentPayload, destination: string): PaymentPayload {
   const url = sellerResourceUrl(destination, payment.resource)
   return {
@@ -341,6 +371,10 @@ export async function settleWithPaymentPayload(
   const settlement = decodeX402Header(res, 'PAYMENT-RESPONSE')
   if (res.status === 402) {
     const required = decodeX402Header(res, 'PAYMENT-REQUIRED')
+    const routerFail = describeHerald402Failure(required)
+    if (routerFail) {
+      throw new Error(`${routerFail} dest=${destination} localSim=${localSim} drawer=${localBal}`)
+    }
     const reason = JSON.stringify(required ?? settlement ?? body).slice(0, 400)
     throw new Error(
       `FAILED_HERALD: still 402 after session payment for ${destination}: ${reason} localSim=${localSim} drawer=${localBal}`
@@ -409,6 +443,9 @@ export async function payHerald(destination: string, maxAtomic = process.env.TIL
     settlement = { paymentResponse: res.headers.get('PAYMENT-RESPONSE') ?? res.headers.get('payment-response') }
   }
   if (!res.ok) {
+    const required = decodeX402Header(res, 'PAYMENT-REQUIRED')
+    const routerFail = describeHerald402Failure(required)
+    if (routerFail) throw new Error(`${routerFail} dest=${destination}`)
     throw new Error(`Herald paid fetch HTTP ${res.status}: ${text.slice(0, 400)}`)
   }
   return { status: res.status, body, settlement }

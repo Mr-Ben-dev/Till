@@ -12,7 +12,7 @@ const ITEMS = [
   },
   {
     title: 'x402 buys the work',
-    body: 'It discovers live x402 quotes. Only SETTLED SKUs execute. USDC.e is paid from the session EOA via EIP-3009 on Aristotle through Herald.',
+    body: 'It discovers live x402 quotes on Aristotle USDC.e. Herald facilitator Exact settlement works; the Herald cross-chain router currently forwards the 0G signature to Base sellers, so SKU 200 is blocked. Till fail-closes and sweeps. Quoted is not settled.',
   },
   {
     title: 'Storage + ERC-8004 receipt',

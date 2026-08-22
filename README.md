@@ -121,15 +121,23 @@ Cross-Till isolation is on-chain. Pause and expiry stop spend. Revoke is an owne
 | Storage | Encrypted packet + Flow | Durable evidence | [flow](https://chainscan.0g.ai/tx/0x4ea0b7938003b35dfa13f4865289da130a36686ae6f56acebcbd8939d05bccd0) · [anchor](https://chainscan.0g.ai/tx/0xefbe1b3d29564f19bed969d4737f9182fd80f30553f80acc09adb5617a0a5415) |
 | ERC-7857 | `authorizeUsage` | Grant without shipping a key | IERC721 / IERC7857 / Authorize / Cloneable **true** on the NFT |
 | ERC-8004 | Identity + Reputation | Agent identity, feedback | [register](https://chainscan.0g.ai/tx/0x6446a6c24a28b23088ef36d92309a3aefbe58b7264da88ae691cb374358ff33a) |
-| x402 | Discovery, quote, USDC.e settle | Buy work under policy | [AgentToll](https://chainscan.0g.ai/tx/0x58731e432ae12ba2ed3d428fe834d40c28c838cf599ea87aa254d4091b1a37a1) |
+| x402 | Discovery + quote. Inbound Exact on 16661 via Herald **facilitator** | Buy work under a session EIP-3009 | Facilitator `/settle` [tx](https://chainscan.0g.ai/tx/0xee6a0c2bab9749c9d425d843b8308016d179067c9f13470d0698fd3bfb51b131) (operator inbound 0.003 USDC.e, **not** session proof). **Herald router dest-proxy currently fails** — SKU 200 is blocked. |
 
 Payment Layer `0xA3b15Bd2aD18BFB6b5f92D8AA9F444Dd59d1cE32` bills **Compute only**. It does not hold Till user funds.
 
 ## x402
 
-Live sellers are quoted at run time. Unavailable sellers stay **UNAVAILABLE** (not faked). Settlement asset is **USDC.e** on 16661 (`0x1f3aa82227281ca364bfb3d253b0f1af1da6473e`) via Herald. Swap: https://hub.0g.ai/swap?network=mainnet
+Live sellers are quoted at run time. Unavailable sellers stay **UNAVAILABLE** (not faked). Settlement asset is **USDC.e** on 16661 (`0x1f3aa82227281ca364bfb3d253b0f1af1da6473e`).
 
-Foreign-network 402s (e.g. Base USDC) are skipped.
+Herald **facilitator** `POST /verify` + `POST /settle` on `eip155:16661` Exact **works** (EIP-3009 `transferWithAuthorization`, gas payer `0x686C…`, `Transfer.to` = Herald payTo).
+
+Herald **cross-chain router** `https://router.heraldprotocol.xyz/route/x402` currently **proxies the 16661 `PAYMENT-SIGNATURE` to the destination seller**. Base sellers (AgentToll, etc.) try to settle that signature as Base USDC and revert. wrapFetch therefore returns HTTP 402 with dest-native `eip155:8453` accepts. Till **fail-closes and sweeps** the session drawer. Till will **not** call facilitator `/settle` and then pretend the SKU succeeded — that would move USDC.e to Herald with no seller 200.
+
+APP session `Transfer.from == session` + SKU 200 is **not live** until Herald fixes dest-proxy. Old operator hashes are not session proof.
+
+Swap USDC.e: https://hub.0g.ai/swap?network=mainnet
+
+Foreign-network 402s (e.g. Base USDC as the intended rail) are skipped.
 
 ## MCP
 
